@@ -10,10 +10,12 @@ export async function apiFetch<T = unknown>(
 ): Promise<T> {
   const { token, headers, ...rest } = options;
 
+  const isFormData = rest.body instanceof FormData;
+
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
     headers: {
-      'Content-Type': 'application/json',
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       Accept: 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers ?? {}),

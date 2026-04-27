@@ -46,19 +46,43 @@ class SettingController extends Controller
      */
     public function update(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            '*' => 'nullable|string|max:5000',
-        ]);
+        $settings = $request->all();
+        
+        foreach ($settings as $key => $value) {
+            // Skip numeric keys if any
+            if (is_numeric($key)) continue;
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
+            // Handle File Uploads
+            if ($request->hasFile($key)) {
+                $file = $request->file($key);
+                $filename = $key . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('settings', $filename, 'public');
+                $value = '/storage/' . $path;
+            }
 
-        foreach ($request->all() as $key => $value) {
-            Setting::updateOrCreate(
-                ['key' => $key],
-                ['value' => $value]
-            );
+            // Handle Arrays (for multiple emails, phones, tags)
+            if (is_array($value)) {
+                $value = json_encode($value);
+            }
+
+            // Update or Create
+            $setting = Setting::where('key' , $key)->first();
+            if ($setting) {
+                $setting->update(['value' => $value]);
+            } else {
+                // Guess group from key
+                $group = 'general';
+                if (str_contains($key, 'meta_')) $group = 'seo';
+                if (str_contains($key, 'about_') || str_contains($key, 'mission') || str_contains($key, 'vision')) $group = 'about';
+                
+                Setting::create([
+                    'key' => $key,
+                    'value' => $value,
+                    'group' => $group,
+                    'label' => ucwords(str_replace('_', ' ', $key)),
+                    'type' => $request->hasFile($key) ? 'image' : 'text'
+                ]);
+            }
         }
 
         return response()->json([

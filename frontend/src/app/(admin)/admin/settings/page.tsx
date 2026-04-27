@@ -1,16 +1,61 @@
 import { AdminLayout } from '@/src/components/layout-components/admin-layout';
-import { PageWrapper, PageHeader } from '@/src/components/layout-components/page-wrapper';
+import { PageWrapper } from '@/src/components/layout-components/page-wrapper';
 import { SettingsForm } from '@/src/components/admin-components/settings-form';
+import { cookies } from 'next/headers';
 
-export default function AdminSettingsPage() {
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+async function getInitialData() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
+
+  if (!token) return { settings: {}, socialLinks: [] };
+
+  try {
+    const [settingsRes, socialRes] = await Promise.all([
+      fetch(`${API_URL}/settings`, {
+        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
+      }),
+      fetch(`${API_URL}/admin/social-links`, {
+        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+        cache: 'no-store'
+      })
+    ]);
+
+    const settingsData = await settingsRes.json();
+    const socialData = await socialRes.json();
+
+    // Flatten settings like the client does
+    const flatSettings: Record<string, any> = {};
+    if (settingsData.data) {
+      Object.values(settingsData.data).forEach((group: any) => {
+        if (group && typeof group === 'object') {
+          Object.entries(group).forEach(([key, val]) => { flatSettings[key] = val; });
+        }
+      });
+    }
+
+    return {
+      settings: flatSettings,
+      socialLinks: socialData.data || []
+    };
+  } catch (error) {
+    console.error('Server-side fetch failed:', error);
+    return { settings: {}, socialLinks: [] };
+  }
+}
+
+export default async function AdminSettingsPage() {
+  const { settings, socialLinks } = await getInitialData();
+
   return (
     <AdminLayout>
       <PageWrapper>
-        <PageHeader 
-          title="Website Settings" 
-          description="Configure your website's general information, SEO, contact details, and appearance."
+        <SettingsForm 
+          initialSettings={settings} 
+          initialSocialLinks={socialLinks} 
         />
-        <SettingsForm />
       </PageWrapper>
     </AdminLayout>
   );
