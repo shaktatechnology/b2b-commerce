@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SocialLinkController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\Offer\OfferController;
+use App\Http\Controllers\Api\Discount\DiscountController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -32,6 +34,14 @@ Route::get('/categories/{slug}',     [CategoryController::class, 'show']);
 // Products
 Route::get('/products',             [ProductController::class, 'index']);
 Route::get('/products/{slug}',       [ProductController::class, 'show']);
+
+// Offers
+Route::get('/offers',               [OfferController::class, 'index']);
+Route::get('/offers/{id}',          [OfferController::class, 'show']);
+
+// Discounts
+Route::get('/discounts',            [DiscountController::class, 'index']);
+Route::get('/discounts/{id}',       [DiscountController::class, 'show']);
 
 // ── Authenticated Routes (auth:sanctum) ────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -68,5 +78,16 @@ Route::middleware('auth:sanctum')->group(function () {
         // Product Images
         Route::post('/products/{id}/images',  [ProductController::class, 'uploadImage']);
         Route::delete('/products/images/{imageId}', [ProductController::class, 'deleteImage']);
+
+        // Offers
+        Route::post('/offers',                [OfferController::class, 'store']);
+        Route::put('/offers/{id}',            [OfferController::class, 'update']);
+        Route::post('/offers/{id}',           [OfferController::class, 'update']); // POST fallback for form-data file uploads
+        Route::delete('/offers/{id}',         [OfferController::class, 'destroy']);
+
+        // Discounts
+        Route::post('/discounts',             [DiscountController::class, 'store']);
+        Route::put('/discounts/{id}',         [DiscountController::class, 'update']);
+        Route::delete('/discounts/{id}',      [DiscountController::class, 'destroy']);
     });
 });
