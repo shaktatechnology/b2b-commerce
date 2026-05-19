@@ -40,12 +40,20 @@ export function getAuthToken(): string | null {
 }
 
 export async function loginApi(email: string, password: string): Promise<LoginResponse> {
-  const res = await apiFetch<LoginResponse>('/login', {
+  const res = await apiFetch<any>('/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
-  setAuthCookie(res.access_token);
-  return res;
+  
+  const transformedRes: LoginResponse = {
+    message: res.message,
+    data: res.data.user,
+    access_token: res.data.access_token,
+    token_type: res.data.token_type
+  };
+  
+  setAuthCookie(transformedRes.access_token);
+  return transformedRes;
 }
 
 export async function logoutApi(): Promise<void> {

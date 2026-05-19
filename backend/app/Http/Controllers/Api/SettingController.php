@@ -47,7 +47,7 @@ class SettingController extends Controller
     public function update(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            '*' => 'nullable|string|max:5000',
+            '*' => 'nullable|string|max:20000000',
         ]);
 
         if ($validator->fails()) {

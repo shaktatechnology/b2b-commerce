@@ -10,29 +10,49 @@ class AppSeeder extends Seeder
 {
     public function run(): void
     {
-        // ── General Settings ────────────────────────────────────────────
+        // ── Settings ────────────────────────────────────────────────────
         $settings = [
             // General
-            ['key' => 'site_name',        'value' => 'Shakta Starter Kit', 'group' => 'general',    'type' => 'text',     'label' => 'Site Name'],
-            ['key' => 'site_tagline',     'value' => 'A modern full-stack starter kit', 'group' => 'general', 'type' => 'text', 'label' => 'Tagline'],
-            ['key' => 'site_logo',        'value' => null,                  'group' => 'general',    'type' => 'image',    'label' => 'Site Logo'],
-            ['key' => 'site_favicon',     'value' => null,                  'group' => 'general',    'type' => 'image',    'label' => 'Favicon'],
-            ['key' => 'maintenance_mode', 'value' => '0',                   'group' => 'general',    'type' => 'boolean',  'label' => 'Maintenance Mode'],
+            ['key' => 'site_name',           'value' => 'Shakta B2B Commerce',  'group' => 'general',  'type' => 'text',     'label' => 'Site Name'],
+            ['key' => 'site_tagline',        'value' => 'Your trusted B2B marketplace', 'group' => 'general', 'type' => 'text', 'label' => 'Site Tagline'],
+            ['key' => 'site_logo',           'value' => null,                    'group' => 'general',  'type' => 'image',    'label' => 'Site Logo'],
+            ['key' => 'site_favicon',        'value' => null,                    'group' => 'general',  'type' => 'image',    'label' => 'Favicon'],
+            ['key' => 'contact_email',       'value' => 'hello@example.com',     'group' => 'general',  'type' => 'email',    'label' => 'Contact Email'],
+            ['key' => 'contact_phone',       'value' => '+1 (555) 000-0000',     'group' => 'general',  'type' => 'text',     'label' => 'Contact Phone'],
+            ['key' => 'contact_address',     'value' => '123 Main St, City',     'group' => 'general',  'type' => 'textarea', 'label' => 'Contact Address'],
+            ['key' => 'google_analytics',    'value' => null,                    'group' => 'general',  'type' => 'text',     'label' => 'Google Analytics ID'],
+            ['key' => 'meta_description',    'value' => 'A modern B2B commerce platform.', 'group' => 'general', 'type' => 'textarea', 'label' => 'Meta Description'],
+            ['key' => 'maintenance_mode',    'value' => '0',                     'group' => 'general',  'type' => 'boolean',  'label' => 'Maintenance Mode'],
 
-            // Contact
-            ['key' => 'contact_email',    'value' => 'hello@example.com',   'group' => 'contact',    'type' => 'email',    'label' => 'Contact Email'],
-            ['key' => 'contact_phone',    'value' => '+1 (555) 000-0000',   'group' => 'contact',    'type' => 'text',     'label' => 'Phone Number'],
-            ['key' => 'contact_address',  'value' => '123 Main St, City',   'group' => 'contact',    'type' => 'textarea', 'label' => 'Address'],
+            // Business
+            ['key' => 'business_name',       'value' => 'Shakta Technology',     'group' => 'business', 'type' => 'text',     'label' => 'Business Name'],
+            ['key' => 'business_email',      'value' => 'business@example.com',  'group' => 'business', 'type' => 'email',    'label' => 'Business Email'],
+            ['key' => 'business_phone',      'value' => '+1 (555) 111-2222',     'group' => 'business', 'type' => 'text',     'label' => 'Business Phone'],
+            ['key' => 'business_address',    'value' => '456 Commerce Ave, City','group' => 'business', 'type' => 'textarea', 'label' => 'Business Address'],
+            ['key' => 'business_website',    'value' => 'https://shaktatech.com','group' => 'business', 'type' => 'url',      'label' => 'Business Website'],
+            ['key' => 'business_pan',        'value' => null,                    'group' => 'business', 'type' => 'text',     'label' => 'PAN Number'],
+            ['key' => 'business_vat',        'value' => null,                    'group' => 'business', 'type' => 'text',     'label' => 'VAT / GST Number'],
+            ['key' => 'business_reg_number', 'value' => null,                    'group' => 'business', 'type' => 'text',     'label' => 'Registration Number'],
+            ['key' => 'business_currency',   'value' => 'USD',                   'group' => 'business', 'type' => 'text',     'label' => 'Default Currency'],
+            ['key' => 'business_timezone',   'value' => 'Asia/Kathmandu',        'group' => 'business', 'type' => 'text',     'label' => 'Timezone'],
 
-            // SEO
-            ['key' => 'meta_description', 'value' => 'A modern full-stack starter kit built with Laravel and Next.js.', 'group' => 'seo', 'type' => 'textarea', 'label' => 'Meta Description'],
-            ['key' => 'meta_keywords',    'value' => 'laravel, nextjs, starter kit', 'group' => 'seo', 'type' => 'text', 'label' => 'Meta Keywords'],
-            ['key' => 'og_image',         'value' => null,                  'group' => 'seo',        'type' => 'image',    'label' => 'OG Image'],
+            // Payment
+            ['key' => 'payment_gateway',         'value' => 'esewa',             'group' => 'payment',  'type' => 'text',  'label' => 'Default Gateway'],
+            ['key' => 'esewa_merchant_code',      'value' => 'EPAYTEST',          'group' => 'payment',  'type' => 'text',  'label' => 'eSewa Merchant Code'],
+            ['key' => 'esewa_secret_key',         'value' => '8g7h3o91bh14',      'group' => 'payment',  'type' => 'text',  'label' => 'eSewa Secret Key'],
+            ['key' => 'esewa_mode',               'value' => 'sandbox',           'group' => 'payment',  'type' => 'text',  'label' => 'eSewa Mode (sandbox/live)'],
+            ['key' => 'paypal_client_id',         'value' => null,                'group' => 'payment',  'type' => 'text',  'label' => 'PayPal Client ID'],
+            ['key' => 'paypal_client_secret',     'value' => null,                'group' => 'payment',  'type' => 'text',  'label' => 'PayPal Client Secret'],
+            ['key' => 'paypal_mode',              'value' => 'sandbox',           'group' => 'payment',  'type' => 'text',  'label' => 'PayPal Mode (sandbox/live)'],
 
-            // Appearance
-            ['key' => 'primary_color',    'value' => '#6366f1',             'group' => 'appearance', 'type' => 'text',     'label' => 'Primary Color'],
-            ['key' => 'footer_text',      'value' => '© 2026 Shakta. All rights reserved.', 'group' => 'appearance', 'type' => 'textarea', 'label' => 'Footer Text'],
-            ['key' => 'google_analytics', 'value' => null,                  'group' => 'appearance', 'type' => 'text',     'label' => 'Google Analytics ID'],
+            // Social
+            ['key' => 'facebook_url',    'value' => 'https://facebook.com',    'group' => 'social',   'type' => 'url',   'label' => 'Facebook URL'],
+            ['key' => 'twitter_url',     'value' => 'https://twitter.com',     'group' => 'social',   'type' => 'url',   'label' => 'Twitter / X URL'],
+            ['key' => 'instagram_url',   'value' => 'https://instagram.com',   'group' => 'social',   'type' => 'url',   'label' => 'Instagram URL'],
+            ['key' => 'linkedin_url',    'value' => 'https://linkedin.com',    'group' => 'social',   'type' => 'url',   'label' => 'LinkedIn URL'],
+            ['key' => 'youtube_url',     'value' => null,                      'group' => 'social',   'type' => 'url',   'label' => 'YouTube URL'],
+            ['key' => 'tiktok_url',      'value' => null,                      'group' => 'social',   'type' => 'url',   'label' => 'TikTok URL'],
+            ['key' => 'whatsapp_number', 'value' => null,                      'group' => 'social',   'type' => 'text',  'label' => 'WhatsApp Number'],
         ];
 
         foreach ($settings as $setting) {

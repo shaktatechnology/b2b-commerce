@@ -34,16 +34,18 @@ type RegisterValues = z.infer<typeof registerSchema>;
 interface RegisterResponse {
   message: string;
   data: {
-    id: number;
-    name: string;
-    email: string;
-    email_verified_at: string | null;
-    created_at: string;
-    updated_at: string;
-    role?: string;
+    user: {
+      id: number;
+      name: string;
+      email: string;
+      email_verified_at: string | null;
+      created_at: string;
+      updated_at: string;
+      role?: string;
+    };
+    access_token: string;
+    token_type: string;
   };
-  access_token: string;
-  token_type: string;
 }
 
 const fieldClass =
@@ -81,10 +83,10 @@ export function RegisterForm() {
           role: 'wholesaler',
         }),
       });
-      setAuthCookie(res.access_token);
-      setUser(res.data);
+      setAuthCookie(res.data.access_token);
+      setUser(res.data.user);
 
-      const role = res.data?.role;
+      const role = res.data.user?.role;
       if (role === 'admin') {
         router.push('/admin/dashboard');
       } else if (role === 'wholeseller' || role === 'wholesaler') {
