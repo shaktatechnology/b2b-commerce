@@ -162,8 +162,8 @@ export function SettingsForm() {
   ];
 
   const paymentKeys = [
-    'payment_gateway', 'esewa_merchant_code', 'esewa_secret_key', 'esewa_mode',
-    'paypal_client_id', 'paypal_client_secret', 'paypal_mode'
+    'payment_gateway', 'esewa_active', 'esewa_merchant_code', 'esewa_secret_key', 'esewa_mode',
+    'paypal_active', 'paypal_client_id', 'paypal_client_secret', 'paypal_mode'
   ];
 
   const socialKeys = [
@@ -608,9 +608,9 @@ export function SettingsForm() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* eSewa Setup Card */}
                   <div className={`p-5 rounded-xl border transition-all duration-300 ${
-                    settings.payment_gateway === 'esewa' 
+                    settings.esewa_active === '1' 
                        ? 'border-green-500/50 bg-green-500/[0.02] shadow-none' 
-                       : 'border-gray-200/80 bg-white opacity-70 hover:opacity-100 shadow-none'
+                       : 'border-gray-200/80 bg-white opacity-60 hover:opacity-100 shadow-none'
                   }`}>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -622,13 +622,15 @@ export function SettingsForm() {
                           <p className="text-[10px] text-gray-650 font-medium">Local Nepalese Rupee payments</p>
                         </div>
                       </div>
-                      <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                        settings.payment_gateway === 'esewa'
-                          ? 'bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400 border border-green-200/30'
-                          : 'bg-gray-100 text-gray-500 border border-gray-200'
-                      }`}>
-                        {settings.payment_gateway === 'esewa' ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[11px] font-semibold text-gray-500">
+                          {settings.esewa_active === '1' ? 'Active' : 'Inactive'}
+                        </span>
+                        <Switch
+                          checked={settings.esewa_active === '1'}
+                          onCheckedChange={(checked) => handleChange('esewa_active', checked ? '1' : '0')}
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-3">
@@ -680,9 +682,9 @@ export function SettingsForm() {
 
                   {/* PayPal Setup Card */}
                   <div className={`p-5 rounded-xl border transition-all duration-300 ${
-                    settings.payment_gateway === 'paypal' 
+                    settings.paypal_active === '1' 
                        ? 'border-blue-500/50 bg-blue-500/[0.02] shadow-none' 
-                       : 'border-gray-200/80 bg-white opacity-70 hover:opacity-100 shadow-none'
+                       : 'border-gray-200/80 bg-white opacity-60 hover:opacity-100 shadow-none'
                   }`}>
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -694,13 +696,15 @@ export function SettingsForm() {
                           <p className="text-[10px] text-gray-650 font-medium">International checkouts</p>
                         </div>
                       </div>
-                      <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                        settings.payment_gateway === 'paypal'
-                          ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/20 dark:text-blue-400 border border-blue-200/30'
-                          : 'bg-gray-100 text-gray-500 border border-gray-200'
-                      }`}>
-                        {settings.payment_gateway === 'paypal' ? 'Active' : 'Inactive'}
-                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[11px] font-semibold text-gray-500">
+                          {settings.paypal_active === '1' ? 'Active' : 'Inactive'}
+                        </span>
+                        <Switch
+                          checked={settings.paypal_active === '1'}
+                          onCheckedChange={(checked) => handleChange('paypal_active', checked ? '1' : '0')}
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-3">

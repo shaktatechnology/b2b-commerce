@@ -38,9 +38,11 @@ class AppSeeder extends Seeder
 
             // Payment
             ['key' => 'payment_gateway',         'value' => 'esewa',             'group' => 'payment',  'type' => 'text',  'label' => 'Default Gateway'],
+            ['key' => 'esewa_active',             'value' => '1',                 'group' => 'payment',  'type' => 'boolean', 'label' => 'eSewa Active'],
             ['key' => 'esewa_merchant_code',      'value' => 'EPAYTEST',          'group' => 'payment',  'type' => 'text',  'label' => 'eSewa Merchant Code'],
             ['key' => 'esewa_secret_key',         'value' => '8g7h3o91bh14',      'group' => 'payment',  'type' => 'text',  'label' => 'eSewa Secret Key'],
             ['key' => 'esewa_mode',               'value' => 'sandbox',           'group' => 'payment',  'type' => 'text',  'label' => 'eSewa Mode (sandbox/live)'],
+            ['key' => 'paypal_active',            'value' => '0',                 'group' => 'payment',  'type' => 'boolean', 'label' => 'PayPal Active'],
             ['key' => 'paypal_client_id',         'value' => null,                'group' => 'payment',  'type' => 'text',  'label' => 'PayPal Client ID'],
             ['key' => 'paypal_client_secret',     'value' => null,                'group' => 'payment',  'type' => 'text',  'label' => 'PayPal Client Secret'],
             ['key' => 'paypal_mode',              'value' => 'sandbox',           'group' => 'payment',  'type' => 'text',  'label' => 'PayPal Mode (sandbox/live)'],
