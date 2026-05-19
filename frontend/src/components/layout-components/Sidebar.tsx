@@ -53,21 +53,21 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'sticky top-0 z-40 flex flex-col h-screen border-r bg-card shadow-lg font-poppins transition-all duration-300 ease-in-out',
+        'sticky top-0 z-40 flex flex-col h-screen bg-[#966FD6] text-white shadow-2xl font-lato transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-20' : 'w-72',
         className
       )}
     >
-      <div className="flex items-center justify-between h-20 px-6 border-b">
+      <div className="flex items-center justify-between h-20 px-6 border-b border-white/10">
         {!isCollapsed && (
-          <span className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Shakta Admin
+          <span className="text-2xl font-black tracking-tighter text-white">
+            SHAKTA<span className="text-white/60">.</span>
           </span>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto rounded-full hover:bg-muted"
+          className="ml-auto rounded-full hover:bg-white/10 text-white"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
@@ -84,43 +84,37 @@ export function Sidebar({ className }: SidebarProps) {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group',
+                'flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative',
                 isActive
-                  ? 'bg-primary text-primary-foreground shadow-md'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-white text-[#966FD6] shadow-lg'
+                  : 'text-white/70 hover:bg-white/10 hover:text-white'
               )}
             >
-              <Icon className={cn('size-5', isActive ? 'text-white' : 'group-hover:text-primary')} />
-              {!isCollapsed && <span className="font-medium">{item.name}</span>}
+              <Icon className={cn('size-5 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-[#966FD6]' : 'text-white/70 group-hover:text-white')} />
+              {!isCollapsed && <span className="font-bold tracking-wide">{item.name}</span>}
+              {isActive && !isCollapsed && (
+                <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-[#966FD6]" />
+              )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t mt-auto space-y-2">
-        {/* <Link
-          href="/admin/notifications"
-          className={cn(
-            'flex items-center gap-4 px-4 py-3 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all'
-          )}
-        >
-          <Bell className="size-5" />
-          {!isCollapsed && <span className="font-medium">Notifications</span>}
-        </Link> */}
+      <div className="p-4 border-t border-white/10 mt-auto space-y-2">
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
           className={cn(
-            'w-full flex items-center gap-4 px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 transition-all disabled:opacity-60'
+            'w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-200 transition-all disabled:opacity-60 group'
           )}
         >
           {isLoggingOut ? (
-            <Spinner size="sm" className="size-5 border-destructive" />
+            <Spinner size="sm" className="size-5 border-white" />
           ) : (
-            <LogOut className="size-5" />
+            <LogOut className="size-5 transition-transform group-hover:-translate-x-1" />
           )}
           {!isCollapsed && (
-            <span className="font-medium">{isLoggingOut ? 'Logging out…' : 'Log out'}</span>
+            <span className="font-bold tracking-wide">{isLoggingOut ? 'Logging out…' : 'Log out'}</span>
           )}
         </button>
       </div>

@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { AuthUser } from '@/src/types';
 
 interface AppState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
-  user: any | null;
-  setUser: (user: any) => void;
+  user: AuthUser | null;
+  setUser: (user: AuthUser) => void;
   logout: () => void;
 }
 

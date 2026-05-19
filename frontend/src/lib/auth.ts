@@ -1,25 +1,5 @@
 import { apiFetch } from './api';
-
-export interface AuthUser {
-  id: number;
-  name: string;
-  email: string;
-  email_verified_at: string | null;
-  created_at: string;
-  updated_at: string;
-  role?: string; // e.g. 'admin' | 'wholeseller' | 'user'
-}
-
-export interface LoginResponse {
-  message: string;
-  data: AuthUser;
-  access_token: string;
-  token_type: string;
-}
-
-interface LogoutResponse {
-  message: string;
-}
+import { LoginResponse, LogoutResponse } from '@/src/types';
 
 const TOKEN_COOKIE = 'auth-token';
 
@@ -49,10 +29,14 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
     message: res.message,
     data: res.data.user,
     access_token: res.data.access_token,
-    token_type: res.data.token_type
+    token_type: res.data.token_type,
+    role: res.data.user.role,
   };
   
+  
   setAuthCookie(transformedRes.access_token);
+  document.cookie = `role=${transformedRes.role}; path=/; SameSite=Lax`;
+
   return transformedRes;
 }
 

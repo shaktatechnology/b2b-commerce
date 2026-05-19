@@ -4,30 +4,47 @@ import type { NextRequest } from 'next/server';
 // This is a simplified middleware for the starter kit.
 // In a real app, you would verify a session cookie or JWT.
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Simulate authentication check
-  // Replace this with actual cookie/token verification
   const isAuth = request.cookies.get('auth-token');
+  const roleCookie = request.cookies.get('role');
+  const role = roleCookie?.value || 'user'; // default fallback
 
-  // 1. Protect Admin Routes
+  // 1. Redirect Logged-in Users away from Auth Pages
+  if (isAuth && (pathname === '/login' || pathname === '/register' || pathname === '/wholeseller_login')) {
+    if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    if (role === 'wholeseller' || role === 'wholesaler') return NextResponse.redirect(new URL('/wholeseller', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // 2. Protect Admin Routes
   if (pathname.startsWith('/admin')) {
     if (!isAuth) {
       const url = new URL('/login', request.url);
       url.searchParams.set('callbackUrl', pathname);
       return NextResponse.redirect(url);
     }
+    // Block non-admins
+    if (role !== 'admin') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    // Redirect /admin root to /admin/dashboard
+    if (pathname === '/admin') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    }
   }
 
-  // 2. Redirect Logged-in Users from Auth Pages
-  if (isAuth && (pathname === '/login' || pathname === '/register')) {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-  }
-
-  // 3. Redirect /admin root to /admin/dashboard
-  if (pathname === '/admin') {
-    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+  // 3. Protect Wholeseller Routes
+  if (pathname.startsWith('/wholeseller') && !pathname.includes('login') && !pathname.includes('register')) {
+    if (!isAuth) {
+      const url = new URL('/wholeseller_login', request.url);
+      return NextResponse.redirect(url);
+    }
+    if (role !== 'wholeseller' && role !== 'wholesaler' && role !== 'admin') {
+      // If a regular user tries to access wholeseller page, boot them home
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return NextResponse.next();
