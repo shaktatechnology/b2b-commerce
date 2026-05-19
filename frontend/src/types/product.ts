@@ -1,15 +1,26 @@
 import { Category } from './category';
 
+export interface ProductVariant {
+  variant_name: string;
+  sku: string;
+  retail_price: number;
+  wholesale_price: number;
+  moq: number;
+  stock: number;
+  weight: number;
+  is_active: boolean;
+}
+
 export interface Product {
-  id: number;
+  id: string | number;
   name: string;
   slug: string;
   description?: string;
-  price: number;
-  stock: number;
-  category_id: number;
-  category?: Category;
+  is_active: boolean;
+  category_id?: string;
+  categories?: Category[];
   image?: string;
+  variants: ProductVariant[];
   created_at: string;
   updated_at: string;
 }
@@ -18,8 +29,8 @@ export interface ProductFormData {
   name: string;
   slug: string;
   description: string;
-  price: string;
-  stock: string;
-  category_id: string;
+  is_active: boolean;
+  category_ids: string[];
+  variants: ProductVariant[];
   image?: File | null;
 }

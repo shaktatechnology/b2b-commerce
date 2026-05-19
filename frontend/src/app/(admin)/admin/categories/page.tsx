@@ -50,7 +50,8 @@ export default function CategoriesPage() {
     setIsLoading(true);
     try {
       const res = await apiFetch<any>('/categories');
-      setCategories(res.data ? res.data : res);
+      const categoriesData = res.data || (Array.isArray(res) ? res : []);
+      setCategories(categoriesData);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load categories');
     } finally {
@@ -255,7 +256,7 @@ export default function CategoriesPage() {
               </Button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
+            <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Category Name</label>

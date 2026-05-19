@@ -27,9 +27,10 @@ interface SidebarProps {
 
 const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
+  { name: 'Categories', icon: Layers, href: '/admin/categories' },
+  { name: 'Products', icon: Globe, href: '/admin/products' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },
-  { name: 'Projects', icon: Layers, href: '/admin/projects' },
   { name: 'Settings', icon: Settings, href: '/admin/settings' },
 ];
 
@@ -53,21 +54,21 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'sticky top-0 z-40 flex flex-col h-screen bg-[#966FD6] text-white shadow-2xl font-lato transition-all duration-300 ease-in-out',
+        'sticky top-0 z-40 flex flex-col h-screen bg-white text-black/80 border-r border-zinc-100 shadow-xl font-lato transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-20' : 'w-72',
         className
       )}
     >
-      <div className="flex items-center justify-between h-20 px-6 border-b border-white/10">
+      <div className="flex items-center justify-between h-20 px-6 border-b border-zinc-50">
         {!isCollapsed && (
-          <span className="text-2xl font-black tracking-tighter text-white">
-            SHAKTA<span className="text-white/60">.</span>
+          <span className="text-2xl font-black tracking-tighter text-black">
+            SHAKTA<span className="text-blue-500">.</span>
           </span>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto rounded-full hover:bg-white/10 text-white"
+          className="ml-auto rounded-full hover:bg-zinc-100 text-zinc-400"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? <ChevronRight /> : <ChevronLeft />}
@@ -86,30 +87,30 @@ export function Sidebar({ className }: SidebarProps) {
               className={cn(
                 'flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative',
                 isActive
-                  ? 'bg-white text-[#966FD6] shadow-lg'
-                  : 'text-white/70 hover:bg-white/10 hover:text-white'
+                  ? 'bg-blue-500 text-white shadow-blue-200/50 shadow-lg'
+                  : 'text-zinc-500 hover:bg-zinc-50 hover:text-black'
               )}
             >
-              <Icon className={cn('size-5 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-[#966FD6]' : 'text-white/70 group-hover:text-white')} />
+              <Icon className={cn('size-5 transition-transform duration-200 group-hover:scale-110', isActive ? 'text-white' : 'text-zinc-400 group-hover:text-black')} />
               {!isCollapsed && <span className="font-bold tracking-wide">{item.name}</span>}
               {isActive && !isCollapsed && (
-                <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-[#966FD6]" />
+                <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-white/30" />
               )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-white/10 mt-auto space-y-2">
+      <div className="p-4 border-t border-zinc-50 mt-auto space-y-2">
         <button
           onClick={handleLogout}
           disabled={isLoggingOut}
           className={cn(
-            'w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-white/70 hover:bg-red-500/20 hover:text-red-200 transition-all disabled:opacity-60 group'
+            'w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-zinc-500 hover:bg-red-50 hover:text-red-600 transition-all disabled:opacity-60 group'
           )}
         >
           {isLoggingOut ? (
-            <Spinner size="sm" className="size-5 border-white" />
+            <Spinner size="sm" className="size-5 border-zinc-400" />
           ) : (
             <LogOut className="size-5 transition-transform group-hover:-translate-x-1" />
           )}

@@ -74,7 +74,7 @@ export function AnalyticsPage() {
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}
                 />
                 <Bar dataKey="orders" fill="#966FD6" radius={[6, 6, 0, 0]} />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
