@@ -9,10 +9,12 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable, HasApiTokens, HasUuids;
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +25,12 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'google_id',
+        'phone',
+        'company_name',
+        'address',
+        'is_verified',
     ];
 
     /**
@@ -46,6 +54,7 @@ class User extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'is_verified' => 'boolean',
         ];
     }
 }

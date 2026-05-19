@@ -3,65 +3,104 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Interfaces\AuthServiceInterface;
+use App\Http\Requests\Api\RegisterRequest;
+use App\Http\Requests\Api\LoginRequest;
+use App\Http\Requests\Api\ForgotPasswordRequest;
+use App\Http\Requests\Api\ResetPasswordRequest;
+use App\Http\Requests\Api\UpdateProfileRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    public function register(Request $req){
-        $validator = Validator::make($req->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8',
-        ]);
+    protected $authService;
 
-        if($validator->fails()){
-            return response()->json($validator->errors(), 422);
-        }
-
-        $password = Hash::make($req->password);
-
-        $user = \App\Models\User::create([
-            'name' => $req->name,
-            'email' => $req->email,
-            'password' => $password,
-        ]);
-        $token = $user->createToken('auth_token')->plainTextToken;
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-        ]);
+    public function __construct(AuthServiceInterface $authService)
+    {
+        $this->authService = $authService;
     }
 
+    public function register(RegisterRequest $request)
+    {
+        $data = $this->authService->register($request->validated());
 
-    public function login(Request $req){
-        $validator = Validator::make($req->all(), [
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+        return response()->json([
+            'message' => 'User registered successfully',
+            'data' => $data
+        ], 201);
+    }
 
-        if($validator->fails()){
-            return response()->json($validator->errors(), 422);
+    public function login(LoginRequest $request)
+    {
+        $data = $this->authService->login($request->validated());
+
+        if (!$data) {
+            return response()->json([
+                'message' => 'Invalid credentials'
+            ], 401);
         }
 
-        $user = \App\Models\User::where('email', $req->email)->first();
-
-        if (!$user || !Hash::check($req->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
-        }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
         return response()->json([
             'message' => 'Login successful',
-            "data" => $user,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
+            'data' => $data
         ]);
     }
 
-    public function logout(Request $req){
-        $req->user()->currentAccessToken()->delete();
-        return response()->json(['message' => 'Logged out successfully']);
+    public function logout(Request $request)
+    {
+        $this->authService->logout($request->user());
+
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request)
+    {
+        $sent = $this->authService->forgotPassword($request->email);
+
+        if (!$sent) {
+            return response()->json([
+                'message' => 'Could not send reset link'
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'Reset link sent to your email'
+        ]);
+    }
+
+    public function resetPassword(ResetPasswordRequest $request)
+    {
+        $reset = $this->authService->resetPassword($request->validated());
+
+        if (!$reset) {
+            return response()->json([
+                'message' => 'Invalid token or email'
+            ], 400);
+        }
+
+        return response()->json([
+            'message' => 'Password reset successfully'
+        ]);
+    }
+
+    public function profile(Request $request)
+    {
+        $user = $this->authService->getProfile($request->user());
+
+        return response()->json([
+            'data' => $user
+        ]);
+    }
+
+    public function updateProfile(UpdateProfileRequest $request)
+    {
+        $user = $this->authService->updateProfile($request->user(), $request->validated());
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'data' => $user
+        ]);
     }
 }

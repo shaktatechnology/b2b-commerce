@@ -7,8 +7,16 @@ use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SocialLinkController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login',    [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
+Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
+Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
+Route::get('/reset-password/{token}', function ($token) {
+    return response()->json([
+        'message' => 'Please reset password via frontend',
+        'token' => $token,
+    ]);
+})->name('password.reset');
 
 // ── Public Read-only APIs ──────────────────────────────────────────────────
 Route::get('/settings',             [SettingController::class, 'index']);
@@ -20,7 +28,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me',      fn(Request $request) => response()->json(['data' => $request->user()]));
+    Route::get('/profile', [AuthController::class, 'profile']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
 
     // ── Admin: Settings ───────────────────────────────────────────────────
     Route::prefix('admin')->group(function () {
