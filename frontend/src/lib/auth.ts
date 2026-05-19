@@ -7,9 +7,10 @@ export interface AuthUser {
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;
+  role?: string; // e.g. 'admin' | 'wholeseller' | 'user'
 }
 
-interface LoginResponse {
+export interface LoginResponse {
   message: string;
   data: AuthUser;
   access_token: string;
@@ -38,13 +39,13 @@ export function getAuthToken(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export async function loginApi(email: string, password: string): Promise<AuthUser> {
+export async function loginApi(email: string, password: string): Promise<LoginResponse> {
   const res = await apiFetch<LoginResponse>('/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
   setAuthCookie(res.access_token);
-  return res.data;
+  return res;
 }
 
 export async function logoutApi(): Promise<void> {

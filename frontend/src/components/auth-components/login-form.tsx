@@ -5,30 +5,22 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/src/components/ui/card';
 import { Spinner } from '@/src/components/ui/spinner';
-import { Eye, EyeOff, Lock, Mail, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { loginApi } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().min(1, 'Email or Phone Number is required'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
-  const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
@@ -47,12 +39,20 @@ export function LoginForm() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const user = await loginApi(data.email, data.password);
-      setUser(user);
-      router.push('/admin/dashboard');
+      const res = await loginApi(data.email, data.password);
+      setUser(res.data);
+
+      const role = res.data?.role;
+      if (role === 'admin') {
+        router.push('/admin/dashboard');
+      } else if (role === 'wholeseller' || role === 'wholesaler') {
+        router.push('/wholeseller');
+      } else {
+        router.push('/');
+      }
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Login failed. Please try again.';
+        err instanceof Error ? err.message : 'Login failed. Please check your credentials.';
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -60,93 +60,75 @@ export function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto overflow-hidden border-none shadow-2xl bg-card/50 backdrop-blur-xl">
-      <CardHeader className="space-y-1 text-center">
-        <CardTitle className="text-3xl font-bold tracking-tight">Welcome back</CardTitle>
-        <CardDescription>Enter your credentials to access your account</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-6">
+    <div className="w-full">
+      <AnimatePresence mode="wait">
         {errorMessage && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-2 rounded-lg bg-destructive/5 px-4 py-3 text-sm text-destructive mb-8 border border-destructive/10"
+          >
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{errorMessage}</span>
-          </div>
+          </motion.div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      </AnimatePresence>
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+        <div className="space-y-8">
           <div className="space-y-2">
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="email"
-                placeholder="name@example.com"
-                type="email"
-                autoCapitalize="none"
-                autoComplete="email"
-                autoCorrect="off"
-                disabled={isLoading}
-                className="pl-10 h-11"
-                {...register('email')}
-              />
-            </div>
+            <Input
+              id="email"
+              placeholder="Email or Phone Number"
+              type="text"
+              autoComplete="email"
+              disabled={isLoading}
+              className="h-12 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none px-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none"
+              {...register('email')}
+            />
             {errors.email && (
-              <p className="text-xs text-destructive">{errors.email.message}</p>
+              <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
             )}
           </div>
+
           <div className="space-y-2">
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="password"
-                placeholder="••••••••"
-                type={showPassword ? 'text' : 'password'}
-                autoCapitalize="none"
-                autoComplete="current-password"
-                autoCorrect="off"
-                disabled={isLoading}
-                className="pl-10 pr-10 h-11"
-                {...register('password')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
-            </div>
+            <Input
+              id="password"
+              placeholder="Password"
+              type="password"
+              autoComplete="current-password"
+              disabled={isLoading}
+              className="h-12 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none px-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none"
+              {...register('password')}
+            />
             {errors.password && (
-              <p className="text-xs text-destructive">{errors.password.message}</p>
+              <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
             )}
           </div>
-          <Button type="submit" className="w-full h-11" disabled={isLoading}>
-            {isLoading ? <Spinner size="sm" className="mr-2 border-white" /> : 'Sign In'}
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            type="submit"
+            className="h-[56px] px-12 rounded bg-[#966FD6] hover:bg-[#7d5bbf] text-white text-base font-medium transition-all disabled:opacity-70 active:scale-[0.98] cursor-pointer"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Spinner size="sm" className="border-white" />
+            ) : (
+              'Log In'
+            )}
           </Button>
-        </form>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4 border-t py-6 bg-muted/30">
-        <div className="text-sm text-center text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <a href="#" className="underline underline-offset-4 hover:text-primary transition-colors font-medium">
-            Sign up
+
+          <a
+            href="/forgot-password"
+            className="text-[#966FD6] text-base font-normal hover:underline underline-offset-4"
+          >
+            Forget Password?
           </a>
         </div>
-        <div className="text-xs text-center text-muted-foreground px-8">
-          By clicking continue, you agree to our{' '}
-          <a href="#" className="underline underline-offset-4 hover:text-primary">
-            Terms of Service
-          </a>{' '}
-          and{' '}
-          <a href="#" className="underline underline-offset-4 hover:text-primary">
-            Privacy Policy
-          </a>
-          .
-        </div>
-      </CardFooter>
-    </Card>
+      </form>
+    </div>
   );
 }

@@ -7,5 +7,6 @@ export function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+  // Bypassing next-themes script tag error in Next 16/React 19 for now
+  return <>{children}</>;
 }

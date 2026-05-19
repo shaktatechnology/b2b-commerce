@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  --font-poppins: "Poppins", var(--font-poppins), sans-serif;
+  --font-lato: "Lato", var(--font-lato), sans-serif;
   --font-mono: "Fira Code", monospace;
 
-  --color-primary: oklch(0.6 0.25 260);
-  --color-primary-foreground: oklch(0.98 0.01 260);
+  --color-primary: #966FD6;
+  --color-primary-foreground: oklch(0.98 0.01 0);
   
   --color-secondary: oklch(0.4 0.1 260);
   --color-secondary-foreground: oklch(0.98 0.01 260);
@@ -18,7 +18,7 @@
 
   --color-border: oklch(0.92 0.01 0);
   --color-input: oklch(0.92 0.01 0);
-  --color-ring: oklch(0.6 0.25 260 / 0.5);
+  --color-ring: #966FD6;
 
   --radius-lg: 1rem;
   --radius-md: 0.75rem;
@@ -38,14 +38,14 @@
 }
 
 :root {
-  --font-poppins: "Poppins", var(--font-poppins), sans-serif;
+  --font-lato: "Lato", var(--font-lato), sans-serif;
   --background: oklch(0.99 0.005 0);
   --foreground: oklch(0.15 0.01 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.15 0.01 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.15 0.01 0);
-  --primary: oklch(0.6 0.25 260);
+  --primary: #966FD6;
   --primary-foreground: oklch(0.98 0.01 0);
   --secondary: oklch(0.96 0.01 0);
   --secondary-foreground: oklch(0.15 0.01 0);

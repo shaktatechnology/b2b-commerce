@@ -107,7 +107,7 @@ export function DashboardOverview() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-sm">+${(Math.random() * 100).toFixed(2)}</p>
+                    <p className="font-bold text-sm">+${((i * 47.31) % 100 + 20).toFixed(2)}</p>
                     <p className="text-[10px] text-green-500 font-bold uppercase">Completed</p>
                   </div>
                 </div>

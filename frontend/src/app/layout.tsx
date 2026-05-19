@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
+import { Lato } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/src/components/feedback-components/theme-provider";
 import { QueryProvider } from "@/src/components/feedback-components/query-provider";
 import { ToastProvider } from "@/src/components/feedback-components/toast-provider";
 
-const poppins = Poppins({
-  variable: "--font-poppins",
+const lato = Lato({
+  variable: "--font-lato",
   subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.variable} antialiased`}>
+      <body className={`${lato.variable} font-[family-name:var(--font-lato)] antialiased`}>
         <QueryProvider>
           <ThemeProvider
             attribute="class"
