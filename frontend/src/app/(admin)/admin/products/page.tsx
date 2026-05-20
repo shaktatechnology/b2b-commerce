@@ -23,20 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
-import {
-  Edit2,
-  Trash2,
-  Plus,
-  X,
-  Image as ImageIcon,
-  Package,
-  Search,
-  Calendar,
-  Tag,
-  Check,
-} from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
+import { DatePicker } from '@/src/components/ui/date-picker';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 const initialVariant: ProductVariant = {
   variant_name: 'Default',
@@ -55,7 +46,20 @@ const emptyForm = {
   description: '',
   is_active: true,
   category_ids: [] as string[],
-  variants: [{ ...initialVariant }] as ProductVariant[],
+  variants: [] as ProductVariant[],
+};
+
+const slugify = (text: string) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w ]+/g, '')
+    .replace(/ +/g, '-');
+};
+
+const generateSKU = (name: string = 'PROD') => {
+  const prefix = name.slice(0, 3).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `${prefix}-${random}`;
 };
 
 export default function AdminProductsPage() {
@@ -67,7 +71,8 @@ export default function AdminProductsPage() {
   // Filters
   const [searchQuery, setSearchQuery] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('all');
-  const [dateFilter, setDateFilter] = React.useState('all');
+  const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
+  const [dateTo, setDateTo] = React.useState<Date | undefined>();
 
   // Form State
   const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
@@ -119,18 +124,31 @@ export default function AdminProductsPage() {
       (product.categories?.some(cat => cat.id.toString() === categoryFilter) ?? false);
 
     let matchesDate = true;
-    if (dateFilter !== 'all') {
-      const createdDate = new Date(product.created_at);
-      const now = new Date();
-      if (dateFilter === 'today') {
-        matchesDate = createdDate.toDateString() === now.toDateString();
-      } else if (dateFilter === 'week') {
-        const weekAgo = new Date(now.setDate(now.getDate() - 7));
-        matchesDate = createdDate >= weekAgo;
+    if (product.created_at) {
+      const prodDate = new Date(product.created_at);
+      if (dateFrom && dateTo) {
+        matchesDate = isWithinInterval(prodDate, { 
+          start: startOfDay(dateFrom), 
+          end: endOfDay(dateTo) 
+        });
+      } else if (dateFrom) {
+        matchesDate = prodDate >= startOfDay(dateFrom);
+      } else if (dateTo) {
+        matchesDate = prodDate <= endOfDay(dateTo);
       }
+    } else if (dateFrom || dateTo) {
+      matchesDate = false;
     }
+
     return matchesSearch && matchesCategory && matchesDate;
   });
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setCategoryFilter('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
 
   const openModal = (mode: 'create' | 'edit', product?: Product) => {
     setFormMode(mode);
@@ -146,7 +164,11 @@ export default function AdminProductsPage() {
       });
     } else {
       setEditingId(null);
-      setFormData({ ...emptyForm, variants: [{ ...initialVariant }] });
+      const newProductSKU = generateSKU();
+      setFormData({ 
+        ...emptyForm, 
+        variants: [{ ...initialVariant, sku: newProductSKU }] 
+      });
     }
     setSelectedImage(null);
     setIsModalOpen(true);
@@ -174,7 +196,7 @@ export default function AdminProductsPage() {
   const addVariant = () => {
     setFormData((prev) => ({
       ...prev,
-      variants: [...prev.variants, { ...initialVariant, sku: '' }],
+      variants: [...prev.variants, { ...initialVariant, sku: generateSKU(prev.name || 'VAR') }],
     }));
   };
 
@@ -280,9 +302,9 @@ export default function AdminProductsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px] h-11 rounded-xl border-zinc-200">
+            <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-zinc-200 bg-white">
               <div className="flex items-center gap-2">
                 <Tag className="h-4 w-4 text-zinc-400" />
                 <SelectValue placeholder="Category" />
@@ -298,19 +320,31 @@ export default function AdminProductsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={dateFilter} onValueChange={setDateFilter}>
-            <SelectTrigger className="w-[160px] h-11 rounded-xl border-zinc-200">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-zinc-400" />
-                <SelectValue placeholder="Date" />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
+              <div className="w-40">
+                <DatePicker date={dateFrom} setDate={setDateFrom} placeholder="Start Date" />
               </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">Any Time</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-              <SelectItem value="week">This Week</SelectItem>
-            </SelectContent>
-          </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
+              <div className="w-40">
+                <DatePicker date={dateTo} setDate={setDateTo} placeholder="End Date" />
+              </div>
+            </div>
+          </div>
+
+          {(searchQuery || categoryFilter !== 'all' || dateFrom || dateTo) && (
+            <Button 
+              variant="ghost" 
+              onClick={clearFilters}
+              className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
+            >
+              <FilterX className="size-4" />
+              <span className="hidden sm:inline">Clear</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -320,8 +354,8 @@ export default function AdminProductsPage() {
             <Spinner size="lg" className="border-[#966FD6]" />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center p-20 text-zinc-500 font-medium">
-            No products match your filters.
+          <div className="text-center p-20 text-zinc-500 font-medium italic">
+            No products match your current filters.
           </div>
         ) : (
           <Table>
@@ -418,11 +452,33 @@ export default function AdminProductsPage() {
                       <div className="space-y-4">
                         <div className="space-y-1">
                            <span className="text-xs font-bold text-zinc-500">Name</span>
-                           <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="h-12 rounded-xl" required />
+                           <Input 
+                             value={formData.name} 
+                             onChange={(e) => {
+                               const name = e.target.value;
+                               const updatedVariants = [...formData.variants];
+                               if (updatedVariants[0]) {
+                                 updatedVariants[0].sku = generateSKU(name);
+                               }
+                               setFormData({ 
+                                 ...formData, 
+                                 name, 
+                                 slug: slugify(name),
+                                 variants: updatedVariants
+                               });
+                             }} 
+                             className="h-12 rounded-xl" 
+                             required 
+                           />
                         </div>
                         <div className="space-y-1">
                            <span className="text-xs font-bold text-zinc-500">Slug</span>
-                           <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="h-12 rounded-xl" required />
+                           <Input 
+                             value={formData.slug} 
+                             onChange={(e) => setFormData({ ...formData, slug: e.target.value })} 
+                             className="h-12 rounded-xl bg-zinc-50/50" 
+                             required 
+                           />
                         </div>
                         <div className="pt-2">
                            <label className="flex items-center gap-2 cursor-pointer group">
@@ -437,21 +493,24 @@ export default function AdminProductsPage() {
                    </div>
 
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Categories</label>
-                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto scrollbar-hide border border-zinc-100 rounded-2xl p-4 bg-zinc-50/50">
-                        {categories.map((c) => {
-                          const checked = formData.category_ids.includes(c.id.toString());
-                          return (
-                            <label key={c.id} className={cn("flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all border", checked ? "bg-white border-[#966FD6]/20 shadow-sm" : "border-transparent hover:bg-white/50 hover:border-zinc-200")}>
-                              <div className={cn("w-5 h-5 rounded-md border flex items-center justify-center transition-colors", checked ? "bg-[#966FD6] border-[#966FD6]" : "border-zinc-300 bg-white")}>
-                                {checked && <Check className="w-3 h-3 text-white" />}
-                              </div>
-                              <input type="checkbox" className="hidden" checked={checked} onChange={() => toggleCategory(c.id.toString())} />
-                              <span className={cn("text-xs font-bold transition-colors", checked ? "text-black" : "text-zinc-500")}>{c.name}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Primary Category</label>
+                      <Select 
+                        value={formData.category_ids[0] || 'none'} 
+                        onValueChange={(val) => setFormData({ ...formData, category_ids: val === 'none' ? [] : [val] })}
+                      >
+                        <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                          <SelectValue placeholder="Select Category" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="none">Select a category</SelectItem>
+                          {categories.length === 0 && (
+                            <SelectItem value="none" disabled>No categories found</SelectItem>
+                          )}
+                          {categories.map((c) => (
+                            <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                    </div>
 
                    <div className="space-y-2">

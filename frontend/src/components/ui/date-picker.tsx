@@ -20,7 +20,7 @@ const PopoverContent = React.forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 w-72 rounded-2xl border bg-popover p-4 text-popover-foreground shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        'z-50 w-72 rounded-2xl border bg-white p-4 text-popover-foreground shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
         className
       )}
       {...props}
@@ -29,25 +29,31 @@ const PopoverContent = React.forwardRef<
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
-export function DatePicker() {
-  const [date, setDate] = React.useState<Date>();
-
+export function DatePicker({ 
+  date, 
+  setDate,
+  placeholder = "Pick a date"
+}: { 
+  date?: Date, 
+  setDate: (date?: Date) => void,
+  placeholder?: string
+}) {
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button
           variant={'outline'}
           className={cn(
-            'w-full justify-start text-left font-normal rounded-xl h-10',
+            'w-full justify-start text-left font-normal rounded-xl h-10 bg-white border-zinc-200',
             !date && 'text-muted-foreground'
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, 'PPP') : <span>Pick a date</span>}
+          {date ? format(date, 'PPP') : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="start">
-        <div className="p-3 bg-card rounded-2xl font-poppins">
+        <div className="p-3 bg-white rounded-2xl font-poppins">
           <DayPicker
             mode="single"
             selected={date}

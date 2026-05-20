@@ -23,14 +23,21 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/src/components/ui/select';
-import { Edit2, Trash2, Plus, X, Image as ImageIcon, Layers } from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Image as ImageIcon, Layers, Search, Calendar, FilterX } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
+import { DatePicker } from '@/src/components/ui/date-picker';
+import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+
+  // Filter State
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
+  const [dateTo, setDateTo] = React.useState<Date | undefined>();
   
   // Form State
   const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
@@ -154,6 +161,39 @@ export default function CategoriesPage() {
     }
   };
 
+  const filteredCategories = React.useMemo(() => {
+    return categories.filter(cat => {
+      const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          cat.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (cat.description && cat.description.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      let matchesDate = true;
+      if (cat.created_at) {
+        const catDate = new Date(cat.created_at);
+        if (dateFrom && dateTo) {
+          matchesDate = isWithinInterval(catDate, { 
+            start: startOfDay(dateFrom), 
+            end: endOfDay(dateTo) 
+          });
+        } else if (dateFrom) {
+          matchesDate = catDate >= startOfDay(dateFrom);
+        } else if (dateTo) {
+          matchesDate = catDate <= endOfDay(dateTo);
+        }
+      } else if (dateFrom || dateTo) {
+        matchesDate = false;
+      }
+      
+      return matchesSearch && matchesDate;
+    });
+  }, [categories, searchQuery, dateFrom, dateTo]);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
   return (
     <div className="space-y-8 font-lato">
       <PageHeader 
@@ -168,12 +208,59 @@ export default function CategoriesPage() {
         </Button>
       </PageHeader>
 
+      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-zinc-100">
+        <div className="relative w-full xl:w-96 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
+          <Input 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search categories..." 
+            className="pl-11 h-12 rounded-xl bg-white border-zinc-200 focus:bg-white focus:border-[#966FD6]/30 transition-all font-medium"
+          />
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-400 min-w-max">From:</span>
+            <div className="w-full sm:w-48 bg-white rounded-xl">
+              <DatePicker 
+                date={dateFrom} 
+                setDate={setDateFrom} 
+                placeholder="Start Date" 
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-400 min-w-max">To:</span>
+            <div className="w-full sm:w-48 bg-white rounded-xl">
+              <DatePicker 
+                date={dateTo} 
+                setDate={setDateTo} 
+                placeholder="End Date" 
+              />
+            </div>
+          </div>
+          
+          {(searchQuery || dateFrom || dateTo) && (
+            <Button 
+              variant="ghost" 
+              onClick={clearFilters}
+              className="h-12 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
+            >
+              <FilterX className="size-4" />
+              <span className="hidden sm:inline">Clear</span>
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center p-20"><Spinner size="lg" className="border-[#966FD6]" /></div>
-        ) : categories.length === 0 ? (
-          <div className="text-center p-20 text-zinc-500 font-medium">
-            No categories found. Click "Add Category" to create your first one.
+        ) : filteredCategories.length === 0 ? (
+          <div className="text-center p-20 text-zinc-500 font-medium italic">
+            {searchQuery || dateFrom || dateTo ? "No categories match your current filters." : "No categories found. Click \"Add Category\" to create your first one."}
           </div>
         ) : (
           <Table>
@@ -182,11 +269,12 @@ export default function CategoriesPage() {
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Category</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Slug</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Parent</TableHead>
+                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Date</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <TableRow key={cat.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-4">
@@ -211,6 +299,11 @@ export default function CategoriesPage() {
                   <TableCell className="py-5 px-6">
                     <span className="text-sm font-bold text-zinc-500">
                       {cat.parent_name || '—'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-5 px-6">
+                    <span className="text-xs font-bold text-zinc-400">
+                      {cat.created_at ? format(new Date(cat.created_at), 'MMM dd, yyyy') : '—'}
                     </span>
                   </TableCell>
                   <TableCell className="py-5 px-6 text-right space-x-1">
