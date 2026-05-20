@@ -13,6 +13,7 @@ import {
   Users,
   Layers,
   LogOut,
+  ShoppingCart,
   Bell,
   Globe,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
   { name: 'Categories', icon: Layers, href: '/admin/categories' },
   { name: 'Products', icon: Globe, href: '/admin/products' },
+  { name: 'Orders', icon: ShoppingCart, href: '/admin/orders' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },
   { name: 'Settings', icon: Settings, href: '/admin/settings' },

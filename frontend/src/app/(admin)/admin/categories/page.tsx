@@ -57,6 +57,7 @@ export default function CategoriesPage() {
     is_active: true,
     existingImage: ''
   });
+  const [removeExistingImage, setRemoveExistingImage] = React.useState(false);
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -108,6 +109,7 @@ export default function CategoriesPage() {
       });
     }
     setSelectedImage(null);
+    setRemoveExistingImage(false);
     setIsModalOpen(true);
   };
 
@@ -115,6 +117,7 @@ export default function CategoriesPage() {
     setIsModalOpen(false);
     setFormData({ name: '', slug: '', parent_id: '', description: '', is_active: true, existingImage: '' });
     setSelectedImage(null);
+    setRemoveExistingImage(false);
     setEditingId(null);
   };
 
@@ -144,6 +147,8 @@ export default function CategoriesPage() {
       
       if (selectedImage) {
         body.append('image', selectedImage);
+      } else if (removeExistingImage) {
+        body.append('remove_image', '1');
       }
 
       if (formMode === 'create') {
@@ -235,7 +240,7 @@ export default function CategoriesPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-6 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-zinc-100">
+      <div className="flex flex-col xl:flex-row gap-3 items-center justify-between bg-white p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-zinc-100">
         <div className="relative w-full xl:w-96 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
           <Input 
@@ -377,7 +382,7 @@ export default function CategoriesPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-8 border-b border-zinc-50 bg-zinc-50/30">
+            <div className="flex justify-between items-center p-5 border-b border-zinc-50 bg-zinc-50/30">
               <div>
                 <h2 className="text-2xl font-black text-black tracking-tight">
                   {formMode === 'create' ? 'Create New Category' : 'Edit Category'}
@@ -391,7 +396,7 @@ export default function CategoriesPage() {
               </Button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto scrollbar-hide">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Category Name <span className="text-red-500">*</span></label>
@@ -472,14 +477,21 @@ export default function CategoriesPage() {
                         <Trash2 className="size-5" />
                       </button>
                     </div>
-                  ) : formData.existingImage ? (
-                    <div className="h-24 w-24 rounded-2xl border border-zinc-100 overflow-hidden bg-zinc-50 relative shrink-0">
+                  ) : formData.existingImage && !removeExistingImage ? (
+                    <div className="h-24 w-24 rounded-2xl border border-zinc-100 overflow-hidden bg-zinc-50 relative shrink-0 group">
                       <img 
                         src={formData.existingImage.startsWith('http') ? formData.existingImage : `http://localhost:8000${formData.existingImage}`} 
                         className="w-full h-full object-cover" 
                         alt="Current" 
                       />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider">Current</div>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveExistingImage(true)}
+                        className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        <Trash2 className="size-5" />
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider pointer-events-none">Current</div>
                     </div>
                   ) : null}
                 </div>

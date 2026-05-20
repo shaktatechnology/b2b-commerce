@@ -80,6 +80,7 @@ export default function AdminProductsPage() {
   const [formData, setFormData] = React.useState({ ...emptyForm });
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [existingImage, setExistingImage] = React.useState<string>('');
+  const [removeExistingImage, setRemoveExistingImage] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const token = getAuthToken();
@@ -177,6 +178,7 @@ export default function AdminProductsPage() {
       setExistingImage('');
     }
     setSelectedImage(null);
+    setRemoveExistingImage(false);
     setIsModalOpen(true);
   };
 
@@ -185,6 +187,7 @@ export default function AdminProductsPage() {
     setFormData({ ...emptyForm, variants: [{ ...initialVariant }] });
     setSelectedImage(null);
     setExistingImage('');
+    setRemoveExistingImage(false);
     setEditingId(null);
   };
 
@@ -293,6 +296,11 @@ export default function AdminProductsPage() {
             token: freshToken || undefined, 
             body: imageBody 
           });
+        } else if (removeExistingImage && editingId) {
+          await apiFetch(`/admin/products/${editingId}/images`, {
+            method: 'DELETE',
+            token: freshToken || undefined,
+          });
         }
         
         toast.success('Product updated successfully');
@@ -328,7 +336,7 @@ export default function AdminProductsPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
         <div className="relative flex-1 max-w-sm min-w-[240px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
           <Input 
@@ -499,7 +507,7 @@ export default function AdminProductsPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300 overflow-y-auto">
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl my-8 overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-8 border-b border-zinc-50">
+            <div className="flex justify-between items-center p-5 border-b border-zinc-50">
               <h2 className="text-2xl font-black">
                 {formMode === 'create' ? 'Add New Product' : 'Edit Product'}
               </h2>
@@ -508,8 +516,8 @@ export default function AdminProductsPage() {
               </Button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-8 max-h-[80vh] overflow-y-auto scrollbar-hide">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={handleSubmit} className="p-5 space-y-5 max-h-[80vh] overflow-y-auto scrollbar-hide">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-6">
                    <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Basic Information</label>
@@ -598,14 +606,21 @@ export default function AdminProductsPage() {
                               <Trash2 className="size-5" />
                             </button>
                           </div>
-                        ) : existingImage ? (
-                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative">
+                        ) : existingImage && !removeExistingImage ? (
+                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group shrink-0">
                             <img 
                               src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`} 
                               className="w-full h-full object-cover" 
                               alt="Current" 
                             />
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider">Current</div>
+                            <button
+                              type="button"
+                              onClick={() => setRemoveExistingImage(true)}
+                              className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                              <Trash2 className="size-5" />
+                            </button>
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider pointer-events-none">Current</div>
                           </div>
                         ) : null}
                       </div>
@@ -685,7 +700,7 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-8 border-t border-zinc-50">
+              <div className="flex items-center justify-between pt-4 border-t border-zinc-50">
                  <p className="text-[10px] font-black uppercase tracking-widest text-[#966FD6] bg-[#966FD6]/5 px-4 py-2 rounded-full border border-[#966FD6]/10">
                    Ensure categories and variants are correctly defined
                  </p>
