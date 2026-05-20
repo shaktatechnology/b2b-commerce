@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Offer\OfferController;
 use App\Http\Controllers\Api\Discount\DiscountController;
 use App\Http\Controllers\Api\Cart\CartController;
 use App\Http\Controllers\Api\Order\OrderController;
+use App\Http\Controllers\Api\Payment\PaymentController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -66,6 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders',           [OrderController::class, 'store']); // Checkout
     Route::get('/orders/{id}',       [OrderController::class, 'show']);
 
+    // Payments
+    Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
+    Route::post('/payments/verify',   [PaymentController::class, 'verify']);
+    Route::get('/payments/{id}',      [PaymentController::class, 'show']);
+
     // ── Admin Protected APIs (role:admin) ───────────────────────────────────
     Route::prefix('admin')->middleware('role:admin')->group(function () {
 
@@ -109,5 +115,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders',                 [OrderController::class, 'adminIndex']);
         Route::get('/orders/{id}',            [OrderController::class, 'adminShow']);
         Route::put('/orders/{id}',            [OrderController::class, 'adminUpdate']);
+
+        // Payments
+        Route::get('/payments',               [PaymentController::class, 'adminIndex']);
+        Route::get('/payments/{id}',          [PaymentController::class, 'adminShow']);
     });
 });
