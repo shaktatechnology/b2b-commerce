@@ -1,6 +1,7 @@
 import { Category } from './category';
 
 export interface ProductVariant {
+  id?: string | number;
   variant_name: string;
   sku: string;
   retail_price: number;
@@ -20,6 +21,9 @@ export interface Product {
   category_id?: string;
   categories?: Category[];
   image?: string;
+  thumbnail?: string;
+  image_url?: string;
+  images?: Array<{ id: string | number; image_path: string }>;
   variants: ProductVariant[];
   created_at: string;
   updated_at: string;

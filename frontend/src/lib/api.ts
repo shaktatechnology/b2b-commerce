@@ -22,7 +22,11 @@ export async function apiFetch<T = unknown>(
     },
   });
 
-  const data = await res.json();
+  let data: any = {};
+  const contentType = res.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    data = await res.json();
+  }
 
   if (!res.ok) {
     // Normalise Laravel validation errors + generic messages

@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { DayPicker } from 'react-day-picker';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { DayPicker, Matcher } from 'react-day-picker';
 import { cn } from '@/src/lib/utils';
 import { Button } from '@/src/components/ui/button';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
@@ -20,7 +20,7 @@ const PopoverContent = React.forwardRef<
       align={align}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 w-72 rounded-2xl border bg-white p-4 text-popover-foreground shadow-2xl outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
+        'z-[1000] w-auto rounded-[24px] border bg-white p-2 text-popover-foreground shadow-[0_20px_50px_rgba(0,0,0,0.1)] outline-none animate-in fade-in zoom-in-95 duration-200',
         className
       )}
       {...props}
@@ -32,11 +32,13 @@ PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 export function DatePicker({ 
   date, 
   setDate,
-  placeholder = "Pick a date"
+  placeholder = "Pick a date",
+  disabled
 }: { 
   date?: Date, 
   setDate: (date?: Date) => void,
-  placeholder?: string
+  placeholder?: string,
+  disabled?: Matcher | Matcher[]
 }) {
   return (
     <Popover>
@@ -44,43 +46,45 @@ export function DatePicker({
         <Button
           variant={'outline'}
           className={cn(
-            'w-full justify-start text-left font-normal rounded-xl h-10 bg-white border-zinc-200',
-            !date && 'text-muted-foreground'
+            'w-full justify-start text-left font-bold rounded-xl h-11 bg-white border-zinc-200 hover:border-[#966FD6]/30 hover:bg-zinc-50/50 transition-all shadow-sm group',
+            !date && 'text-zinc-400 font-medium'
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-[#966FD6] transition-colors" />
           {date ? format(date, 'PPP') : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border-none shadow-2xl" align="start">
-        <div className="p-3 bg-white rounded-2xl font-poppins">
+      <PopoverContent className="p-0 border-zinc-100" align="start">
+        <div className="p-4 bg-white rounded-[24px] font-poppins">
           <DayPicker
             mode="single"
             selected={date}
             onSelect={setDate}
-            className="p-3"
+            captionLayout="dropdown"
+            fromYear={2000}
+            toYear={2050}
+            hideNavigation
+            disabled={disabled}
+            className="p-0"
             classNames={{
               months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-              month: 'space-y-4',
-              caption: 'flex justify-between pt-1 relative items-center',
-              caption_label: 'text-sm font-bold',
-              nav: 'flex items-center gap-1',
-              nav_button: cn(
-                'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 transition-opacity'
-              ),
-              table: 'w-full border-collapse space-y-1',
-              head_row: 'flex',
-              head_cell: 'text-muted-foreground rounded-md w-9 font-bold text-[0.8rem]',
-              row: 'flex w-full mt-2',
-              cell: 'h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
+              month: 'space-y-6',
+              caption: 'flex justify-center relative items-center mb-4 px-1 gap-4',
+              caption_label: 'text-sm font-black text-black uppercase tracking-widest hidden',
+              caption_dropdowns: 'flex gap-2 font-bold text-sm bg-zinc-50 p-1 rounded-lg border border-zinc-100',
+              table: 'w-full border-collapse',
+              head_row: 'flex mb-2',
+              head_cell: 'text-zinc-400 rounded-md w-10 font-bold text-[10px] uppercase tracking-tighter',
+              row: 'flex w-full mt-1',
+              cell: 'h-10 w-10 text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
               day: cn(
-                'h-9 w-9 p-0 font-medium aria-selected:opacity-100 hover:bg-muted rounded-lg transition-colors'
+                'h-10 w-10 p-0 font-bold aria-selected:opacity-100 hover:bg-[#966FD6]/10 hover:text-[#966FD6] rounded-xl transition-all duration-200'
               ),
               day_selected:
-                'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
-              day_today: 'bg-accent text-accent-foreground',
-              day_outside: 'text-muted-foreground opacity-50',
-              day_disabled: 'text-muted-foreground opacity-50',
+                '!bg-[#966FD6] !text-white hover:!bg-[#966FD6] hover:!text-white focus:!bg-[#966FD6] focus:!text-white shadow-lg shadow-[#966FD6]/30',
+              day_today: 'bg-zinc-100 text-[#966FD6]',
+              day_outside: 'text-zinc-300 opacity-50',
+              day_disabled: 'text-zinc-300 opacity-50',
               day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
               day_hidden: 'invisible',
             }}

@@ -79,6 +79,7 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = React.useState<string | number | null>(null);
   const [formData, setFormData] = React.useState({ ...emptyForm });
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
+  const [existingImage, setExistingImage] = React.useState<string>('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const token = getAuthToken();
@@ -86,9 +87,10 @@ export default function AdminProductsPage() {
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
     try {
+      const freshToken = getAuthToken();
       const [prodRes, catRes] = await Promise.all([
-        apiFetch<any>('/products'),
-        apiFetch<any>('/categories'),
+        apiFetch<any>('/products?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
+        apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
       ]);
 
       let categoriesData: Category[] = [];
@@ -162,6 +164,9 @@ export default function AdminProductsPage() {
         category_ids: product.categories?.map(c => c.id.toString()) || [],
         variants: product.variants.length > 0 ? product.variants : [{ ...initialVariant }],
       });
+      // Set existing image from available fields
+      const imgPath = product.image || product.thumbnail || product.image_url || product.images?.[0]?.url || '';
+      setExistingImage(imgPath);
     } else {
       setEditingId(null);
       const newProductSKU = generateSKU();
@@ -169,6 +174,7 @@ export default function AdminProductsPage() {
         ...emptyForm, 
         variants: [{ ...initialVariant, sku: newProductSKU }] 
       });
+      setExistingImage('');
     }
     setSelectedImage(null);
     setIsModalOpen(true);
@@ -178,6 +184,7 @@ export default function AdminProductsPage() {
     setIsModalOpen(false);
     setFormData({ ...emptyForm, variants: [{ ...initialVariant }] });
     setSelectedImage(null);
+    setExistingImage('');
     setEditingId(null);
   };
 
@@ -232,6 +239,7 @@ export default function AdminProductsPage() {
 
     setIsSubmitting(true);
     try {
+      const freshToken = getAuthToken();
       const body = new FormData();
       body.append('name', formData.name);
       body.append('slug', formData.slug);
@@ -241,6 +249,7 @@ export default function AdminProductsPage() {
       formData.category_ids.forEach((id) => body.append('category_ids[]', id));
 
       formData.variants.forEach((v, i) => {
+        if (v.id) body.append(`variants[${i}][id]`, String(v.id));
         body.append(`variants[${i}][variant_name]`, v.variant_name);
         body.append(`variants[${i}][sku]`, v.sku);
         body.append(`variants[${i}][retail_price]`, String(v.retail_price));
@@ -251,14 +260,41 @@ export default function AdminProductsPage() {
         body.append(`variants[${i}][is_active]`, v.is_active ? '1' : '0');
       });
 
-      if (selectedImage) body.append('image', selectedImage);
-
       if (formMode === 'create') {
-        await apiFetch('/admin/products', { method: 'POST', token: token || undefined, body });
+        const response: any = await apiFetch('/admin/products', { method: 'POST', token: freshToken || undefined, body });
+        
+        // Find ID in data, data.data, or top level
+        const productId = response?.data?.id || response?.data?.data?.id || response?.id;
+        
+        if (selectedImage && productId) {
+          const imageBody = new FormData();
+          imageBody.append('image', selectedImage);
+          imageBody.append('is_primary', '1');
+          imageBody.append('sort_order', '1');
+          await apiFetch(`/admin/products/${productId}/images`, { 
+            method: 'POST', 
+            token: freshToken || undefined, 
+            body: imageBody 
+          });
+        }
+        
         toast.success('Product created successfully');
       } else {
         body.append('_method', 'PUT');
-        await apiFetch(`/admin/products/${editingId}`, { method: 'POST', token: token || undefined, body });
+        await apiFetch(`/admin/products/${editingId}`, { method: 'POST', token: freshToken || undefined, body });
+        
+        if (selectedImage && editingId) {
+          const imageBody = new FormData();
+          imageBody.append('image', selectedImage);
+          imageBody.append('is_primary', '1');
+          imageBody.append('sort_order', '1');
+          await apiFetch(`/admin/products/${editingId}/images`, { 
+            method: 'POST', 
+            token: freshToken || undefined, 
+            body: imageBody 
+          });
+        }
+        
         toast.success('Product updated successfully');
       }
       closeModal();
@@ -293,13 +329,13 @@ export default function AdminProductsPage() {
       </PageHeader>
 
       <div className="flex flex-wrap items-center gap-4 bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <Input
-            placeholder="Search products or slugs..."
-            className="pl-10 h-11 rounded-xl border-zinc-200 focus-visible:ring-[#966FD6]/20"
+        <div className="relative flex-1 max-w-sm min-w-[240px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+          <Input 
+            placeholder="Search products or slugs..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
@@ -324,13 +360,23 @@ export default function AdminProductsPage() {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
               <div className="w-40">
-                <DatePicker date={dateFrom} setDate={setDateFrom} placeholder="Start Date" />
+                <DatePicker 
+                  date={dateFrom} 
+                  setDate={setDateFrom} 
+                  placeholder="Start Date" 
+                  disabled={dateTo ? { after: dateTo } : undefined}
+                />
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
               <div className="w-40">
-                <DatePicker date={dateTo} setDate={setDateTo} placeholder="End Date" />
+                <DatePicker 
+                  date={dateTo} 
+                  setDate={setDateTo} 
+                  placeholder="End Date" 
+                  disabled={dateFrom ? { before: dateFrom } : undefined}
+                />
               </div>
             </div>
           </div>
@@ -364,6 +410,7 @@ export default function AdminProductsPage() {
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Product</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Pricing (Base)</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Categories</TableHead>
+                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-center">Status</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -373,8 +420,17 @@ export default function AdminProductsPage() {
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 overflow-hidden shrink-0">
-                        {p.image ? (
-                          <img src={p.image} className="w-full h-full object-cover" alt={p.name} />
+                        {p.image || p.thumbnail || p.image_url || (p.images && p.images.length > 0) ? (
+                          <img 
+                            src={(() => {
+                              const path = p.image || p.thumbnail || p.image_url || p.images?.[0]?.url || '';
+                              if (!path) return '';
+                              if (path.startsWith('http')) return path;
+                              return `http://localhost:8000${path}`;
+                            })()} 
+                            className="w-full h-full object-cover" 
+                            alt={p.name} 
+                          />
                         ) : (
                           <Package className="size-6" />
                         )}
@@ -406,6 +462,14 @@ export default function AdminProductsPage() {
                       ))}
                       {(!p.categories || p.categories.length === 0) && <span className="text-xs text-zinc-400">Uncategorized</span>}
                     </div>
+                  </TableCell>
+                  <TableCell className="py-5 px-6 text-center">
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                      p.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    )}>
+                      {p.is_active ? 'Active' : 'Inactive'}
+                    </span>
                   </TableCell>
                   <TableCell className="py-5 px-6 text-right space-x-1">
                     <Button
@@ -451,7 +515,7 @@ export default function AdminProductsPage() {
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Basic Information</label>
                       <div className="space-y-4">
                         <div className="space-y-1">
-                           <span className="text-xs font-bold text-zinc-500">Name</span>
+                           <span className="text-xs font-bold text-zinc-500">Name <span className="text-red-500">*</span></span>
                            <Input 
                              value={formData.name} 
                              onChange={(e) => {
@@ -472,7 +536,7 @@ export default function AdminProductsPage() {
                            />
                         </div>
                         <div className="space-y-1">
-                           <span className="text-xs font-bold text-zinc-500">Slug</span>
+                           <span className="text-xs font-bold text-zinc-500">Slug <span className="text-red-500">*</span></span>
                            <Input 
                              value={formData.slug} 
                              onChange={(e) => setFormData({ ...formData, slug: e.target.value })} 
@@ -493,7 +557,7 @@ export default function AdminProductsPage() {
                    </div>
 
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Primary Category</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Primary Category <span className="text-red-500">*</span></label>
                       <Select 
                         value={formData.category_ids[0] || 'none'} 
                         onValueChange={(val) => setFormData({ ...formData, category_ids: val === 'none' ? [] : [val] })}
@@ -523,11 +587,27 @@ export default function AdminProductsPage() {
                           </span>
                           <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && setSelectedImage(e.target.files[0])} />
                         </label>
-                        {selectedImage && (
-                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md">
-                            <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="preview" />
+                        {selectedImage ? (
+                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group">
+                            <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="New preview" />
+                            <button 
+                              type="button"
+                              onClick={() => setSelectedImage(null)}
+                              className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                            >
+                              <Trash2 className="size-5" />
+                            </button>
                           </div>
-                        )}
+                        ) : existingImage ? (
+                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative">
+                            <img 
+                              src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`} 
+                              className="w-full h-full object-cover" 
+                              alt="Current" 
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider">Current</div>
+                          </div>
+                        ) : null}
                       </div>
                    </div>
                 </div>
@@ -560,27 +640,27 @@ export default function AdminProductsPage() {
                              
                              <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Variant Name (Color/Size)</span>
+                                   <span className="text-[10px] font-black uppercase text-zinc-400">Variant Name (Color/Size) <span className="text-red-500">*</span></span>
                                    <Input value={v.variant_name} onChange={(e) => updateVariant(i, 'variant_name', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">SKU Code</span>
+                                   <span className="text-[10px] font-black uppercase text-zinc-400">SKU Code <span className="text-red-500">*</span></span>
                                    <Input value={v.sku} onChange={(e) => updateVariant(i, 'sku', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Retail Price</span>
+                                   <span className="text-[10px] font-black uppercase text-zinc-400">Retail Price <span className="text-red-500">*</span></span>
                                    <Input type="number" step="0.01" value={v.retail_price} onChange={(e) => updateVariant(i, 'retail_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price</span>
+                                   <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price <span className="text-red-500">*</span></span>
                                    <Input type="number" step="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock</span>
+                                   <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock <span className="text-red-500">*</span></span>
                                    <Input type="number" value={v.stock} onChange={(e) => updateVariant(i, 'stock', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">MOQ</span>
+                                   <span className="text-[10px] font-black uppercase text-zinc-400">MOQ <span className="text-red-500">*</span></span>
                                    <Input type="number" value={v.moq} onChange={(e) => updateVariant(i, 'moq', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                              </div>

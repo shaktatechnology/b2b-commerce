@@ -29,6 +29,13 @@ import { cn } from '@/src/lib/utils';
 import { DatePicker } from '@/src/components/ui/date-picker';
 import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
+const slugify = (text: string) => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w ]+/g, '')
+    .replace(/ +/g, '-');
+};
+
 export default function CategoriesPage() {
   const [categories, setCategories] = React.useState<Category[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -42,11 +49,13 @@ export default function CategoriesPage() {
   // Form State
   const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
   const [editingId, setEditingId] = React.useState<string | number | null>(null);
-  const [formData, setFormData] = React.useState({
-    name: '',
-    slug: '',
-    parent_id: '',
+  const [formData, setFormData] = React.useState({ 
+    name: '', 
+    slug: '', 
+    parent_id: '', 
     description: '',
+    is_active: true,
+    existingImage: ''
   });
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -56,8 +65,13 @@ export default function CategoriesPage() {
   const loadCategories = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch<any>('/categories');
-      const categoriesData = res.data || (Array.isArray(res) ? res : []);
+      const freshToken = getAuthToken();
+      const res = await apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined });
+      let categoriesData: Category[] = [];
+      if (Array.isArray(res)) categoriesData = res;
+      else if (Array.isArray(res?.data)) categoriesData = res.data;
+      else if (Array.isArray(res?.data?.data)) categoriesData = res.data.data;
+                                                
       setCategories(categoriesData);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load categories');
@@ -79,6 +93,8 @@ export default function CategoriesPage() {
         slug: category.slug || '',
         parent_id: category.parent_id?.toString() || '',
         description: category.description || '',
+        is_active: category.is_active ?? true,
+        existingImage: category.image_url || '',
       });
     } else {
       setEditingId(null);
@@ -87,6 +103,8 @@ export default function CategoriesPage() {
         slug: '',
         parent_id: '',
         description: '',
+        is_active: true,
+        existingImage: '',
       });
     }
     setSelectedImage(null);
@@ -95,7 +113,7 @@ export default function CategoriesPage() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData({ name: '', slug: '', parent_id: '', description: '' });
+    setFormData({ name: '', slug: '', parent_id: '', description: '', is_active: true, existingImage: '' });
     setSelectedImage(null);
     setEditingId(null);
   };
@@ -112,6 +130,9 @@ export default function CategoriesPage() {
 
     setIsSubmitting(true);
     try {
+      // Get fresh token at submit time
+      const freshToken = getAuthToken();
+      
       const body = new FormData();
       body.append('name', formData.name);
       if (formData.slug) body.append('slug', formData.slug);
@@ -119,20 +140,26 @@ export default function CategoriesPage() {
         body.append('parent_id', formData.parent_id);
       }
       if (formData.description) body.append('description', formData.description);
-      if (selectedImage) body.append('image', selectedImage);
+      body.append('is_active', formData.is_active ? '1' : '0');
+      
+      if (selectedImage) {
+        body.append('image', selectedImage);
+      }
 
       if (formMode === 'create') {
         await apiFetch('/admin/categories', {
           method: 'POST',
-          token: token || undefined,
+          token: freshToken || undefined,
           body: body, 
         });
         toast.success('Category created successfully');
       } else if (formMode === 'edit' && editingId) {
+        // Use method spoofing (POST + _method=PUT) which is the most reliable way 
+        // to handle multipart/form-data updates in many backends
         body.append('_method', 'PUT');
         await apiFetch(`/admin/categories/${editingId}`, {
           method: 'POST',
-          token: token || undefined,
+          token: freshToken || undefined,
           body: body,
         });
         toast.success('Category updated successfully');
@@ -227,6 +254,7 @@ export default function CategoriesPage() {
                 date={dateFrom} 
                 setDate={setDateFrom} 
                 placeholder="Start Date" 
+                disabled={dateTo ? { after: dateTo } : undefined}
               />
             </div>
           </div>
@@ -238,6 +266,7 @@ export default function CategoriesPage() {
                 date={dateTo} 
                 setDate={setDateTo} 
                 placeholder="End Date" 
+                disabled={dateFrom ? { before: dateFrom } : undefined}
               />
             </div>
           </div>
@@ -270,6 +299,7 @@ export default function CategoriesPage() {
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Slug</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Parent</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Date</TableHead>
+                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-center">Status</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -279,8 +309,12 @@ export default function CategoriesPage() {
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6] shrink-0 overflow-hidden">
-                        {cat.image ? (
-                          <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                        {cat.image_url ? (
+                          <img 
+                            src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:8000${cat.image_url}`} 
+                            alt={cat.name} 
+                            className="w-full h-full object-cover" 
+                          />
                         ) : (
                           <Layers className="size-6" />
                         )}
@@ -298,12 +332,20 @@ export default function CategoriesPage() {
                   </TableCell>
                   <TableCell className="py-5 px-6">
                     <span className="text-sm font-bold text-zinc-500">
-                      {cat.parent_name || '—'}
+                      {cat.parent_name || (cat.parent_id ? categories.find(c => c.id.toString() === cat.parent_id?.toString())?.name : null) || '—'}
                     </span>
                   </TableCell>
                   <TableCell className="py-5 px-6">
-                    <span className="text-xs font-bold text-zinc-400">
-                      {cat.created_at ? format(new Date(cat.created_at), 'MMM dd, yyyy') : '—'}
+                    <div className="text-xs font-bold text-zinc-400">
+                      {cat.created_at ? new Date(cat.created_at).toLocaleDateString() : '—'}
+                    </div>
+                  </TableCell>
+                  <TableCell className="py-5 px-6 text-center">
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                      cat.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                    )}>
+                      {cat.is_active ? 'Active' : 'Inactive'}
                     </span>
                   </TableCell>
                   <TableCell className="py-5 px-6 text-right space-x-1">
@@ -352,10 +394,17 @@ export default function CategoriesPage() {
             <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto scrollbar-hide">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Category Name</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Category Name <span className="text-red-500">*</span></label>
                   <Input 
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        name,
+                        slug: slugify(name)
+                      });
+                    }}
                     placeholder="e.g. Electronics"
                     className="h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-bold"
                     autoFocus
@@ -363,7 +412,7 @@ export default function CategoriesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-zinc-400">URL Slug</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-zinc-400">URL Slug <span className="text-red-500">*</span></label>
                   <Input 
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
@@ -412,17 +461,27 @@ export default function CategoriesPage() {
                     <span className="text-xs font-bold text-zinc-400">{selectedImage ? selectedImage.name : 'Choose Image'}</span>
                     <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                   </label>
-                  {selectedImage && (
+                  {selectedImage ? (
                     <div className="h-24 w-24 rounded-2xl border border-zinc-100 overflow-hidden bg-zinc-50 flex items-center justify-center relative group">
-                      <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" />
+                      <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="New" />
                       <button 
+                        type="button"
                         onClick={() => setSelectedImage(null)}
                         className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                       >
                         <Trash2 className="size-5" />
                       </button>
                     </div>
-                  )}
+                  ) : formData.existingImage ? (
+                    <div className="h-24 w-24 rounded-2xl border border-zinc-100 overflow-hidden bg-zinc-50 relative shrink-0">
+                      <img 
+                        src={formData.existingImage.startsWith('http') ? formData.existingImage : `http://localhost:8000${formData.existingImage}`} 
+                        className="w-full h-full object-cover" 
+                        alt="Current" 
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider">Current</div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
