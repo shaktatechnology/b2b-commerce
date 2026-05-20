@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\Offer\OfferController;
 use App\Http\Controllers\Api\Discount\DiscountController;
+use App\Http\Controllers\Api\Cart\CartController;
+use App\Http\Controllers\Api\Order\OrderController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -51,6 +53,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
 
+    // Cart
+    Route::get('/cart',              [CartController::class, 'index']);
+    Route::post('/cart',             [CartController::class, 'store']);
+    Route::put('/cart/items/{id}',   [CartController::class, 'update']);
+    Route::delete('/cart/items/{id}',[CartController::class, 'destroy']);
+    Route::delete('/cart',           [CartController::class, 'clear']);
+    Route::post('/cart/sync',        [CartController::class, 'sync']);
+
+    // Orders
+    Route::get('/orders',            [OrderController::class, 'index']);
+    Route::post('/orders',           [OrderController::class, 'store']); // Checkout
+    Route::get('/orders/{id}',       [OrderController::class, 'show']);
+
     // ── Admin Protected APIs (role:admin) ───────────────────────────────────
     Route::prefix('admin')->middleware('role:admin')->group(function () {
 
@@ -89,5 +104,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/discounts',             [DiscountController::class, 'store']);
         Route::put('/discounts/{id}',         [DiscountController::class, 'update']);
         Route::delete('/discounts/{id}',      [DiscountController::class, 'destroy']);
+
+        // Orders
+        Route::get('/orders',                 [OrderController::class, 'adminIndex']);
+        Route::get('/orders/{id}',            [OrderController::class, 'adminShow']);
+        Route::put('/orders/{id}',            [OrderController::class, 'adminUpdate']);
     });
 });

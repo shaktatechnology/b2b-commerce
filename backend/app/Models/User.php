@@ -57,4 +57,20 @@ class User extends Authenticatable
             'is_verified' => 'boolean',
         ];
     }
+
+    /**
+     * Get the cart associated with the user.
+     */
+    public function cart(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    /**
+     * Get the orders placed by the user.
+     */
+    public function orders(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 }
