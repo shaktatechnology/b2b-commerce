@@ -29,6 +29,12 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(\App\Interfaces\Discount\DiscountRepositoryInterface::class, \App\Repositories\Discount\DiscountRepository::class);
         $this->app->bind(\App\Interfaces\Discount\DiscountServiceInterface::class, \App\Services\Discount\DiscountService::class);
+
+        $this->app->bind(\App\Interfaces\Cart\CartRepositoryInterface::class, \App\Repositories\Cart\CartRepository::class);
+        $this->app->bind(\App\Interfaces\Cart\CartServiceInterface::class, \App\Services\Cart\CartService::class);
+
+        $this->app->bind(\App\Interfaces\Order\OrderRepositoryInterface::class, \App\Repositories\Order\OrderRepository::class);
+        $this->app->bind(\App\Interfaces\Order\OrderServiceInterface::class, \App\Services\Order\OrderService::class);
     }
 
     /**
