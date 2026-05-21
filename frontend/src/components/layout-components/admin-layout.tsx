@@ -32,21 +32,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <Menu className="size-6" />
             </Button>
             
-            <div className="relative w-96 max-w-md hidden md:block">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-              <Input
-                placeholder="Search anything..."
-                className="pl-10 bg-zinc-100 border-none focus-visible:ring-[#966FD6]/30 h-10 rounded-full text-black/80 placeholder:text-zinc-400"
-              />
-            </div>
+            {/* Global Search Removed */}
           </div>
 
           <div className="flex items-center gap-2 md:gap-4">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full relative hidden sm:flex">
-              <Bell className="size-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white" />
-            </Button>
+            {/* Theme and Notifications Removed */}
             <div className="h-8 w-[1px] bg-border mx-1 md:mx-2" />
             <div className="flex items-center gap-3">
               <div className="text-right hidden sm:block">
@@ -60,7 +50,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <div className="max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>

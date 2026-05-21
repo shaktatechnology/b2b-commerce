@@ -4,10 +4,8 @@ import { PageWrapper } from '@/src/components/layout-components/page-wrapper';
 
 export default function AdminAnalyticsPage() {
   return (
-    <AdminLayout>
-      <PageWrapper>
-        <AnalyticsPage />
-      </PageWrapper>
-    </AdminLayout>
+    <PageWrapper>
+      <AnalyticsPage />
+    </PageWrapper>
   );
 }

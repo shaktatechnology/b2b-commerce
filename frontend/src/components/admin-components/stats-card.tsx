@@ -22,14 +22,14 @@ export function StatsCard({
   className,
 }: StatsCardProps) {
   return (
-    <Card className={cn('overflow-hidden group hover:shadow-xl transition-all duration-300 border-none shadow-md', className)}>
+    <Card className={cn('overflow-hidden transition-all duration-300 border-none shadow-md', className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
             <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
           </div>
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary transition-colors duration-300">
             <Icon className="size-6" />
           </div>
         </div>

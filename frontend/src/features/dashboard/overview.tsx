@@ -9,7 +9,11 @@ import {
   DollarSign, 
   ShoppingCart, 
   Activity,
-  ArrowRight
+  ArrowRight,
+  Tag,
+  LayoutTemplate,
+  ToggleRight,
+  Clock
 } from 'lucide-react';
 import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
@@ -68,6 +72,53 @@ export function DashboardOverview() {
           trend="up"
           trendValue="+24%"
         />
+      </div>
+
+      {/* Offers Stats Section */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-700 flex items-center gap-2">
+            <Tag className="size-4 text-primary" />
+            Offers Overview
+          </h2>
+          <Button variant="ghost" size="sm" className="gap-1 text-primary text-xs">
+            Manage Offers <ArrowRight className="size-3.5" />
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatsCard
+            title="Total Offers"
+            value="18"
+            description="all time"
+            icon={Tag}
+            trend="up"
+            trendValue="+3"
+          />
+          <StatsCard
+            title="Active Offers"
+            value="7"
+            description="currently live"
+            icon={ToggleRight}
+            trend="up"
+            trendValue="+1"
+          />
+          <StatsCard
+            title="Scheduled"
+            value="4"
+            description="upcoming offers"
+            icon={Clock}
+            trend="up"
+            trendValue="+2"
+          />
+          <StatsCard
+            title="Placements Used"
+            value="3"
+            description="top, mid, page"
+            icon={LayoutTemplate}
+            trend="up"
+            trendValue="all slots"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
