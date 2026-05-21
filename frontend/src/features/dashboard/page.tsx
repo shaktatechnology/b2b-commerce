@@ -42,36 +42,36 @@ export function DashboardOverview() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Wholesalers"
-          value="342"
+          title="Total Orders"
+          value="456"
           description="from last month"
-          icon={Briefcase}
+          icon={ShoppingCart}
           trend="up"
-          trendValue="+12%"
-        />
-        <StatsCard
-          title="Standard Users"
-          value="12,543"
-          description="from last month"
-          icon={Users}
-          trend="up"
-          trendValue="+8%"
-        />
-        <StatsCard
-          title="Active Categories"
-          value="48"
-          description="available in catalog"
-          icon={Layers}
-          trend="up"
-          trendValue="+3"
+          trendValue="+18%"
         />
         <StatsCard
           title="Pending Orders"
-          value="156"
+          value="24"
           description="requires attention"
           icon={ShoppingCart}
           trend="down"
-          trendValue="-12%"
+          trendValue="-5%"
+        />
+        <StatsCard
+          title="Processing"
+          value="12"
+          description="in fulfillment"
+          icon={ShoppingCart}
+          trend="up"
+          trendValue="+2"
+        />
+        <StatsCard
+          title="Delivered"
+          value="420"
+          description="successfully reached"
+          icon={CheckCircle2}
+          trend="up"
+          trendValue="+12%"
         />
       </div>
 

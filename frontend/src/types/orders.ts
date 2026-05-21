@@ -1,9 +1,12 @@
 export type OrderStatus =
   | "pending"
+  | "confirmed"
   | "processing"
   | "shipped"
   | "delivered"
   | "cancelled";
+
+export type PaymentStatus = "unpaid" | "paid" | "refunded";
 
 export interface ShippingAddress {
   street: string;
@@ -16,8 +19,10 @@ export interface ShippingAddress {
 export interface Order {
   id: number | string;
   customer?: string;
+  total_amount?: number;
   notes?: string | null;
   status: OrderStatus;
+  payment_status: PaymentStatus;
   shipping_address: ShippingAddress;
   created_at?: string;
 }

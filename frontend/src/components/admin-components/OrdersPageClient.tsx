@@ -1,69 +1,210 @@
 "use client";
 
-import { useState } from "react";
-import type { Order } from "@/types/orders";
+import { useState, useEffect, useCallback } from "react";
+import type { Order, OrderStatus, PaymentStatus } from "@/src/types/orders";
 import { OrdersTable } from "./OrdersTable";
-import { CreateOrderModal } from "./CreateOrderModal";
+import { CreateOrderModal } from "./CreateOrderForm";
+import { updateOrderAdmin, fetchAllOrdersAdmin } from "@/src/lib/orders-api";
+import { toast } from "sonner";
+import { Input } from "@/src/components/ui/input";
+import { Button } from "@/src/components/ui/button";
+import { Search, Plus, FilterX, ChevronLeft, ChevronRight } from "lucide-react";
+import { DatePicker } from "@/src/components/ui/date-picker";
+import { format } from "date-fns";
 
 interface Props {
   initialOrders: Order[];
 }
 
-const STATUS_COUNTS = (orders: Order[]) => ({
-  total: orders.length,
-  pending: orders.filter((o) => o.status === "pending").length,
-  processing: orders.filter((o) => o.status === "processing").length,
-  delivered: orders.filter((o) => o.status === "delivered").length,
-});
+const STATUS_COUNTS = (orders: Order[]) => {
+  if (!Array.isArray(orders)) return { total: 0, pending: 0, processing: 0, delivered: 0 };
+  return {
+    total: orders.length,
+    pending: orders.filter((o) => o.status === "pending").length,
+    processing: orders.filter((o) => o.status === "processing").length,
+    delivered: orders.filter((o) => o.status === "delivered").length,
+  };
+};
 
 export function OrdersPageClient({ initialOrders }: Props) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  
+  // Filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<Date>();
+  const [dateTo, setDateTo] = useState<Date>();
+  const [page, setPage] = useState(1);
+
   const counts = STATUS_COUNTS(orders);
+
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await fetchAllOrdersAdmin({
+        status: statusFilter || undefined,
+        from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
+        to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
+        customer: searchQuery || undefined,
+        page
+      });
+      setOrders(data);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, dateFrom, dateTo, searchQuery, page]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadOrders();
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [loadOrders]);
 
   function handleCreated(order: Order) {
     setOrders((prev) => [order, ...prev]);
   }
 
+  async function handleUpdateStatus(id: string | number, status: OrderStatus) {
+    try {
+      const updated = await updateOrderAdmin(id, { status });
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      toast.success(`Order #${id} updated to ${status}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update status");
+    }
+  }
+
+  async function handleUpdatePayment(id: string | number, payment_status: PaymentStatus) {
+    try {
+      const updated = await updateOrderAdmin(id, { payment_status });
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      toast.success(`Order #${id} payment status updated to ${payment_status}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update payment status");
+    }
+  }
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("");
+    setDateFrom(undefined);
+    setDateTo(undefined);
+    setPage(1);
+  };
+
   return (
-    <>
+    <div className="space-y-8 font-lato">
       {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
-            Orders
-          </h1>
-          <p className="mt-0.5 text-sm text-zinc-400">
-            Manage and track all customer orders
-          </p>
-        </div>
-        <button
-          onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
-          style={{ backgroundColor: "#966FD6" }}
-        >
-          <PlusIcon />
-          New order
-        </button>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black tracking-tight text-black">
+          Order Management
+        </h1>
+        <p className="mt-1 text-zinc-500 font-medium">
+          Monitor, track, and manage customer shipments and payments.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Total orders" value={counts.total} primary />
-        <StatCard label="Pending" value={counts.pending} />
-        <StatCard label="Processing" value={counts.processing} />
-        <StatCard label="Delivered" value={counts.delivered} />
+
+      {/* Filters Bar */}
+      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-zinc-100">
+        <div className="relative w-full xl:w-96 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
+          <Input 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by customer or order ID..." 
+            className="pl-11 h-12 rounded-xl bg-white border-zinc-200 focus:bg-white focus:border-[#966FD6]/30 transition-all font-medium"
+          />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="h-12 px-4 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 focus:border-[#966FD6]/30 focus:outline-none transition-all"
+          >
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
+            <DatePicker 
+              date={dateFrom} 
+              setDate={setDateFrom} 
+              placeholder="Start Date" 
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
+            <DatePicker 
+              date={dateTo} 
+              setDate={setDateTo} 
+              placeholder="End Date" 
+            />
+          </div>
+          
+          {(searchQuery || statusFilter || dateFrom || dateTo) && (
+            <Button 
+              variant="ghost" 
+              onClick={clearFilters}
+              className="h-12 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-black gap-2 uppercase text-[10px] tracking-widest"
+            >
+              <FilterX className="size-4" />
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Table card */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
-          <h2 className="text-sm font-semibold text-zinc-700">All orders</h2>
-          <span className="rounded-full px-2.5 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: "#966FD6" }}>
-            {orders.length} {orders.length === 1 ? "order" : "orders"}
-          </span>
+      {/* Table Section */}
+      <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-50 overflow-hidden relative">
+        <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
+          <h2 className="text-lg font-black text-black">Order Registry</h2>
+          <div className="flex items-center gap-4">
+            <span className="text-xs font-bold text-zinc-400">
+              Page {page}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={page <= 1 || loading} 
+                onClick={() => setPage(p => p - 1)}
+                className="size-8 rounded-lg"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={loading}
+                onClick={() => setPage(p => p + 1)}
+                className="size-8 rounded-lg"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
         </div>
-        <OrdersTable orders={orders} />
+        <OrdersTable 
+          orders={orders} 
+          isLoading={loading}
+          onUpdateStatus={handleUpdateStatus}
+          onUpdatePayment={handleUpdatePayment}
+        />
       </div>
 
       <CreateOrderModal
@@ -71,7 +212,7 @@ export function OrdersPageClient({ initialOrders }: Props) {
         onClose={() => setModalOpen(false)}
         onCreated={handleCreated}
       />
-    </>
+    </div>
   );
 }
 
@@ -86,33 +227,26 @@ function StatCard({
 }) {
   return (
     <div
-      className="rounded-2xl border p-5 transition-shadow hover:shadow-md"
-      style={
-        primary
-          ? { backgroundColor: "#966FD6", borderColor: "#966FD6" }
-          : { backgroundColor: "#fff", borderColor: "#f0ebfa" }
-      }
+      className={`rounded-2xl p-6 transition-all border ${
+        primary 
+          ? 'bg-[#966FD6] border-[#966FD6] shadow-lg shadow-[#966FD6]/20' 
+          : 'bg-white border-zinc-100 shadow-sm hover:shadow-md'
+      }`}
     >
       <p
-        className="text-xs font-semibold uppercase tracking-wider"
-        style={{ color: primary ? "rgba(255,255,255,0.75)" : "#966FD6" }}
+        className={`text-[10px] font-black uppercase tracking-widest ${
+          primary ? 'text-white/70' : 'text-zinc-400'
+        }`}
       >
         {label}
       </p>
       <p
-        className="mt-2 text-3xl font-bold tabular-nums"
-        style={{ color: primary ? "#fff" : "#3f3356" }}
+        className={`mt-2 text-3xl font-black tabular-nums ${
+          primary ? 'text-white' : 'text-black'
+        }`}
       >
         {value}
       </p>
     </div>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2.5}>
-      <path d="M8 3v10M3 8h10" strokeLinecap="round" />
-    </svg>
   );
 }

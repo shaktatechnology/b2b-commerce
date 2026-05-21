@@ -1,7 +1,8 @@
-import type { OrderStatus } from "@/types/orders";
+import type { OrderStatus } from "@/src/types/orders";
 
 const STATUS_STYLES: Record<OrderStatus, { bg: string; text: string; dot: string }> = {
   pending:    { bg: "#fff8e6", text: "#92610a", dot: "#f59e0b" },
+  confirmed:  { bg: "#ecfdf5", text: "#065f46", dot: "#10b981" },
   processing: { bg: "#f3edfb", text: "#6b3fb5", dot: "#966FD6" },
   shipped:    { bg: "#edf4fb", text: "#1d5fa8", dot: "#3b82f6"  },
   delivered:  { bg: "#ecfbf4", text: "#166534", dot: "#22c55e"  },

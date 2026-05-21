@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { createOrder } from "@/src/lib/orders-api";
 import type { CreateOrderPayload, Order } from "@/src/types/orders";
+import { Spinner } from "@/src/components/ui/spinner";
+import { Button } from "@/src/components/ui/button";
 
 interface Props {
   open: boolean;
@@ -62,36 +65,26 @@ export function CreateOrderModal({ open, onClose, onCreated }: Props) {
   }
 
   return (
-    // Backdrop
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-xs"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-start rounded-t-2xl justify-between px-8 pt-8 pb-2 bg-[#966FD6]">
+        <div className="flex justify-between items-center p-5 border-b border-zinc-50 bg-zinc-50/30">
           <div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 ">
+            <h2 className="text-2xl font-black text-black tracking-tight">
               New Order
             </h2>
-            <p className="text-sm text-zinc-400 mt-1">
+            <p className="text-zinc-500 text-sm font-medium mt-1">
               Checkout the customer&apos;s cart
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-zinc-400 transition hover:text-zinc-700 dark:hover:text-zinc-200"
-            aria-label="Close"
-          >
-            <svg className="size-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path d="M3 3l10 10M13 3L3 13" strokeLinecap="round"/>
-            </svg>
-          </button>
+          <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+            <X className="h-6 w-6" />
+          </Button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate>
-          <div className="bg-white max-h-[65vh] overflow-y-auto px-8 py-5 space-y-4">
+          <div className="bg-white max-h-[65vh] overflow-y-auto px-8 py-5 space-y-4 scrollbar-hide">
             {/* Basic info section */}
             <div className="pt-1">
               <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-zinc-400">
@@ -203,27 +196,26 @@ export function CreateOrderModal({ open, onClose, onCreated }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end gap-2 border-t border-zinc-100 px-8 py-5 dark:border-zinc-800">
-            <button
+          <div className="flex flex-col sm:flex-row justify-end gap-3 p-5 border-t border-zinc-50 bg-white">
+            <Button
               type="button"
+              variant="ghost"
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              disabled={loading}
+              className="font-bold rounded-xl text-zinc-500 h-12 w-full sm:w-auto"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white px-10 h-12 rounded-xl font-black shadow-lg shadow-[#966FD6]/20 active:scale-[0.98] w-full sm:w-auto"
             >
               {loading ? (
-                <>
-                  <Spinner /> Creating…
-                </>
-              ) : (
-                "Checkout cart"
-              )}
-            </button>
+                <Spinner size="sm" className="border-white mr-2" />
+              ) : null}
+              Create Order
+            </Button>
           </div>
         </form>
       </div>
@@ -234,7 +226,7 @@ export function CreateOrderModal({ open, onClose, onCreated }: Props) {
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 function input() {
-  return "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-300 focus:border-zinc-300 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-600";
+  return "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-black placeholder:text-zinc-400 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6] focus:outline-none transition-all";
 }
 
 function Field({
@@ -262,19 +254,3 @@ function Field({
   );
 }
 
-function Spinner() {
-  return (
-    <svg
-      className="size-4 animate-spin"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path
-        d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
