@@ -108,7 +108,7 @@ export default function AdminOffersPage() {
     try {
       const freshToken = getAuthToken();
       const [offerRes, prodRes] = await Promise.all([
-        apiFetch<any>("/admin/offers", { token: freshToken || undefined }),
+        apiFetch<any>("/offers", { token: freshToken || undefined }),
         apiFetch<any>("/products?include_inactive=1&status=all", { token: freshToken || undefined }),
       ]);
 
