@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Bell,
   Globe,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { logoutApi } from '@/src/lib/auth';
@@ -33,6 +34,7 @@ const navItems = [
   { name: 'Categories', icon: Layers, href: '/admin/categories' },
   { name: 'Products', icon: Globe, href: '/admin/products' },
   { name: 'Orders', icon: ShoppingCart, href: '/admin/orders' },
+  { name: 'Payments', icon: CreditCard, href: '/admin/payments' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },
   { name: 'Settings', icon: Settings, href: '/admin/settings' },
@@ -108,7 +110,7 @@ export function Sidebar({ className, isMobileOpen, setIsMobileOpen }: SidebarPro
                 className={cn(
                   'flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-200 group relative',
                   isActive
-                    ? 'bg-blue-500 text-white shadow-blue-200/50 shadow-lg'
+                    ? 'bg-[#966FD6] text-white shadow-[#966FD6]/30 shadow-lg'
                     : 'text-zinc-500 hover:bg-zinc-50 hover:text-black'
                 )}
               >

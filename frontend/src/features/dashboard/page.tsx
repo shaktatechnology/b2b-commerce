@@ -39,40 +39,81 @@ export function DashboardOverview() {
         </Button>
       </PageHeader>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title="Total Orders"
-          value="456"
-          description="from last month"
-          icon={ShoppingCart}
-          trend="up"
-          trendValue="+18%"
-        />
-        <StatsCard
-          title="Pending Orders"
-          value="24"
-          description="requires attention"
-          icon={ShoppingCart}
-          trend="down"
-          trendValue="-5%"
-        />
-        <StatsCard
-          title="Processing"
-          value="12"
-          description="in fulfillment"
-          icon={ShoppingCart}
-          trend="up"
-          trendValue="+2"
-        />
-        <StatsCard
-          title="Delivered"
-          value="420"
-          description="successfully reached"
-          icon={CheckCircle2}
-          trend="up"
-          trendValue="+12%"
-        />
+      {/* KPI Cards section */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-black text-black mb-4 flex items-center gap-2">
+            <ShoppingCart className="size-5 text-[#966FD6]" />
+            Sales Overview
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="Total Orders"
+              value="456"
+              description="from last month"
+              icon={ShoppingCart}
+              trend="up"
+              trendValue="+18%"
+            />
+            <StatsCard
+              title="Pending Orders"
+              value="24"
+              description="requires attention"
+              icon={ShoppingCart}
+              trend="down"
+              trendValue="-5%"
+            />
+            <StatsCard
+              title="Processing"
+              value="12"
+              description="in fulfillment"
+              icon={ShoppingCart}
+              trend="up"
+              trendValue="+2"
+            />
+            <StatsCard
+              title="Delivered"
+              value="420"
+              description="successfully reached"
+              icon={CheckCircle2}
+              trend="up"
+              trendValue="+12%"
+            />
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-black text-black mb-4 flex items-center gap-2">
+            <Briefcase className="size-5 text-green-600" />
+            Financial Summary
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatsCard
+              title="Total Revenue"
+              value="$12,450"
+              description="Gross settled funds"
+              icon={ShoppingCart}
+              trend="up"
+              trendValue="+24%"
+            />
+            <StatsCard
+              title="Pending Collections"
+              value="$3,200"
+              description="Awaiting settlement"
+              icon={Briefcase}
+              trend="down"
+              trendValue="-2%"
+            />
+            <StatsCard
+              title="Settled Today"
+              value="$1,850"
+              description="Daily transaction volume"
+              icon={CheckCircle2}
+              trend="up"
+              trendValue="+$850"
+            />
+          </div>
+        </div>
       </div>
 
       {/* Charts */}

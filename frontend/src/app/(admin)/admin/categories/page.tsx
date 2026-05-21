@@ -24,7 +24,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/src/components/ui/select';
-import { Edit2, Trash2, Plus, X, Image as ImageIcon, Layers, Search, Calendar, FilterX } from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Image as ImageIcon, Layers, Search, Calendar, FilterX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
 import { DatePicker } from '@/src/components/ui/date-picker';
@@ -46,6 +46,7 @@ export default function CategoriesPage() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
   const [dateTo, setDateTo] = React.useState<Date | undefined>();
+  const [page, setPage] = React.useState(1);
   
   // Form State
   const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
@@ -68,7 +69,7 @@ export default function CategoriesPage() {
     setIsLoading(true);
     try {
       const freshToken = getAuthToken();
-      const res = await apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined });
+      const res = await apiFetch<any>(`/categories?include_inactive=1&status=all&page=${page}`, { token: freshToken || undefined });
       let categoriesData: Category[] = [];
       if (Array.isArray(res)) categoriesData = res;
       else if (Array.isArray(res?.data)) categoriesData = res.data;
@@ -84,7 +85,7 @@ export default function CategoriesPage() {
 
   React.useEffect(() => {
     loadCategories();
-  }, [loadCategories]);
+  }, [loadCategories, page]);
 
   const openModal = (mode: 'create' | 'edit', category?: Category) => {
     setFormMode(mode);
@@ -290,7 +291,35 @@ export default function CategoriesPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden relative">
+        <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
+          <h2 className="text-lg font-black text-black">Category Registry</h2>
+          <div className="flex items-center gap-4">
+            <span className="text-xs font-bold text-zinc-400">
+              Page {page}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={page <= 1 || isLoading} 
+                onClick={() => setPage(p => p - 1)}
+                className="size-8 rounded-lg"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={isLoading}
+                onClick={() => setPage(p => p + 1)}
+                className="size-8 rounded-lg"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
         <div className="overflow-x-auto scrollbar-hide">
           <Table>
             <TableHeader className="bg-zinc-50/50">
