@@ -242,39 +242,41 @@ export default function CategoriesPage() {
         </Button>
       </PageHeader>
 
-      <div className="flex flex-col xl:flex-row gap-3 items-center justify-between bg-white p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-zinc-100">
-        <div className="relative w-full xl:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
+      <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="relative flex-1 max-w-sm min-w-[240px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
           <Input 
+            placeholder="Search categories..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search categories..." 
-            className="pl-11 h-12 rounded-xl bg-white border-zinc-200 focus:bg-white focus:border-[#966FD6]/30 transition-all font-medium"
+            className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs font-black uppercase tracking-widest text-zinc-400 min-w-max">From:</span>
-            <div className="w-full sm:w-48 bg-white rounded-xl">
-              <DatePicker 
-                date={dateFrom} 
-                setDate={setDateFrom} 
-                placeholder="Start Date" 
-                disabled={dateTo ? { after: dateTo } : undefined}
-              />
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
+              <div className="w-40">
+                <DatePicker 
+                  date={dateFrom} 
+                  setDate={setDateFrom} 
+                  placeholder="Start Date" 
+                  disabled={dateTo ? { after: dateTo } : undefined}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs font-black uppercase tracking-widest text-zinc-400 min-w-max">To:</span>
-            <div className="w-full sm:w-48 bg-white rounded-xl">
-              <DatePicker 
-                date={dateTo} 
-                setDate={setDateTo} 
-                placeholder="End Date" 
-                disabled={dateFrom ? { before: dateFrom } : undefined}
-              />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
+              <div className="w-40">
+                <DatePicker 
+                  date={dateTo} 
+                  setDate={setDateTo} 
+                  placeholder="End Date" 
+                  disabled={dateFrom ? { before: dateFrom } : undefined}
+                />
+              </div>
             </div>
           </div>
           
@@ -282,7 +284,7 @@ export default function CategoriesPage() {
             <Button 
               variant="ghost" 
               onClick={clearFilters}
-              className="h-12 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
+              className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
             >
               <FilterX className="size-4" />
               <span className="hidden sm:inline">Clear</span>

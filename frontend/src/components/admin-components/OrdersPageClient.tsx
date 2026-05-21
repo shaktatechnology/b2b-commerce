@@ -112,14 +112,14 @@ export function OrdersPageClient({ initialOrders }: Props) {
 
 
       {/* Filters Bar */}
-      <div className="flex flex-col xl:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-zinc-100">
-        <div className="relative w-full xl:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
+      <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="relative flex-1 max-w-sm min-w-[240px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
           <Input 
+            placeholder="Search by customer or order ID..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by customer or order ID..." 
-            className="pl-11 h-12 rounded-xl bg-white border-zinc-200 focus:bg-white focus:border-[#966FD6]/30 transition-all font-medium"
+            className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
         
@@ -127,7 +127,7 @@ export function OrdersPageClient({ initialOrders }: Props) {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-12 px-4 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 focus:border-[#966FD6]/30 focus:outline-none transition-all"
+            className="h-11 px-4 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 focus:border-[#966FD6]/30 focus:outline-none transition-all"
           >
             <option value="">All Statuses</option>
             <option value="pending">Pending</option>
@@ -138,32 +138,40 @@ export function OrdersPageClient({ initialOrders }: Props) {
             <option value="cancelled">Cancelled</option>
           </select>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
-            <DatePicker 
-              date={dateFrom} 
-              setDate={setDateFrom} 
-              placeholder="Start Date" 
-            />
-          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
+              <div className="w-40">
+                <DatePicker 
+                  date={dateFrom} 
+                  setDate={setDateFrom} 
+                  placeholder="Start Date" 
+                  disabled={dateTo ? { after: dateTo } : undefined}
+                />
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
-            <DatePicker 
-              date={dateTo} 
-              setDate={setDateTo} 
-              placeholder="End Date" 
-            />
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
+              <div className="w-40">
+                <DatePicker 
+                  date={dateTo} 
+                  setDate={setDateTo} 
+                  placeholder="End Date" 
+                  disabled={dateFrom ? { before: dateFrom } : undefined}
+                />
+              </div>
+            </div>
           </div>
           
           {(searchQuery || statusFilter || dateFrom || dateTo) && (
             <Button 
               variant="ghost" 
               onClick={clearFilters}
-              className="h-12 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-black gap-2 uppercase text-[10px] tracking-widest"
+              className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
             >
               <FilterX className="size-4" />
-              Clear
+              <span className="hidden sm:inline">Clear</span>
             </Button>
           )}
         </div>
