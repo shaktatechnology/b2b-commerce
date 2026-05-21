@@ -8,6 +8,7 @@ import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Spinner } from '@/src/components/ui/spinner';
+import { Skeleton } from '@/src/components/ui/skeleton';
 import { 
   Table, 
   TableBody, 
@@ -290,13 +291,7 @@ export default function CategoriesPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center p-20"><Spinner size="lg" className="border-[#966FD6]" /></div>
-        ) : filteredCategories.length === 0 ? (
-          <div className="text-center p-20 text-zinc-500 font-medium italic">
-            {searchQuery || dateFrom || dateTo ? "No categories match your current filters." : "No categories found. Click \"Add Category\" to create your first one."}
-          </div>
-        ) : (
+        <div className="overflow-x-auto scrollbar-hide">
           <Table>
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="hover:bg-transparent border-zinc-100">
@@ -309,79 +304,121 @@ export default function CategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCategories.map((cat) => (
-                <TableRow key={cat.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
-                  <TableCell className="py-5 px-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6] shrink-0 overflow-hidden">
-                        {cat.image_url ? (
-                          <img 
-                            src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:8000${cat.image_url}`} 
-                            alt={cat.name} 
-                            className="w-full h-full object-cover" 
-                          />
-                        ) : (
-                          <Layers className="size-6" />
-                        )}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="border-zinc-50">
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-3 w-40" />
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-black/90 text-base">{cat.name}</p>
-                        <p className="text-zinc-400 text-xs font-medium line-clamp-1">{cat.description || 'No description'}</p>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-5 w-16" />
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-4 w-12" />
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-center">
+                      <div className="flex justify-center">
+                        <Skeleton className="h-5 w-16 rounded-full" />
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <code className="text-xs bg-zinc-100 px-2.5 py-1 rounded-full font-bold text-zinc-600">
-                      /{cat.slug}
-                    </code>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <span className="text-sm font-bold text-zinc-500">
-                      {cat.parent_name || (cat.parent_id ? categories.find(c => c.id.toString() === cat.parent_id?.toString())?.name : null) || '—'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <div className="text-xs font-bold text-zinc-400">
-                      {cat.created_at ? new Date(cat.created_at).toLocaleDateString() : '—'}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6 text-center">
-                    <span className={cn(
-                      "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                      cat.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                    )}>
-                      {cat.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-5 px-6 text-right space-x-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => openModal('edit', cat)}
-                      className="rounded-full text-zinc-400 hover:text-[#966FD6] hover:bg-[#966FD6]/5 transition-all"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => handleDelete(cat.id)}
-                      className="rounded-full text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filteredCategories.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center p-20 text-zinc-500 font-medium italic">
+                    {searchQuery || dateFrom || dateTo ? "No categories match your current filters." : "No categories found. Click \"Add Category\" to create your first one."}
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredCategories.map((cat) => (
+                  <TableRow key={cat.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6] shrink-0 overflow-hidden">
+                          {cat.image_url ? (
+                            <img 
+                              src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:8000${cat.image_url}`} 
+                              alt={cat.name} 
+                              className="w-full h-full object-cover" 
+                            />
+                          ) : (
+                            <Layers className="size-6" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-black/90 text-base">{cat.name}</p>
+                          <p className="text-zinc-400 text-xs font-medium line-clamp-1">{cat.description || 'No description'}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <code className="text-xs bg-zinc-100 px-2.5 py-1 rounded-full font-bold text-zinc-600">
+                        /{cat.slug}
+                      </code>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <span className="text-sm font-bold text-zinc-500">
+                        {cat.parent_name || (cat.parent_id ? categories.find(c => c.id.toString() === cat.parent_id?.toString())?.name : null) || '—'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <div className="text-xs font-bold text-zinc-400">
+                        {cat.created_at ? new Date(cat.created_at).toLocaleDateString() : '—'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-center">
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        cat.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                      )}>
+                        {cat.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => openModal('edit', cat)}
+                        className="rounded-full text-zinc-400 hover:text-[#966FD6] hover:bg-[#966FD6]/5 transition-all"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleDelete(cat.id)}
+                        className="rounded-full text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        )}
+        </div>
       </div>
 
       {/* Modal Overlay */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-5 border-b border-zinc-50 bg-zinc-50/30">
               <div>
                 <h2 className="text-2xl font-black text-black tracking-tight">
@@ -497,17 +534,17 @@ export default function CategoriesPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="ghost" onClick={closeModal} disabled={isSubmitting} className="font-bold rounded-xl text-zinc-500">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 p-5 border-t border-zinc-50 bg-white">
+                <Button type="button" variant="ghost" onClick={closeModal} disabled={isSubmitting} className="font-bold rounded-xl text-zinc-500 h-12 w-full sm:w-auto">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || !formData.name.trim()}
-                  className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white px-10 h-12 rounded-xl font-black shadow-lg shadow-[#966FD6]/20 active:scale-[0.98]"
+                  className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white px-10 h-12 rounded-xl font-black shadow-lg shadow-[#966FD6]/20 active:scale-[0.98] w-full sm:w-auto"
                 >
                   {isSubmitting ? <Spinner size="sm" className="border-white mr-2" /> : null}
-                  {formMode === 'create' ? 'Create Category' : 'Save Changes'}
+                  {formMode === 'create' ? 'Create' : 'Save'}
                 </Button>
               </div>
             </form>

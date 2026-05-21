@@ -8,6 +8,7 @@ import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Spinner } from '@/src/components/ui/spinner';
+import { Skeleton } from '@/src/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -403,15 +404,7 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center p-20">
-            <Spinner size="lg" className="border-[#966FD6]" />
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center p-20 text-zinc-500 font-medium italic">
-            No products match your current filters.
-          </div>
-        ) : (
+        <div className="overflow-x-auto scrollbar-hide">
           <Table>
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="hover:bg-transparent">
@@ -423,90 +416,135 @@ export default function AdminProductsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((p) => (
-                <TableRow key={p.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
-                  <TableCell className="py-5 px-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 overflow-hidden shrink-0">
-                        {p.image || p.thumbnail || p.image_url || (p.images && p.images.length > 0) ? (
-                          <img 
-                            src={(() => {
-                              const path = p.image || p.thumbnail || p.image_url || p.images?.[0]?.url || '';
-                              if (!path) return '';
-                              if (path.startsWith('http')) return path;
-                              return `http://localhost:8000${path}`;
-                            })()} 
-                            className="w-full h-full object-cover" 
-                            alt={p.name} 
-                          />
-                        ) : (
-                          <Package className="size-6" />
-                        )}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="border-zinc-50">
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-14 w-14 rounded-2xl shrink-0" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-40" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-black/90 text-base">{p.name}</p>
-                        <code className="text-[10px] bg-zinc-100 px-2 py-0.5 rounded-md font-bold text-zinc-500 uppercase tracking-tight">
-                          /{p.slug}
-                        </code>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <div className="space-y-2">
+                        <Skeleton className="h-6 w-16" />
+                        <Skeleton className="h-3 w-12" />
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <div className="space-y-1">
-                      <p className="font-black text-[#966FD6] text-lg">
-                        ${p.variants?.[0]?.retail_price || '0'}
-                      </p>
-                      <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
-                        {p.variants?.length || 0} variants
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <div className="flex flex-wrap gap-1">
-                      {(p.categories || []).map(cat => (
-                        <span key={cat.id} className="text-[10px] font-bold bg-[#966FD6]/5 text-[#966FD6] px-2 py-1 rounded-lg">
-                          {cat.name}
-                        </span>
-                      ))}
-                      {(!p.categories || p.categories.length === 0) && <span className="text-xs text-zinc-400">Uncategorized</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6 text-center">
-                    <span className={cn(
-                      "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
-                      p.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-                    )}>
-                      {p.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </TableCell>
-                  <TableCell className="py-5 px-6 text-right space-x-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => openModal('edit', p)}
-                      className="rounded-full text-zinc-400 hover:text-[#966FD6] hover:bg-[#966FD6]/5"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(p.id)}
-                      className="rounded-full text-zinc-400 hover:text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <div className="flex gap-1">
+                        <Skeleton className="h-5 w-16 rounded-lg" />
+                        <Skeleton className="h-5 w-16 rounded-lg" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-center">
+                      <div className="flex justify-center">
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center p-20 text-zinc-500 font-medium italic">
+                    No products match your current filters.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredProducts.map((p) => (
+                  <TableRow key={p.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 overflow-hidden shrink-0">
+                          {p.image || p.thumbnail || p.image_url || (p.images && p.images.length > 0) ? (
+                            <img 
+                              src={(() => {
+                                const path = p.image || p.thumbnail || p.image_url || p.images?.[0]?.url || '';
+                                if (!path) return '';
+                                if (path.startsWith('http')) return path;
+                                return `http://localhost:8000${path}`;
+                              })()} 
+                              className="w-full h-full object-cover" 
+                              alt={p.name} 
+                            />
+                          ) : (
+                            <Package className="size-6" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-black/90 text-base">{p.name}</p>
+                          <code className="text-[10px] bg-zinc-100 px-2 py-0.5 rounded-md font-bold text-zinc-500 uppercase tracking-tight">
+                            /{p.slug}
+                          </code>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <div className="space-y-1">
+                        <p className="font-black text-[#966FD6] text-lg">
+                          ${p.variants?.[0]?.retail_price || '0'}
+                        </p>
+                        <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                          {p.variants?.length || 0} variants
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <div className="flex flex-wrap gap-1">
+                        {(p.categories || []).map(cat => (
+                          <span key={cat.id} className="text-[10px] font-bold bg-[#966FD6]/5 text-[#966FD6] px-2 py-1 rounded-lg">
+                            {cat.name}
+                          </span>
+                        ))}
+                        {(!p.categories || p.categories.length === 0) && <span className="text-xs text-zinc-400">Uncategorized</span>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-center">
+                      <span className={cn(
+                        "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        p.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+                      )}>
+                        {p.is_active ? 'Active' : 'Inactive'}
+                      </span>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openModal('edit', p)}
+                        className="rounded-full text-zinc-400 hover:text-[#966FD6] hover:bg-[#966FD6]/5"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(p.id)}
+                        className="rounded-full text-zinc-400 hover:text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        )}
+        </div>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300 overflow-y-auto">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl my-8 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-4xl my-auto overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="flex justify-between items-center p-5 border-b border-zinc-50">
               <h2 className="text-2xl font-black">
                 {formMode === 'create' ? 'Add New Product' : 'Edit Product'}
@@ -700,21 +738,21 @@ export default function AdminProductsPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-zinc-50">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-[#966FD6] bg-[#966FD6]/5 px-4 py-2 rounded-full border border-[#966FD6]/10">
+              <div className="flex flex-col sm:flex-row items-center justify-between p-5 gap-4 border-t border-zinc-50 bg-white">
+                 <p className="hidden md:block text-[10px] font-black uppercase tracking-widest text-[#966FD6] bg-[#966FD6]/5 px-4 py-2 rounded-full border border-[#966FD6]/10">
                    Ensure categories and variants are correctly defined
                  </p>
-                 <div className="flex gap-4">
-                    <Button type="button" variant="ghost" onClick={closeModal} className="font-bold text-zinc-400 rounded-2xl h-12 px-6 hover:bg-zinc-50">
+                 <div className="flex w-full sm:w-auto gap-3">
+                    <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 sm:flex-none font-bold text-zinc-400 rounded-xl md:rounded-2xl h-12 px-6 hover:bg-zinc-50">
                       Cancel
                     </Button>
                     <Button
                       type="submit"
                       disabled={isSubmitting}
-                      className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white px-12 h-14 rounded-2xl font-black shadow-2xl shadow-[#966FD6]/30 active:scale-[0.98] transition-all"
+                      className="flex-1 sm:flex-none bg-[#966FD6] hover:bg-[#7d5bbf] text-white px-8 md:px-12 h-12 md:h-14 rounded-xl md:rounded-2xl font-black shadow-2xl shadow-[#966FD6]/30 active:scale-[0.98] transition-all"
                     >
                       {isSubmitting ? <Spinner size="sm" className="border-white mr-2" /> : null}
-                      {formMode === 'create' ? 'Publish Product' : 'Save Changes'}
+                      {formMode === 'create' ? 'Publish' : 'Save'}
                     </Button>
                  </div>
               </div>
