@@ -7,6 +7,7 @@ import { AuthUser } from '@/src/types';
 import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Spinner } from '@/src/components/ui/spinner';
+import { Skeleton } from '@/src/components/ui/skeleton';
 import { 
   Table, 
   TableBody, 
@@ -49,15 +50,7 @@ export function UsersPage() {
       />
 
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center p-20">
-            <Spinner size="lg" className="border-[#966FD6]" />
-          </div>
-        ) : users.length === 0 ? (
-          <div className="text-center p-20 text-zinc-500 font-medium">
-            No users found in the system.
-          </div>
-        ) : (
+        <div className="overflow-x-auto scrollbar-hide">
           <Table>
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="hover:bg-transparent border-zinc-100">
@@ -68,47 +61,80 @@ export function UsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
-                  <TableCell className="py-5 px-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6]">
-                        <User className="size-5" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-black/90">{user.name}</p>
-                        <div className="flex items-center gap-1 text-zinc-400 text-xs font-medium">
-                          <Mail className="size-3" /> {user.email}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i} className="border-zinc-50">
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-10 w-10 rounded-xl" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <Badge className={cn(
-                      "rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-wider border-none shadow-none",
-                      user.role === 'admin' ? "bg-red-50 text-red-600" : 
-                      user.role === 'wholeseller' ? "bg-[#966FD6]/10 text-[#966FD6]" : 
-                      "bg-blue-50 text-blue-600"
-                    )}>
-                      {user.role || 'User'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="py-5 px-6">
-                    <div className="flex items-center gap-2 text-zinc-500 font-medium text-sm">
-                      <Calendar className="size-3.5" />
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-5 px-6 text-right">
-                    <Button variant="ghost" size="icon" className="rounded-full text-zinc-400 hover:text-[#966FD6] hover:bg-[#966FD6]/5 transition-all">
-                      <MoreHorizontal className="size-5" />
-                    </Button>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right">
+                      <div className="flex justify-end">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center p-20 text-zinc-500 font-medium italic">
+                    No users found in the system.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                users.map((user) => (
+                  <TableRow key={user.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6]">
+                          <User className="size-5" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-black/90">{user.name}</p>
+                          <div className="flex items-center gap-1 text-zinc-400 text-xs font-medium">
+                            <Mail className="size-3" /> {user.email}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Badge className={cn(
+                        "rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-wider border-none shadow-none",
+                        user.role === 'admin' ? "bg-red-50 text-red-600" : 
+                        user.role === 'wholeseller' ? "bg-[#966FD6]/10 text-[#966FD6]" : 
+                        "bg-blue-50 text-blue-600"
+                      )}>
+                        {user.role || 'User'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <div className="flex items-center gap-2 text-zinc-500 font-medium text-sm">
+                        <Calendar className="size-3.5" />
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6 text-right">
+                      <Button variant="ghost" size="icon" className="rounded-full text-zinc-400 hover:text-[#966FD6] hover:bg-[#966FD6]/5 transition-all">
+                        <MoreHorizontal className="size-5" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        )}
+        </div>
       </div>
     </div>
   );

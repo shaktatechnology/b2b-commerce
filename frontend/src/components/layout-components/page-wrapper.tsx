@@ -31,11 +31,11 @@ export function PageHeader({ title, description, children, className }: {
 }) {
   return (
     <div className={cn('flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2', className)}>
-      <div className="space-y-2">
-        <h1 className="text-4xl font-black tracking-tight text-black">{title}</h1>
-        {description && <p className="text-black/60 font-medium text-lg">{description}</p>}
+      <div className="space-y-1 md:space-y-2">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-black">{title}</h1>
+        {description && <p className="text-zinc-500 font-medium text-sm md:text-lg lg:text-xl line-clamp-2 md:line-clamp-none">{description}</p>}
       </div>
-      {children && <div className="flex items-center gap-2">{children}</div>}
+      {children && <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">{children}</div>}
     </div>
   );
 }

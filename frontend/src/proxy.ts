@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 // This is a simplified middleware for the starter kit.
 // In a real app, you would verify a session cookie or JWT.
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isAuth = request.cookies.get('auth-token');
