@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Order;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Order\CheckoutRequest;
+use App\Http\Requests\Api\Order\AdminCreateOrderRequest;
 use App\Http\Requests\Api\Order\UpdateOrderAdminRequest;
 use App\Interfaces\Order\OrderServiceInterface;
 use Illuminate\Http\Request;
@@ -53,7 +54,8 @@ class OrderController extends Controller
             $order = $this->orderService->createOrderFromCart(
                 $request->user()->id,
                 $request->input('shipping_address'),
-                $request->input('notes')
+                $request->input('notes'),
+                $request->input('address_id')
             );
 
             return response()->json([
@@ -95,6 +97,30 @@ class OrderController extends Controller
     }
 
     /**
+     * Admin: create an order directly (with user + item selection, no cart).
+     */
+    public function adminStore(AdminCreateOrderRequest $request): JsonResponse
+    {
+        try {
+            $order = $this->orderService->createOrderDirect(
+                $request->user()->id,
+                $request->input('user_id'),
+                $request->input('items'),
+                $request->input('shipping_address'),
+                $request->input('notes'),
+                $request->input('address_id')
+            );
+
+            return response()->json([
+                'message' => 'Order created successfully',
+                'data'    => $order,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
      * Update the order status and/or payment status for admin.
      */
     public function adminUpdate(UpdateOrderAdminRequest $request, string $id): JsonResponse
@@ -107,7 +133,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Order updated successfully',
-            'data' => $order,
+            'data'    => $order,
         ]);
     }
 }

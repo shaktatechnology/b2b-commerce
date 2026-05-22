@@ -45,6 +45,7 @@ export function CreateOrderModal({ open, onClose, onCreated }: Props) {
     const payload: CreateOrderPayload = {
       shipping_address: { street, city, state, zip, country },
       notes: notes.trim() || null,
+      address_id: 'addr_' + Math.random().toString(36).substring(2, 11),
     };
     setLoading(true);
     setError(null);

@@ -99,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Product Images
         Route::post('/products/{id}/images',  [ProductController::class, 'uploadImage']);
         Route::delete('/products/images/{imageId}', [ProductController::class, 'deleteImage']);
+        Route::delete('/products/{id}/images', [ProductController::class, 'deleteProductImages']);
 
         // Offers
         Route::post('/offers',                [OfferController::class, 'store']);

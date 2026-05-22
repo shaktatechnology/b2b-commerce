@@ -12,4 +12,6 @@ interface ProductServiceInterface
     public function deleteProduct(string $id);
     public function uploadProductImage(string $productId, $imageFile, bool $isPrimary = false, int $sortOrder = 0);
     public function deleteProductImage(string $imageId);
+    public function deleteProductImages(string $productId);
 }
+

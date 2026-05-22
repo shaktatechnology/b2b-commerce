@@ -34,6 +34,8 @@ class CreateProductRequest extends FormRequest
             'variants.*.stock' => 'nullable|integer|min:0',
             'variants.*.weight' => 'nullable|numeric|min:0',
             'variants.*.is_active' => 'nullable|boolean',
+            'variants.*.image' => 'nullable|file|image|max:5120',
+            'variants.*.image_url' => 'nullable|string|max:2083',
         ];
     }
 }

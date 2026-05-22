@@ -24,12 +24,17 @@ export interface Order {
   status: OrderStatus;
   payment_status: PaymentStatus;
   shipping_address: ShippingAddress;
+  address_id?: string;
+  product_ids?: string[];
+  user_id?: string;
+  user_type?: string;
   created_at?: string;
 }
 
 export interface CreateOrderPayload {
   notes?: string | null;
   shipping_address: ShippingAddress;
+  address_id?: string;
 }
 
 export interface CreateOrderResponse extends Order {}

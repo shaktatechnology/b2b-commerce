@@ -263,6 +263,11 @@ export default function AdminProductsPage() {
         body.append(`variants[${i}][stock]`, String(v.stock));
         body.append(`variants[${i}][weight]`, String(v.weight));
         body.append(`variants[${i}][is_active]`, v.is_active ? '1' : '0');
+        if (v.image) {
+          body.append(`variants[${i}][image]`, v.image);
+        } else if (v.image_url) {
+          body.append(`variants[${i}][image_url]`, v.image_url);
+        }
       });
 
       if (formMode === 'create') {
@@ -747,7 +752,63 @@ export default function AdminProductsPage() {
                                 </div>
                              </div>
                              
-                             <div className="flex items-center justify-between mt-4 border-t border-zinc-100 pt-4">
+                             <div className="mt-4 border-t border-zinc-100 pt-4 space-y-3">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">Variant Image</span>
+                                <div className="flex items-center gap-3">
+                                   <label className="flex-1 h-11 border-2 border-dashed border-zinc-200 hover:border-[#966FD6]/50 rounded-xl flex items-center justify-center cursor-pointer hover:bg-zinc-50 transition-colors gap-2 px-3">
+                                      <ImageIcon className="h-4 w-4 text-zinc-400 shrink-0" />
+                                      <span className="text-xs font-bold text-zinc-500 truncate max-w-[200px]">
+                                         {v.image ? v.image.name : 'Upload Variant Image'}
+                                      </span>
+                                      <input 
+                                         type="file" 
+                                         className="hidden" 
+                                         accept="image/*" 
+                                         onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                               updateVariant(i, 'image', e.target.files[0]);
+                                               updateVariant(i, 'image_url', undefined);
+                                            }
+                                         }} 
+                                      />
+                                   </label>
+                                   {v.image ? (
+                                      <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
+                                         <img src={URL.createObjectURL(v.image)} className="w-full h-full object-cover" alt="Variant preview" />
+                                         <button 
+                                            type="button" 
+                                            onClick={() => {
+                                               updateVariant(i, 'image', null);
+                                               updateVariant(i, 'image_url', '');
+                                            }}
+                                            className="absolute inset-0 bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                         >
+                                            <X className="size-3" />
+                                         </button>
+                                      </div>
+                                   ) : v.image_url ? (
+                                      <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
+                                         <img 
+                                            src={v.image_url.startsWith('http') ? v.image_url : `http://localhost:8000${v.image_url}`} 
+                                            className="w-full h-full object-cover" 
+                                            alt="Variant image" 
+                                         />
+                                         <button 
+                                            type="button" 
+                                            onClick={() => {
+                                               updateVariant(i, 'image_url', '');
+                                               updateVariant(i, 'image', null);
+                                            }}
+                                            className="absolute inset-0 bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                         >
+                                            <X className="size-3" />
+                                         </button>
+                                      </div>
+                                   ) : null}
+                                </div>
+                             </div>
+
+                             <div className="flex items-center justify-between border-t border-zinc-100 pt-4">
                                 <div className="flex items-center gap-4">
                                    <div className="flex items-center gap-2">
                                       <span className="text-[10px] font-black uppercase text-zinc-400">Weight</span>
