@@ -32,6 +32,23 @@ export function BarChart({
   data,
   className,
 }: BarChartProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <Card className={cn('overflow-hidden border-none shadow-md h-[400px]', className)}>
+        <CardHeader className="p-6">
+          <CardTitle className="text-xl font-bold">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </CardHeader>
+      </Card>
+    );
+  }
+
   return (
     <Card className={cn('overflow-hidden border-none shadow-md', className)}>
       <CardHeader className="p-6">

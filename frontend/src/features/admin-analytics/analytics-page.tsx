@@ -27,6 +27,35 @@ const data = [
 ];
 
 export function AnalyticsPage() {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="space-y-8 font-lato">
+        <PageHeader 
+          title="Analytics Overview" 
+          description="Detailed performance metrics and wholesale revenue trends."
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white h-[400px]">
+            <CardHeader className="border-b border-zinc-50 px-6 py-5">
+              <CardTitle className="text-xl font-black text-black">Revenue Growth</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white h-[400px]">
+            <CardHeader className="border-b border-zinc-50 px-6 py-5">
+              <CardTitle className="text-xl font-black text-black">Order Volume</CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 font-lato">
       <PageHeader 
