@@ -3,6 +3,7 @@ export type Offer = {
   title: string;
   description?: string | null;
   image: string;
+  image_url?: string | null;
   placement: "top" | "mid" | "page";
   is_active: boolean;
   starts_at?: string | null;

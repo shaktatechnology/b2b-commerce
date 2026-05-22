@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Edit2, Trash2, Plus, X, Image as ImageIcon, Tag, Check, Search, Calendar, Layout, ExternalLink, Target, CircleDot, ArrowRight, FilterX } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/src/lib/utils";
+import { DatePicker } from "@/src/components/ui/date-picker";
 import { format, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
 import { DateTimePicker } from "@/src/components/ui/date-time-picker";
 import { Matcher } from "react-day-picker";
@@ -35,6 +36,21 @@ const PLACEMENT_OPTIONS = [
   { value: "mid", label: "Middle Section", color: "bg-amber-50 text-amber-600 border-amber-100" },
   { value: "page", label: "Page Specific", color: "bg-purple-50 text-purple-600 border-purple-100" },
 ];
+
+const BACKEND_URL = "http://localhost:8000";
+
+function getOfferImageUrl(offer: Offer | string | null | undefined): string | null {
+  if (!offer) return null;
+  
+  let imagePath = typeof offer === 'string' ? offer : (offer.image_url || offer.image);
+  
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  if (imagePath.startsWith('/')) return `${BACKEND_URL}${imagePath}`;
+  // Handle paths like "offers/xxx.jpg" or "storage/offers/xxx.jpg"
+  if (imagePath.startsWith('storage/')) return `${BACKEND_URL}/${imagePath}`;
+  return `${BACKEND_URL}/storage/${imagePath}`;
+}
 
 export default function AdminOffersPage() {
   const [offers, setOffers] = React.useState<Offer[]>([]);
@@ -88,6 +104,13 @@ export default function AdminOffersPage() {
         productsData = prodRes.data.data.data;
       }
 
+      // Debug: log the raw offer data to see image field format
+      if (offersData.length > 0) {
+        console.log("[Offers Debug] First offer raw data:", JSON.stringify(offersData[0], null, 2));
+        console.log("[Offers Debug] Image field value:", offersData[0].image);
+        console.log("[Offers Debug] Resolved URL:", getOfferImageUrl(offersData[0].image));
+      }
+
       setOffers(offersData);
       setProducts(productsData);
     } catch (err: any) {
@@ -114,7 +137,7 @@ export default function AdminOffersPage() {
         ends_at: offer.ends_at || "",
         product_ids: offer.product_ids || [],
       });
-      setImagePreview(offer.image);
+      setImagePreview(offer.image_url || offer.image);
     } else {
       setEditingId(null);
       setFormData({ ...EMPTY_FORM });
@@ -327,24 +350,26 @@ export default function AdminOffersPage() {
              </div>
 
              {/* Date Filters */}
-             <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-                   <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Created From</span>
-                   <div className="w-full sm:w-52">
-                     <DateTimePicker 
+             <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
+                   <div className="w-40">
+                     <DatePicker 
                        date={dateFrom} 
                        setDate={setDateFrom} 
-                       placeholder="Pick Start"
+                       placeholder="Start Date"
+                       disabled={dateTo ? { after: dateTo } : undefined}
                      />
                    </div>
                 </div>
-                <div className="flex flex-col gap-1.5 w-full sm:w-auto">
-                   <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Created To</span>
-                   <div className="w-full sm:w-52">
-                     <DateTimePicker 
+                <div className="flex items-center gap-2">
+                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
+                   <div className="w-40">
+                     <DatePicker 
                        date={dateTo} 
                        setDate={setDateTo} 
-                       placeholder="Pick End"
+                       placeholder="End Date"
+                       disabled={dateFrom ? { before: dateFrom } : undefined}
                      />
                    </div>
                 </div>
@@ -445,9 +470,9 @@ export default function AdminOffersPage() {
                     <TableCell className="py-5 sm:py-8 px-6 sm:px-10">
                       <div className="flex items-center gap-4 sm:gap-6">
                         <div className="h-14 sm:h-20 w-20 sm:w-32 rounded-xl sm:rounded-2xl bg-zinc-100 flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200 shadow-sm transition-transform group-hover:scale-[1.02]">
-                          {offer.image ? (
+                          {getOfferImageUrl(offer) ? (
                             <img 
-                              src={offer.image.startsWith('http') ? offer.image : `http://localhost:8000${offer.image}`} 
+                              src={getOfferImageUrl(offer)!} 
                               className="w-full h-full object-cover" 
                               alt={offer.title} 
                             />
@@ -562,7 +587,7 @@ export default function AdminOffersPage() {
                           imagePreview ? "border-transparent bg-zinc-50" : "border-zinc-100 bg-zinc-50 hover:bg-zinc-100 hover:border-[#966FD6]/30"
                         )}>
                           {imagePreview ? (
-                            <img src={imagePreview.startsWith('http') ? imagePreview : (imagePreview.startsWith('blob') ? imagePreview : `http://localhost:8000${imagePreview}`)} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" alt="Preview" />
+                            <img src={imagePreview.startsWith('blob') ? imagePreview : (getOfferImageUrl(imagePreview) || imagePreview)} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" alt="Preview" />
                           ) : (
                             <div className="flex flex-col items-center gap-4 text-zinc-400 p-6">
                               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-white shadow-xl flex items-center justify-center">
