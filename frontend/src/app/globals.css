@@ -102,3 +102,27 @@
     scrollbar-width: none;
   }
 }
+
+.hero-swiper .swiper-wrapper {
+  transition-timing-function: linear !important;
+  }
+ .hero-swiper .swiper-pagination {
+     position: relative;
+     margin-top: 16px;
+    }
+
+  .hero-swiper .custom-bullet {
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 999px;
+    background: #CB9EE180/50;
+    margin: 0 4px;
+    transition: all 0.3s ease;
+    }
+
+  .hero-swiper .swiper-pagination-bullet-active {
+    width: 24px;
+    background: #966FD6;
+  }
+ 
