@@ -10,8 +10,15 @@ import {
   Layers, 
   ShoppingCart,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Bell,
+  Megaphone,
+  Zap,
+  Globe
 } from 'lucide-react';
+import { apiFetch } from '@/src/lib/api';
+import { getAuthToken } from '@/src/lib/auth';
+import { Offer } from '@/src/types/offer';
 import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/src/components/ui/card';
@@ -28,6 +35,39 @@ const chartData = [
 ];
 
 export function DashboardOverview() {
+  const [offers, setOffers] = React.useState<Offer[]>([]);
+  const [loadingOffers, setLoadingOffers] = React.useState(true);
+
+  React.useEffect(() => {
+    async function loadOffers() {
+      try {
+        const token = getAuthToken();
+        const res = await apiFetch<any>('/offers', { token: token || undefined });
+        
+        let data: Offer[] = [];
+        if (Array.isArray(res)) data = res;
+        else if (Array.isArray(res?.data)) data = res.data;
+        else if (Array.isArray(res?.data?.data)) data = res.data.data;
+        
+        setOffers(data);
+      } catch (err) {
+        console.error('Failed to load offers for dashboard:', err);
+      } finally {
+        setLoadingOffers(false);
+      }
+    }
+    loadOffers();
+  }, []);
+
+  const offerStats = React.useMemo(() => {
+    return {
+      total: offers.length,
+      active: offers.filter(o => o.is_active).length,
+      top: offers.filter(o => o.placement === 'top').length,
+      scheduled: offers.filter(o => o.is_active && o.starts_at && new Date(o.starts_at) > new Date()).length
+    };
+  }, [offers]);
+
   return (
     <div className="space-y-8" style={{ fontFamily: 'Lato, sans-serif' }}>
       <PageHeader 
@@ -111,6 +151,40 @@ export function DashboardOverview() {
               icon={CheckCircle2}
               trend="up"
               trendValue="+$850"
+            />
+          </div>
+        </div>
+        <div>
+          <h2 className="text-lg font-black text-black mb-4 flex items-center gap-2">
+            <Megaphone className="size-5 text-[#966FD6]" />
+            Marketing & Offers
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="Active Campaigns"
+              value={offerStats.active.toString()}
+              description="Live on storefront"
+              icon={Zap}
+              trend="up"
+              trendValue="Live"
+            />
+            <StatsCard
+              title="Banner Slots"
+              value={offerStats.top.toString()}
+              description="Top placement impact"
+              icon={Globe}
+            />
+            <StatsCard
+              title="Total Offers"
+              value={offerStats.total.toString()}
+              description="Campaign registry size"
+              icon={Megaphone}
+            />
+            <StatsCard
+              title="Paused"
+              value={(offerStats.total - offerStats.active).toString()}
+              description="Archived or planned"
+              icon={Bell}
             />
           </div>
         </div>

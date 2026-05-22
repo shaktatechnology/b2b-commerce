@@ -11,6 +11,7 @@ import { Button } from "@/src/components/ui/button";
 import { Search, Plus, FilterX, ChevronLeft, ChevronRight } from "lucide-react";
 import { DatePicker } from "@/src/components/ui/date-picker";
 import { format } from "date-fns";
+import { PageHeader } from "@/src/components/layout-components/page-wrapper";
 
 interface Props {
   initialOrders: Order[];
@@ -101,14 +102,17 @@ export function OrdersPageClient({ initialOrders }: Props) {
   return (
     <div className="space-y-8 font-lato">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-black tracking-tight text-black">
-          Order Management
-        </h1>
-        <p className="mt-1 text-zinc-500 font-medium">
-          Monitor, track, and manage customer shipments and payments.
-        </p>
-      </div>
+      <PageHeader
+        title="Order Management"
+        description="Monitor, track, and manage customer shipments and payments."
+      >
+        <Button
+          onClick={() => setModalOpen(true)}
+          className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white rounded-xl h-11 px-6 shadow-lg shadow-[#966FD6]/20 transition-all active:scale-95"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Create Order
+        </Button>
+      </PageHeader>
 
 
       {/* Filters Bar */}

@@ -293,16 +293,6 @@ export default function AdminOffersPage() {
       </PageHeader>
 
       <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden relative">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-50 px-6 sm:px-10 py-6 sm:py-8 bg-zinc-50/30 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 sm:h-10 w-1 rounded-full bg-[#966FD6]" />
-            <h2 className="text-lg sm:text-xl font-black text-black">Active Campaigns</h2>
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 bg-white px-3 py-1.5 rounded-full border border-zinc-100 shadow-sm w-fit">
-            {filteredOffers.length} {filteredOffers.length === offers.length ? "" : "Filtered"} Campaigns
-          </span>
-        </div>
-
         {/* Filters Bar */}
         <div className="bg-zinc-50/30 border-b border-zinc-50 px-6 sm:px-10 py-6 sm:py-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
            <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
