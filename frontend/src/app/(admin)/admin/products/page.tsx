@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
-import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX } from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX, CircleDot } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
 import { DatePicker } from '@/src/components/ui/date-picker';
@@ -72,6 +72,7 @@ export default function AdminProductsPage() {
   // Filters
   const [searchQuery, setSearchQuery] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('all');
+  const [statusFilter, setStatusFilter] = React.useState('all');
   const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
   const [dateTo, setDateTo] = React.useState<Date | undefined>();
 
@@ -91,8 +92,8 @@ export default function AdminProductsPage() {
     try {
       const freshToken = getAuthToken();
       const [prodRes, catRes] = await Promise.all([
-        apiFetch<any>('/products?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
-        apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
+        apiFetch<any>('/products?include_inactive=true&with_inactive=true&include_disabled=1&all=1&status=all', { token: freshToken || undefined }),
+        apiFetch<any>('/categories?include_inactive=true&with_inactive=true&include_disabled=1&all=1&status=all', { token: freshToken || undefined }),
       ]);
 
       let categoriesData: Category[] = [];
@@ -107,6 +108,8 @@ export default function AdminProductsPage() {
 
       setCategories(categoriesData);
       setProducts(productsData);
+      console.log('Products loaded:', productsData.length, productsData);
+      console.log('Inactive products count:', productsData.filter(p => !p.is_active).length);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load data');
     } finally {
@@ -127,6 +130,10 @@ export default function AdminProductsPage() {
     const matchesCategory = categoryFilter === 'all' || 
       (product.categories?.some(cat => cat.id.toString() === categoryFilter) ?? false);
 
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && product.is_active) || 
+      (statusFilter === 'inactive' && !product.is_active);
+
     let matchesDate = true;
     if (product.created_at) {
       const prodDate = new Date(product.created_at);
@@ -144,12 +151,13 @@ export default function AdminProductsPage() {
       matchesDate = false;
     }
 
-    return matchesSearch && matchesCategory && matchesDate;
+    return matchesSearch && matchesCategory && matchesStatus && matchesDate;
   });
 
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('all');
+    setStatusFilter('all');
     setDateFrom(undefined);
     setDateTo(undefined);
   };
@@ -167,7 +175,7 @@ export default function AdminProductsPage() {
         variants: product.variants.length > 0 ? product.variants : [{ ...initialVariant }],
       });
       // Set existing image from available fields
-      const imgPath = product.image || product.thumbnail || product.image_url || product.images?.[0]?.url || '';
+      const imgPath = product.image || product.thumbnail || product.image_url || product.images?.[0]?.image_path || '';
       setExistingImage(imgPath);
     } else {
       setEditingId(null);
@@ -362,6 +370,20 @@ export default function AdminProductsPage() {
                   {c.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-[150px] h-11 rounded-xl border-zinc-200 bg-white">
+              <div className="flex items-center gap-2">
+                <CircleDot className="h-4 w-4 text-zinc-400" />
+                <SelectValue placeholder="Status" />
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active Only</SelectItem>
+              <SelectItem value="inactive">Inactive Only</SelectItem>
             </SelectContent>
           </Select>
 
