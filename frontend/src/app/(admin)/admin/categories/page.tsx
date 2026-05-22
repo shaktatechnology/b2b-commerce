@@ -299,7 +299,7 @@ export default function CategoriesPage() {
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Slug</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Parent</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Date</TableHead>
-                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-center">Status</TableHead>
+                {/* <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-center">Status</TableHead> */}
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -325,11 +325,11 @@ export default function CategoriesPage() {
                     <TableCell className="py-5 px-6">
                       <Skeleton className="h-4 w-12" />
                     </TableCell>
-                    <TableCell className="py-5 px-6 text-center">
+                    {/* <TableCell className="py-5 px-6 text-center">
                       <div className="flex justify-center">
                         <Skeleton className="h-5 w-16 rounded-full" />
                       </div>
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell className="py-5 px-6 text-right">
                       <div className="flex justify-end gap-2">
                         <Skeleton className="h-8 w-8 rounded-full" />
@@ -381,14 +381,14 @@ export default function CategoriesPage() {
                         {cat.created_at ? new Date(cat.created_at).toLocaleDateString() : '—'}
                       </div>
                     </TableCell>
-                    <TableCell className="py-5 px-6 text-center">
+                    {/*<TableCell className="py-5 px-6 text-center">
                       <span className={cn(
                         "inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
                         cat.is_active ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
                       )}>
                         {cat.is_active ? 'Active' : 'Inactive'}
                       </span>
-                    </TableCell>
+                    </TableCell>*/}
                     <TableCell className="py-5 px-6 text-right space-x-1">
                       <Button 
                         variant="ghost" 
