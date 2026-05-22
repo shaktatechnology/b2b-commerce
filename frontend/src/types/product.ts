@@ -10,6 +10,8 @@ export interface ProductVariant {
   stock: number;
   weight: number;
   is_active: boolean;
+  image_url?: string;
+  image?: File | null;
 }
 
 export interface Product {

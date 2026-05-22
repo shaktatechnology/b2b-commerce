@@ -23,6 +23,21 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
+    protected $appends = ['image_url'];
+
+    /**
+     * Get the primary or first image URL.
+     */
+    public function getImageUrlAttribute()
+    {
+        $primary = $this->images->where('is_primary', true)->first();
+        if ($primary) {
+            return $primary->url;
+        }
+        $first = $this->images->first();
+        return $first ? $first->url : null;
+    }
+
     /**
      * Get categories this product belongs to.
      */
