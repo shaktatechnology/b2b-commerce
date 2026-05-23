@@ -92,13 +92,10 @@ export default function Navbar({
       });
     };
 
-    // Initial check
     update();
 
-    // Listen scroll updates
     el.addEventListener("scroll", update);
 
-    // Browser restores scroll position after navigation
     window.addEventListener("pageshow", update);
 
     return () => {
@@ -120,7 +117,7 @@ export default function Navbar({
       {/* desktop */}
 
       <div className="hidden md:block">
-        {/* TOP BAR */}
+        {/* top bar */}
         <div className="h-8 bg-white border-b text-[12px] text-gray-600">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
             <span>100% Secure delivery</span>
@@ -141,10 +138,10 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* MAIN BAR */}
+        {/* main bar */}
         <div className="bg-primary">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-6">
-            {/* LOGO */}
+          <div className="max-w-7xl mx-auto px-4 h-16 grid grid-cols-3 items-center">
+            {/* logo */}
             <div>
               {logo ? (
                 <img
@@ -157,13 +154,13 @@ export default function Navbar({
               )}
             </div>
 
-            {/* SEARCH */}
-            <div className="flex-1">
-              <div className="relative w-full">
+{/* search */}
+            <div className="justify-self-center w-full flex justify-center">
+              <div className="relative w-[450px]">
                 <input
                   type="text"
                   placeholder="Search Item category ..."
-                  className="w-full h-11 rounded-full bg-white/10 border border-white/30 pl-12 pr-4 text-white placeholder:text-white/70 outline-none"
+                  className="w-full h-8 text-sm rounded bg-white/10 border border-white/30 pl-12 pr-4 text-white placeholder:text-white/70 outline-none"
                 />
 
                 <Search
@@ -173,8 +170,8 @@ export default function Navbar({
               </div>
             </div>
 
-            {/* CART */}
-            <div className="relative text-white cursor-pointer">
+            {/* cart */}
+            <div className="justify-self-end relative text-white cursor-pointer">
               <ShoppingCart size={24} />
 
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center">
@@ -184,7 +181,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* CATEGORY BAR */}
+        {/* category bar */}
         <div className="h-11 bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center gap-4">
             {/* ALL CATEGORY */}
@@ -193,7 +190,7 @@ export default function Navbar({
               <span>All Category</span>
             </button>
 
-            {/* LEFT SCROLL BUTTON */}
+            {/* left button */}
             {canScrollLeft && (
               <button
                 onClick={scrollLeft}
@@ -203,7 +200,7 @@ export default function Navbar({
               </button>
             )}
 
-            {/* CATEGORY LIST */}
+            {/* category list */}
             <nav
               ref={categoryRef}
               className="flex items-center gap-6 text-[13px] text-gray-700 overflow-x-auto scrollbar-hide flex-1 scroll-smooth"
@@ -219,7 +216,7 @@ export default function Navbar({
               ))}
             </nav>
 
-            {/* RIGHT SCROLL BUTTON */}
+            {/* right button */}
             {canScrollRight && (
               <button
                 onClick={scrollRight}
@@ -232,19 +229,17 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* ======================= MOBILE ========================== */}
-      {/* ========================================================= */}
+      {/* mobile */}
 
       <div className="md:hidden bg-white border-b">
-        {/* TOP ROW */}
+        {/* top row */}
         <div className="flex items-center justify-between px-4 py-3">
-          {/* LOGO */}
+          {/* logo */}
           <div className="text-primary font-bold text-xl">LOGO</div>
 
-          {/* RIGHT ICONS */}
+          
           <div className="flex items-center gap-4">
-            {/* CART */}
+            {/* cart */}
             <div className="relative">
               <ShoppingCart size={22} className="text-gray-700" />
 
@@ -253,14 +248,14 @@ export default function Navbar({
               </span>
             </div>
 
-            {/* MENU BUTTON */}
+            {/* menu button */}
             <button onClick={() => setMenuOpen(true)}>
               <Menu size={24} className="text-gray-700" />
             </button>
           </div>
         </div>
 
-        {/* SEARCH */}
+        {/* search */}
         <div className="px-3 pb-3">
           <div className="relative">
             <input
@@ -277,11 +272,9 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* =================== MOBILE SIDEBAR ====================== */}
-      {/* ========================================================= */}
+      
 
-      {/* OVERLAY */}
+      {/* overplay */}
       {menuOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 md:hidden"
@@ -289,13 +282,13 @@ export default function Navbar({
         />
       )}
 
-      {/* SIDEBAR */}
+      {/* sidebar */}
       <div
         className={`fixed top-0 left-0 h-full w-[280px] bg-white z-50 transform transition-transform duration-300 md:hidden flex flex-col ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* HEADER */}
+        {/* header */}
         <div className="flex items-center justify-between px-4 h-14 border-b shrink-0">
           <h2 className="font-semibold text-lg">Menu</h2>
 
@@ -304,7 +297,7 @@ export default function Navbar({
           </button>
         </div>
 
-        {/* CONTACT */}
+        {/* contact */}
         <div className="p-4 border-b space-y-4 shrink-0">
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Phone size={16} />
@@ -322,14 +315,14 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* CATEGORY TITLE */}
+        {/* category title */}
         <div className="px-4 pt-5 pb-3 border-b shrink-0">
           <h3 className="text-sm font-semibold text-gray-500 uppercase">
             Categories
           </h3>
         </div>
 
-        {/* SCROLLABLE CATEGORY LIST */}
+        {/* scrollable category list */}
         <div className="flex-1 overflow-y-auto">
           <nav className="flex flex-col">
             {categories.map((cat) => (

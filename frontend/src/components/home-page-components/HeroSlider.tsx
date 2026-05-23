@@ -14,7 +14,7 @@ type Props = {
 export default function HeroSlider({ slides }: Props) {
   return (
     <>
-      <section className="w-full py-6 overflow-hidden relative">
+      <section className="w-7xl mx-auto py-6 overflow-hidden relative">
         <Swiper
           modules={[Autoplay, Pagination]}
           loop={true}

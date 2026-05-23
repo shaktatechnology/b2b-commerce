@@ -1,8 +1,8 @@
 import CategorySidebar from "../components/home-page-components/CategorySidebar";
+import DealOfTheDay from "../components/home-page-components/DealOfTheDay";
 import HeroSlider from "../components/home-page-components/HeroSlider";
 import PopularProducts from "../components/home-page-components/PopularProducts";
 import Footer from "../components/layouts/Footer";
-
 
 import Navbar from "../components/layouts/Navbar";
 
@@ -35,7 +35,48 @@ export default async function Page() {
     "/banner/image-1.png",
     "/banner/image-2.png",
     "/banner/image-3.png",
+    "/banner/image-4.png",
+    "/banner/image-3.png",
     "/banner/image-1.png",
+  ];
+
+  const dealOfTheDayProducts = [
+    {
+      id: 1,
+      name: "Half Sleeves Printed Cotton Casual Shirt For Men",
+      image: "/day-of-deal/pro-1.png",
+      price: 1200,
+      reviews: 32,
+      brand: "ABC",
+      days: "03",
+      hours: "23",
+      minutes: "19",
+      seconds: "56",
+    },
+    {
+      id: 2,
+      name: "100% Organic Nepali Green Tea Available in 50gm",
+      image: "/day-of-deal/pro-2.png",
+      price: 200,
+      reviews: 10,
+      brand: "ABC",
+      days: "03",
+      hours: "23",
+      minutes: "19",
+      seconds: "56",
+    },
+    {
+      id: 3,
+      name: "Dabur Honey - 1kg | 100% Pure Honey",
+      image: "/day-of-deal/pro-3.png",
+      price: 450,
+      reviews: 32,
+      brand: "ABC",
+      days: "03",
+      hours: "23",
+      minutes: "19",
+      seconds: "56",
+    },
   ];
 
   return (
@@ -48,17 +89,22 @@ export default async function Page() {
       <HeroSlider slides={slides} />
 
       <div className="flex gap-6  md:px-10 mt-6  max-w-7xl mx-auto">
-        {/* LEFT SIDEBAR */}
+        {/* left sidebar */}
 
-        {/* RIGHT CONTENT */}
+        
         <main className="w-full md:w-3/4">
-          <PopularProducts products={productData.data} />
+          <PopularProducts
+            products={productData.data}
+            categories={categoryData.data}
+          />
         </main>
 
         <aside className="w-1/4 hidden md:block">
           <CategorySidebar categories={categoryData.data} />
         </aside>
       </div>
+
+      <DealOfTheDay dealProducts={dealOfTheDayProducts} />
 
       <Footer
         logo={logo}

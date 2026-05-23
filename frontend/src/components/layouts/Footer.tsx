@@ -43,7 +43,7 @@ export default function Footer({
   return (
     <footer className="bg-gradient-to-r from-purple-500 to-purple-400 text-white">
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* LEFT */}
+        {/* logo */}
         <div>
           {logo ? (
             <img src={logo} alt="logo" className="h-10 mb-4" />
@@ -58,7 +58,7 @@ export default function Footer({
           </p>
         </div>
 
-        {/* MIDDLE */}
+        
         <div>
           <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
           <ul className="space-y-2 text-sm text-white/90">
@@ -73,7 +73,7 @@ export default function Footer({
           </ul>
         </div>
 
-        {/* RIGHT */}
+        {/* social links */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Follow us on:</h3>
 
