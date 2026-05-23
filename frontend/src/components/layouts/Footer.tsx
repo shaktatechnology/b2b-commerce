@@ -41,7 +41,7 @@ export default function Footer({
   categories = [],
 }: FooterProps) {
   return (
-    <footer className="bg-gradient-to-r from-purple-500 to-purple-400 text-white">
+    <footer className="bg-gradient-to-r from-primary to-primary/80 text-white">
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
         {/* logo */}
         <div>
@@ -156,7 +156,7 @@ export default function Footer({
               placeholder="Enter your email"
               className="flex-1 px-3 py-2 bg-transparent outline-none placeholder-white/70 text-sm"
             />
-            <button className="bg-white text-purple-500 px-4 font-semibold  cursor-pointer hover:bg-white/90 transition">
+            <button className="bg-white text-primary px-4 font-semibold  cursor-pointer hover:bg-white/90 transition">
               <Send size={18} />
             </button>
           </div>
