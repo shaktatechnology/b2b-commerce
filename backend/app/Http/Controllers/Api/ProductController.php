@@ -133,4 +133,20 @@ class ProductController extends Controller
             'message' => 'Product image deleted successfully'
         ]);
     }
+
+    /**
+     * Remove all images for a product.
+     */
+    public function deleteProductImages(Request $request, string $id)
+    {
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized: Admin access required.'], 403);
+        }
+
+        $this->productService->deleteProductImages($id);
+
+        return response()->json([
+            'message' => 'Product images cleared successfully'
+        ]);
+    }
 }

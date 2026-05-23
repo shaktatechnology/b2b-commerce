@@ -54,7 +54,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -65,7 +65,7 @@ class OrderService implements OrderServiceInterface
         $user = User::findOrFail($userId);
         $userType = ($user->role === 'wholesaler') ? 'wholesale' : 'retail';
 
-        return DB::transaction(function () use ($userId, $cart, $userType, $shippingAddress, $notes) {
+        return DB::transaction(function () use ($userId, $cart, $userType, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;
@@ -144,6 +144,7 @@ class OrderService implements OrderServiceInterface
                 'status' => 'pending',
                 'payment_status' => 'unpaid',
                 'shipping_address' => $shippingAddress,
+                'address_id' => $addressId,
                 'notes' => $notes,
             ]);
 
@@ -156,6 +157,99 @@ class OrderService implements OrderServiceInterface
             $this->cartService->clearUserCart($userId);
 
             return $order->load(['items.variant.product']);
+        });
+    }
+
+    /**
+     * Admin: create an order directly for a user with explicit items (no cart).
+     */
+    public function createOrderDirect(
+        string $adminUserId,
+        string $userId,
+        array $items,
+        array $shippingAddress,
+        ?string $notes,
+        ?string $addressId = null
+    ): Order {
+        $user = User::findOrFail($userId);
+        $userType = ($user->role === 'wholesaler') ? 'wholesale' : 'retail';
+
+        return DB::transaction(function () use ($userId, $userType, $items, $shippingAddress, $notes, $addressId) {
+            $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+
+            $subtotal       = 0;
+            $discountAmount = 0;
+            $total          = 0;
+            $orderItemsData = [];
+
+            foreach ($items as $item) {
+                $variant = \App\Models\ProductVariant::findOrFail($item['variant_id']);
+
+                if (!$variant->is_active) {
+                    throw new \Exception("Variant '{$variant->variant_name}' is inactive.");
+                }
+                if ($variant->stock < $item['quantity']) {
+                    throw new \Exception("Insufficient stock for '{$variant->variant_name}'. Only {$variant->stock} left.");
+                }
+
+                $unitPrice = ($userType === 'wholesale') ? $variant->wholesale_price : $variant->retail_price;
+
+                // Find active discount
+                $now      = now();
+                $discount = \App\Models\Discount::where('is_active', true)
+                    ->where('starts_at', '<=', $now)
+                    ->where('ends_at', '>=', $now)
+                    ->where(function ($q) use ($variant) {
+                        $q->where('variant_id', $variant->id)
+                          ->orWhere('product_id', $variant->product_id);
+                    })
+                    ->orderBy('variant_id', 'desc')
+                    ->first();
+
+                $unitDiscount = 0.00;
+                if ($discount) {
+                    $unitDiscount = $discount->type === 'percent'
+                        ? round($unitPrice * ($discount->value / 100), 2)
+                        : $discount->value;
+                    $unitDiscount = min($unitDiscount, $unitPrice);
+                }
+
+                $lineTotal = ($unitPrice - $unitDiscount) * $item['quantity'];
+
+                $subtotal       += $unitPrice * $item['quantity'];
+                $discountAmount += $unitDiscount * $item['quantity'];
+                $total          += $lineTotal;
+
+                $variant->decrement('stock', $item['quantity']);
+
+                $orderItemsData[] = [
+                    'variant_id'      => $variant->id,
+                    'quantity'        => $item['quantity'],
+                    'unit_price'      => $unitPrice,
+                    'discount_amount' => $unitDiscount,
+                    'line_total'      => $lineTotal,
+                ];
+            }
+
+            $order = $this->orderRepository->create([
+                'user_id'          => $userId,
+                'order_number'     => $orderNumber,
+                'user_type'        => $userType,
+                'subtotal'         => $subtotal,
+                'discount_amount'  => $discountAmount,
+                'total'            => $total,
+                'status'           => 'pending',
+                'payment_status'   => 'unpaid',
+                'shipping_address' => $shippingAddress,
+                'address_id'       => $addressId,
+                'notes'            => $notes,
+            ]);
+
+            foreach ($orderItemsData as $itemData) {
+                $order->items()->create($itemData);
+            }
+
+            return $order->load(['user', 'items.variant.product']);
         });
     }
 
@@ -183,3 +277,4 @@ class OrderService implements OrderServiceInterface
         return $this->orderRepository->update($orderId, $data);
     }
 }
+

@@ -22,6 +22,7 @@ class ProductVariant extends Model
         'stock',
         'weight',
         'is_active',
+        'image_url',
     ];
 
     protected $casts = [

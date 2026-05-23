@@ -62,6 +62,11 @@ class ProductService implements ProductServiceInterface
     public function uploadProductImage(string $productId, $imageFile, bool $isPrimary = false, int $sortOrder = 0)
     {
         if ($imageFile && $imageFile->isValid()) {
+            if ($isPrimary) {
+                // Set other images for this product as not primary
+                ProductImage::where('product_id', $productId)->update(['is_primary' => false]);
+            }
+
             $path = $imageFile->store('products', 'public');
             $url = Storage::url($path);
 
@@ -82,5 +87,16 @@ class ProductService implements ProductServiceInterface
         Storage::disk('public')->delete($path);
 
         return $this->productRepository->removeImage($imageId);
+    }
+
+    public function deleteProductImages(string $productId)
+    {
+        $product = $this->productRepository->findById($productId);
+        foreach ($product->images as $image) {
+            $path = str_replace('/storage/', '', $image->url);
+            Storage::disk('public')->delete($path);
+            $this->productRepository->removeImage($image->id);
+        }
+        return true;
     }
 }

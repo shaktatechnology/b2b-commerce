@@ -64,6 +64,12 @@ class ProductRepository implements ProductRepositoryInterface
             // Create variants
             if (isset($data['variants']) && is_array($data['variants'])) {
                 foreach ($data['variants'] as $variant) {
+                    $variantImageUrl = $variant['image_url'] ?? null;
+                    if (isset($variant['image']) && $variant['image'] instanceof \Illuminate\Http\UploadedFile && $variant['image']->isValid()) {
+                        $path = $variant['image']->store('variants', 'public');
+                        $variantImageUrl = \Illuminate\Support\Facades\Storage::url($path);
+                    }
+
                     $product->variants()->create([
                         'variant_name' => $variant['variant_name'],
                         'sku' => $variant['sku'],
@@ -73,6 +79,7 @@ class ProductRepository implements ProductRepositoryInterface
                         'stock' => $variant['stock'] ?? 0,
                         'weight' => $variant['weight'] ?? null,
                         'is_active' => $variant['is_active'] ?? true,
+                        'image_url' => $variantImageUrl,
                     ]);
                 }
             }
@@ -102,10 +109,25 @@ class ProductRepository implements ProductRepositoryInterface
                 $incomingVariantIds = [];
 
                 foreach ($data['variants'] as $variantData) {
+                    $variantImageUrl = $variantData['image_url'] ?? null;
+                    if (isset($variantData['image']) && $variantData['image'] instanceof \Illuminate\Http\UploadedFile && $variantData['image']->isValid()) {
+                        $path = $variantData['image']->store('variants', 'public');
+                        $variantImageUrl = \Illuminate\Support\Facades\Storage::url($path);
+                    }
+
                     if (isset($variantData['id'])) {
                         // Update existing variant
                         $variant = ProductVariant::where('product_id', $product->id)->findOrFail($variantData['id']);
-                        $variant->update($variantData);
+                        
+                        // If new image uploaded, delete old one from storage
+                        if (isset($variantData['image']) && $variant->image_url) {
+                            $oldPath = str_replace('/storage/', '', $variant->image_url);
+                            \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                        }
+
+                        $variant->update(array_merge($variantData, [
+                            'image_url' => $variantImageUrl ?? $variant->image_url,
+                        ]));
                         $incomingVariantIds[] = $variant->id;
                     } else {
                         // Create new variant
@@ -118,6 +140,7 @@ class ProductRepository implements ProductRepositoryInterface
                             'stock' => $variantData['stock'] ?? 0,
                             'weight' => $variantData['weight'] ?? null,
                             'is_active' => $variantData['is_active'] ?? true,
+                            'image_url' => $variantImageUrl,
                         ]);
                         $incomingVariantIds[] = $newVariant->id;
                     }

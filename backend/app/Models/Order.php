@@ -22,6 +22,7 @@ class Order extends Model
         'status',
         'payment_status',
         'shipping_address',
+        'address_id',
         'notes',
     ];
 
@@ -31,6 +32,18 @@ class Order extends Model
         'discount_amount' => 'decimal:2',
         'total' => 'decimal:2',
     ];
+
+    protected $appends = ['product_ids'];
+
+    /**
+     * Get the product IDs associated with the order items.
+     */
+    public function getProductIdsAttribute()
+    {
+        return $this->items->map(function ($item) {
+            return $item->variant ? $item->variant->product_id : null;
+        })->filter()->unique()->values()->toArray();
+    }
 
     /**
      * Get the user that placed the order.
