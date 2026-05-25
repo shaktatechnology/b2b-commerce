@@ -14,7 +14,7 @@ type Props = {
 export default function HeroSlider({ slides }: Props) {
   return (
     <>
-      <section className="w-7xl mx-auto py-6 overflow-hidden relative">
+      <section className="max-w-7xl mx-auto px-4 md:px-0 py-4 md:py-6 overflow-hidden relative">
         <Swiper
           modules={[Autoplay, Pagination]}
           loop={true}
@@ -36,7 +36,7 @@ export default function HeroSlider({ slides }: Props) {
         >
           {slides.map((slide, index) => (
             <SwiperSlide key={index} className="!w-auto">
-              <div className="relative h-[300px]">
+              <div className="relative h-[180px] sm:h-[220px] md:h-[300px]">
                 <Image
                   src={slide}
                   alt={`Banner ${index + 1}`}

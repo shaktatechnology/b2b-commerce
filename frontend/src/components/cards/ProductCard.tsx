@@ -45,7 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <div className="border rounded-xl bg-white shadow-sm hover:shadow-md transition overflow-hidden">
       {/* image */}
-      <div className="h-48 bg-gray-50 flex items-center justify-center">
+      <div className="h-36 sm:h-48 bg-gray-50 flex items-center justify-center">
         {image ? (
           <img
             src={image}
@@ -53,8 +53,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             className="h-full w-full object-contain"
           />
         ) : (
-          <div className="text-center">
-            <p className="text-primary font-semibold text-sm">
+          <div className="text-center px-2">
+            <p className="text-primary font-semibold text-xs sm:text-sm">
               {product.name}
             </p>
           </div>
@@ -62,28 +62,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </div>
 
       {/* content */}
-      <div className="p-3">
+      <div className="p-2 sm:p-3">
         {/* category */}
-        <p className="text-xs text-gray-500 mb-1">{category}</p>
+        <p className="text-[10px] sm:text-xs text-gray-500 mb-1">{category}</p>
 
         {/* title */}
-        <h3 className="text-sm font-semibold line-clamp-1">
+        <h3 className="text-xs sm:text-sm font-semibold line-clamp-1">
           {product.name}
         </h3>
 
         {/* price */}
-        <p className="mt-2 text-primary font-bold text-base">
+        <p className="mt-1 sm:mt-2 text-primary font-bold text-sm sm:text-base">
           Rs.{price.toFixed(0)}/-
         </p>
 
         {/* footer */}
-        <div className="mt-3 flex items-center justify-between border-t border-primary/20 pt-2">
-          <p className="text-xs text-gray-400">
+        <div className="mt-2 sm:mt-3 flex items-center justify-between border-t border-primary/20 pt-2">
+          <p className="text-[10px] sm:text-xs text-gray-400">
             By <span className="text-primary">Store</span>
           </p>
 
-          <button className="flex items-center gap-1 text-xs bg-primary text-white px-3 py-1 rounded-full hover:opacity-90">
-            <ShoppingCart size={14} />
+          <button className="flex items-center gap-1 text-[10px] sm:text-xs bg-primary text-white px-2 sm:px-3 py-1 rounded-full hover:opacity-90">
+            <ShoppingCart size={12} className="sm:hidden" />
+            <ShoppingCart size={14} className="hidden sm:block" />
             Add
           </button>
         </div>

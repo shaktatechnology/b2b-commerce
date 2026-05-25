@@ -89,7 +89,7 @@ export default async function Page() {
       />
       <HeroSlider slides={slides} />
 
-      <div className="flex gap-6  md:px-10 mt-6  max-w-7xl mx-auto">
+      <div className="flex gap-6 px-4 md:px-10 mt-6 max-w-7xl mx-auto">
         {/* left sidebar */}
 
         

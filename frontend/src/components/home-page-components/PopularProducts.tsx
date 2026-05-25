@@ -80,14 +80,14 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   return (
     <div className="w-full relative">
       {/* header and category */}
-      <div className="flex justify-between items-center mb-5">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-5">
         {/* title */}
-        <h2 className="text-lg text-primary font-semibold ">
+        <h2 className="text-lg text-primary font-semibold shrink-0">
           Popular Products
         </h2>
 
         {/* scrollbar for category row */}
-        <div className="relative flex items-center w-2/3 px-7">
+        <div className="relative flex items-center w-full md:w-2/3 px-7">
           {/* left arrow */}
           {showLeftArrow && (
             <button
@@ -101,15 +101,15 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
           {/* category container */}
           <div
             ref={containerRef}
-            className="flex gap-2 overflow-x-hidden whitespace-nowrap w-full"
+            className="flex gap-2 overflow-x-auto md:overflow-x-hidden whitespace-nowrap w-full scrollbar-hide"
           >
             {/* all btn */}
             <button
               onClick={() => setActiveCategory(null)}
-              className={`flex-shrink-0 px-3 py-1 rounded-full cursor-pointer${
+              className={`flex-shrink-0 px-3 py-1 rounded-full cursor-pointer text-sm${
                 activeCategory === null
                   ? " text-primary  bg-gray-200"
-                  : "text-gray-500 hover:bg-gray-200"
+                  : " text-gray-500 hover:bg-gray-200"
               }`}
             >
               All
@@ -119,7 +119,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex-shrink-0 px-3 py-1 rounded-full cursor-pointer ${
+                className={`flex-shrink-0 px-3 py-1 rounded-full cursor-pointer text-sm ${
                   activeCategory === category.id
                     ? "text-primary font-bold bg-gray-200"
                     : "text-gray-500 hover:bg-gray-200"
