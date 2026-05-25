@@ -302,6 +302,13 @@ export default function AdminOffersPage() {
     ).slice(0, 10);
   }, [products, prodSearch]);
 
+  const clearFilters = () => {
+    setSearchQuery('');
+    setPlacementFilter('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
+  };
+
   return (
     <div className="space-y-8 font-lato">
       <PageHeader title="Offer Management" description="Promotional banners, seasonal deals, and targeted offers.">
@@ -353,7 +360,7 @@ export default function AdminOffersPage() {
              <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
-                   <div className="w-40">
+                   <div className="w-50">
                      <DatePicker 
                        date={dateFrom} 
                        setDate={setDateFrom} 
@@ -364,7 +371,7 @@ export default function AdminOffersPage() {
                 </div>
                 <div className="flex items-center gap-2">
                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
-                   <div className="w-40">
+                   <div className="w-50">
                      <DatePicker 
                        date={dateTo} 
                        setDate={setDateTo} 
@@ -377,18 +384,13 @@ export default function AdminOffersPage() {
            </div>
 
            {(searchQuery || placementFilter !== "all" || dateFrom || dateTo) && (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setSearchQuery("");
-                  setPlacementFilter("all");
-                  setDateFrom(undefined);
-                  setDateTo(undefined);
-                }}
-                className="h-10 px-4 rounded-xl text-red-500 hover:text-red-600 hover:bg-red-50 font-black text-[10px] uppercase tracking-widest gap-2 xl:self-end"
+              <Button 
+                variant="ghost" 
+                onClick={clearFilters}
+                className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
               >
-                <FilterX className="size-3.5" />
-                Clear Filters
+                <FilterX className="size-4" />
+                <span className="hidden sm:inline">Clear</span>
               </Button>
            )}
         </div>
@@ -453,6 +455,7 @@ export default function AdminOffersPage() {
                       <Button 
                         variant="link" 
                         onClick={() => {
+                          setSearchQuery("");
                           setPlacementFilter("all");
                           setDateFrom(undefined);
                           setDateTo(undefined);

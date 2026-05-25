@@ -374,7 +374,7 @@ export default function AdminProductsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
-              <div className="w-40">
+              <div className="w-50">
                 <DatePicker 
                   date={dateFrom} 
                   setDate={setDateFrom} 
@@ -385,7 +385,7 @@ export default function AdminProductsPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
-              <div className="w-40">
+              <div className="w-50">
                 <DatePicker 
                   date={dateTo} 
                   setDate={setDateTo} 
