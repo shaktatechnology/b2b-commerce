@@ -30,17 +30,21 @@ interface PopularProductsProps {
   categories: Category[];
 }
 
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+
 const PopularProducts: React.FC<PopularProductsProps> = ({
   products,
   categories,
 }) => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const swiperRef = useRef<any>(null);
 
   const filteredProducts = activeCategory
     ? products.filter((p) => p.categories.some((c) => c.id === activeCategory))
     : products;
-
-  const desktopProducts = filteredProducts.slice(0, 6);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [showRightArrow, setShowRightArrow] = useState(false);
@@ -78,11 +82,11 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   if (!products || products.length === 0) return <p>No products available.</p>;
 
   return (
-    <div className="w-full relative">
+    <div className="w-full relative group/section">
       {/* header and category */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-5">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6">
         {/* title */}
-        <h2 className="text-lg text-primary font-semibold shrink-0">
+        <h2 className="text-xl text-primary font-bold shrink-0">
           Popular Products
         </h2>
 
@@ -92,24 +96,24 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
           {showLeftArrow && (
             <button
               onClick={() => scrollCategories("left")}
-              className="absolute left-0 z-10 h-full text-primary  rounded-full flex items-center cursor-pointer"
+              className="absolute left-0 z-10 h-full text-primary rounded-full flex items-center cursor-pointer transition-transform hover:scale-110"
             >
-              <ChevronLeft size={19} />
+              <ChevronLeft size={20} />
             </button>
           )}
 
           {/* category container */}
           <div
             ref={containerRef}
-            className="flex gap-2 overflow-x-auto md:overflow-x-hidden whitespace-nowrap w-full scrollbar-hide"
+            className="flex gap-2 overflow-x-auto md:overflow-x-hidden whitespace-nowrap w-full scrollbar-hide py-1"
           >
             {/* all btn */}
             <button
               onClick={() => setActiveCategory(null)}
-              className={`flex-shrink-0 px-3 py-1 rounded-full cursor-pointer text-sm${
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full cursor-pointer text-sm transition-all duration-300 ${
                 activeCategory === null
-                  ? " text-primary  bg-gray-200"
-                  : " text-gray-500 hover:bg-gray-200"
+                  ? "text-white bg-primary shadow-md"
+                  : "text-gray-500 hover:bg-gray-100 border border-transparent"
               }`}
             >
               All
@@ -119,10 +123,10 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
-                className={`flex-shrink-0 px-3 py-1 rounded-full cursor-pointer text-sm ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full cursor-pointer text-sm transition-all duration-300 ${
                   activeCategory === category.id
-                    ? "text-primary font-bold bg-gray-200"
-                    : "text-gray-500 hover:bg-gray-200"
+                    ? "text-white bg-primary font-medium shadow-md"
+                    : "text-gray-500 hover:bg-gray-100 border border-transparent"
                 }`}
               >
                 {category.name}
@@ -134,9 +138,9 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
           {showRightArrow && (
             <button
               onClick={() => scrollCategories("right")}
-              className="absolute right-0 z-10 h-full  flex items-center text-primary cursor-pointer"
+              className="absolute right-0 z-10 h-full flex items-center text-primary cursor-pointer transition-transform hover:scale-110"
             >
-              <ChevronRight size={19} />
+              <ChevronRight size={20} />
             </button>
           )}
         </div>
@@ -144,38 +148,57 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
 
       {/* PRODUCTS SECTION */}
       {filteredProducts.length === 0 ? (
-        <div className="w-full flex flex-col items-center justify-center py-14 text-center border rounded-xl bg-gray-50">
+        <div className="w-full flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50/50">
           <ShoppingBag
-            size={48}
-            className=" mb-3 animate-bounce text-primary"
+            size={56}
+            className="mb-4 text-primary/40"
           />
-
-          <h3 className="text-lg font-semibold text-primary">
-            Products will be added soon
+          <h3 className="text-xl font-bold text-gray-800">
+            Coming Soon!
           </h3>
-
-          <p className="text-sm  mt-1   text-primary">
-            No products available in this category yet.
+          <p className="text-gray-500 mt-2 max-w-xs">
+            We're currently restocking this category. Please check back later!
           </p>
         </div>
       ) : (
-        <>
-          {/* DESKTOP SLIDER */}
-          <div className="hidden md:flex gap-5 overflow-x-auto scroll-smooth scrollbar-hide">
-            {desktopProducts.map((product) => (
-              <div key={product.id} className="w-[280px] flex-shrink-0">
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
+        <div className="relative px-0">
+          {/* Custom Navigation */}
+          <button 
+            className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 bg-white shadow-lg border border-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-primary opacity-0 group-hover/section:opacity-100 transition-all duration-300 hover:bg-primary hover:text-white pointer-events-auto popular-prev"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          
+          <button 
+            className="absolute -right-4 top-1/2 -translate-y-1/2 z-30 bg-white shadow-lg border border-gray-100 w-10 h-10 rounded-full flex items-center justify-center text-primary opacity-0 group-hover/section:opacity-100 transition-all duration-300 hover:bg-primary hover:text-white pointer-events-auto popular-next"
+          >
+            <ChevronRight size={24} />
+          </button>
 
-          {/* MOBILE GRID */}
-          <div className="grid grid-cols-2 gap-3 md:hidden">
-            {filteredProducts.slice(0, 4).map((product) => (
-              <ProductCard key={product.id} product={product} />
+          <Swiper
+            modules={[Navigation, Autoplay]}
+            navigation={{
+              prevEl: ".popular-prev",
+              nextEl: ".popular-next",
+            }}
+            onSwiper={(swiper) => (swiperRef.current = swiper)}
+            spaceBetween={20}
+            slidesPerView={1.2}
+            breakpoints={{
+              640: { slidesPerView: 2.2 },
+              768: { slidesPerView: 2.5 },
+              1024: { slidesPerView: 3 },
+              1280: { slidesPerView: 4 },
+            }}
+            className="!py-4"
+          >
+            {filteredProducts.map((product) => (
+              <SwiperSlide key={product.id}>
+                <ProductCard product={product} />
+              </SwiperSlide>
             ))}
-          </div>
-        </>
+          </Swiper>
+        </div>
       )}
     </div>
   );
