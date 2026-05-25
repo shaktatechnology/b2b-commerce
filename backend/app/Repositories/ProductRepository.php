@@ -38,12 +38,43 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function findBySlug(string $slug)
     {
-        return Product::with(['categories', 'variants', 'images'])->where('slug', $slug)->firstOrFail();
+        return $this->resolve($slug);
     }
 
     public function findById(string $id)
     {
-        return Product::with(['categories', 'variants', 'images'])->findOrFail($id);
+        return $this->resolve($id);
+    }
+
+    public function resolve(string $identifier, array $filters = [])
+    {
+        $query = Product::with(['categories', 'variants', 'images']);
+
+        if (isset($filters['active'])) {
+            $query->where(
+                'is_active',
+                filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN)
+            );
+        }
+
+        if ($this->isUuid($identifier)) {
+            return $query->where('id', $identifier)->firstOrFail();
+        }
+
+        $decoded = urldecode($identifier);
+
+        return $query->where(function ($q) use ($decoded) {
+            $q->where('slug', $decoded)
+              ->orWhere('slug', strtolower($decoded));
+        })->firstOrFail();
+    }
+
+    protected function isUuid(string $value): bool
+    {
+        return (bool) preg_match(
+            '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i',
+            $value
+        );
     }
 
     public function create(array $data)

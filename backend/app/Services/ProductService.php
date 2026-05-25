@@ -32,6 +32,11 @@ class ProductService implements ProductServiceInterface
         return $this->productRepository->findById($id);
     }
 
+    public function resolveProduct(string $identifier, array $filters = [])
+    {
+        return $this->productRepository->resolve($identifier, $filters);
+    }
+
     public function createProduct(array $data)
     {
         $data['slug'] = $data['slug'] ?? Str::slug($data['name']);

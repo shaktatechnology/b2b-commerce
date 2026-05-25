@@ -1,7 +1,16 @@
+import { Suspense } from 'react';
 import { LoginForm } from '@/src/components/auth-components/login-form';
 import Link from 'next/link';
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ redirect?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { redirect } = await searchParams;
+  const registerHref = redirect
+    ? `/register?redirect=${encodeURIComponent(redirect)}`
+    : '/register';
   return (
     <div className="min-h-screen relative flex items-center justify-center bg-zinc-100/50 p-4 overflow-hidden">
       {/* Background Content Simulation */}
@@ -32,13 +41,20 @@ export default function LoginPage() {
             </p>
           </div>
           
-          <LoginForm />
+          <Suspense fallback={<div className="h-40 animate-pulse bg-zinc-100 rounded" />}>
+            <LoginForm />
+          </Suspense>
 
-          <div className="mt-8 text-center" style={{ fontFamily: 'Lato, sans-serif' }}>
-            <span className="text-zinc-500 text-sm">Don't have an account? </span>
-            <Link href="/register" className="text-[#966FD6] text-sm font-semibold hover:underline underline-offset-4">
-              Sign up
-            </Link>
+          <div className="mt-8 text-center space-y-2" style={{ fontFamily: 'Lato, sans-serif' }}>
+            <p>
+              <span className="text-zinc-500 text-sm">Don&apos;t have an account? </span>
+              <Link href={registerHref} className="text-[#966FD6] text-sm font-semibold hover:underline underline-offset-4">
+                Sign up
+              </Link>
+            </p>
+            <p className="text-zinc-400 text-xs">
+              Login or register is required to complete checkout and payment.
+            </p>
           </div>
         </div>
       </div>
