@@ -23,7 +23,7 @@ interface Product {
 }
 
 interface ProductCardProps {
-  product: CartProductInput;
+  product: Product;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
@@ -35,7 +35,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const image = rawImage
     ? rawImage.startsWith("http")
       ? rawImage
-      : `${BACKEND_URL}${rawImage}`
+      : `${process.env.NEXT_PUBLIC_STORAGE_URL}${rawImage}`
     : null;
 
   const category = product.categories?.[0]?.name || "Uncategorized";
