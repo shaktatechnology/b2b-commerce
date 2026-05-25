@@ -1,28 +1,34 @@
+import BrandSpecialOffers from "../components/home-page-components/BrandSpecialOffers";
+import MiddleSectionOffers from "../components/home-page-components/MiddleSectionOffers";
 import CategorySidebar from "../components/home-page-components/CategorySidebar";
 import DealOfTheDay from "../components/home-page-components/DealOfTheDay";
 import HeroSlider from "../components/home-page-components/HeroSlider";
 import PopularProducts from "../components/home-page-components/PopularProducts";
 import ProductSuggestions from "../components/home-page-components/ProductSuggestions";
 import Footer from "../components/layouts/Footer";
-
 import Navbar from "../components/layouts/Navbar";
 
 export default async function Page() {
-  const [categoryRes, settingsRes, productRes] = await Promise.all([
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
-      cache: "no-store",
-    }),
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`, {
-      cache: "no-store",
-    }),
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
-      cache: "no-store",
-    }),
+  const [categoryRes, settingsRes, productRes, offersRes] = await Promise.all([
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, { cache: "no-store" }),
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/settings`, { cache: "no-store" }),
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, { cache: "no-store" }),
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/offers`, { cache: "no-store" }),
   ]);
 
   const categoryData = await categoryRes.json();
   const settingsData = await settingsRes.json();
   const productData = await productRes.json();
+  const offersData = await offersRes.json();
+
+  // ── DEBUG: log offer shape so you can confirm placement values & image paths ──
+  // Remove this once everything is working
+  const rawOffers = offersData?.data || [];
+  console.log("[Offers API] total:", rawOffers.length);
+  if (rawOffers.length > 0) {
+    console.log("[Offers API] first offer:", JSON.stringify(rawOffers[0], null, 2));
+    console.log("[Offers API] placements:", rawOffers.map((o: any) => o.placement));
+  }
 
   const rawLogo = settingsData.data.general.site_logo;
   const logo =
@@ -90,25 +96,30 @@ export default async function Page() {
       <HeroSlider slides={slides} />
 
       <div className="flex gap-6 px-4 md:px-10 mt-6 max-w-7xl mx-auto">
-        {/* left sidebar */}
-
-        
         <main className="w-full md:w-3/4">
           <PopularProducts
             products={productData.data}
             categories={categoryData.data}
           />
         </main>
-
         <aside className="w-1/4 hidden md:block">
-          <CategorySidebar 
-            categories={categoryData.data} 
+          <CategorySidebar
+            categories={categoryData.data}
             products={productData.data}
           />
         </aside>
       </div>
 
+      {/* Top Banner offers — above Deal of the Day */}
+      <BrandSpecialOffers
+        offers={rawOffers}
+        categories={categoryData?.data || []}
+      />
+
       <DealOfTheDay dealProducts={dealOfTheDayProducts} />
+
+      {/* Middle Section offers — below Deal of the Day */}
+      <MiddleSectionOffers offers={rawOffers} />
 
       <ProductSuggestions products={productData.data} />
 

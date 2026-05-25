@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ShoppingCart, Star } from "lucide-react";
 export interface DealProduct {
   id: number;
@@ -21,8 +22,8 @@ interface Props {
 
 export default function DealOfTheDayCard({ product }: Props) {
   return (
-    <div className="relative rounded-[26px] overflow-hidden">
-      <div className="relative h-[200px] sm:h-[260px] w-full overflow-hidden rounded-[20px] sm:rounded-[26px]">
+    <div className="relative rounded-[10px] overflow-hidden group max-w-[320px] mx-auto">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[10px]">
         <Image
           src={product.image}
           alt={product.name}
@@ -31,24 +32,17 @@ export default function DealOfTheDayCard({ product }: Props) {
           className="object-cover hover:scale-105 transition-transform duration-500"
         />
 
-        <div className="absolute bottom-[90px] sm:bottom-[110px] left-1/2 -translate-x-1/2 w-[90%] bg-white/40 backdrop-blur-md rounded-xl px-3 sm:px-4 py-2 sm:py-3 flex justify-between shadow-md">
-          {[
-            { label: "Days", value: product.days },
-            { label: "Hours", value: product.hours },
-            { label: "Minutes", value: product.minutes },
-            { label: "Seconds", value: product.seconds },
-          ].map((item, index) => (
-            <div key={index} className="text-center flex-1">
-              <p className="text-[10px] sm:text-xs text-black mb-1">{item.label}</p>
-              <h4 className="text-[18px] sm:text-[22px] font-bold text-black">
-                {item.value}
-              </h4>
-            </div>
-          ))}
-        </div>
+        {/* Product Tag 
+        <Link 
+          href={`/products/${product.id}`}
+          className="absolute top-4 left-4 z-30 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 transition-all duration-300 hover:bg-primary hover:text-white group/tag"
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-primary group-hover/tag:bg-white" />
+          <span className="text-[11px] font-bold uppercase tracking-wider">Products</span>
+        </Link>*/}
       </div>
 
-      <div className="relative -mt-16 sm:-mt-20 mx-auto w-[88%] bg-[#f5f5f5] rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm z-20">
+      <div className="relative -mt-12 sm:-mt-16 mx-auto w-[92%] bg-[#f5f5f5] rounded-xl p-4 sm:p-5 shadow-sm z-20">
         <h3 className="text-[15px] sm:text-[18px] leading-6 sm:leading-7 font-semibold text-gray-800 line-clamp-2">
           {product.name}
         </h3>
