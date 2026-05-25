@@ -19,7 +19,10 @@ interface Product {
   name: string;
   categories: Category[];
   variants: Variant[];
-  images: { url: string }[];
+  image?: string;
+  thumbnail?: string;
+  image_url?: string;
+  images: { url?: string; image_path?: string }[];
 }
 
 interface PopularProductsProps {

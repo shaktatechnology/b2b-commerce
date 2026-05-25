@@ -9,12 +9,22 @@ export interface Category {
   parent_id?: string | null;
 }
 
-interface Props {
-  categories: Category[];
+export interface Product {
+  id: string;
+  categories: { id: string }[];
 }
 
-export default function CategorySidebar({ categories }: Props) {
+interface Props {
+  categories: Category[];
+  products?: Product[];
+}
+
+export default function CategorySidebar({ categories, products = [] }: Props) {
   const [active, setActive] = useState<string | null>(null);
+
+  const getCount = (categoryId: string) => {
+    return products.filter(p => p.categories?.some(c => c.id === categoryId)).length;
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md px-4 py-2">
@@ -38,7 +48,7 @@ export default function CategorySidebar({ categories }: Props) {
 
             {/* badge */}
             <span className="text-xs bg-gray-200 px-2 py-0.5 rounded-full">
-              0
+              {getCount(cat.id)}
             </span>
           </button>
         ))}

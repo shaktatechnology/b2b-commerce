@@ -2,6 +2,7 @@ import CategorySidebar from "../components/home-page-components/CategorySidebar"
 import DealOfTheDay from "../components/home-page-components/DealOfTheDay";
 import HeroSlider from "../components/home-page-components/HeroSlider";
 import PopularProducts from "../components/home-page-components/PopularProducts";
+import ProductSuggestions from "../components/home-page-components/ProductSuggestions";
 import Footer from "../components/layouts/Footer";
 
 import Navbar from "../components/layouts/Navbar";
@@ -100,11 +101,16 @@ export default async function Page() {
         </main>
 
         <aside className="w-1/4 hidden md:block">
-          <CategorySidebar categories={categoryData.data} />
+          <CategorySidebar 
+            categories={categoryData.data} 
+            products={productData.data}
+          />
         </aside>
       </div>
 
       <DealOfTheDay dealProducts={dealOfTheDayProducts} />
+
+      <ProductSuggestions products={productData.data} />
 
       <Footer
         logo={logo}

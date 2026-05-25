@@ -16,27 +16,30 @@ interface Product {
   name: string;
   categories: Category[];
   variants: Variant[];
-  images: { url: string }[];
+  image?: string;
+  thumbnail?: string;
+  image_url?: string;
+  images: { url?: string; image_path?: string }[];
 }
 
 interface ProductCardProps {
   product: Product;
 }
 
-const BACKEND_URL = "http://localhost:8000";
-
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const variant = product.variants?.[0];
   const price = parseFloat(variant?.retail_price || "0");
 
-  const rawImage = product.images?.[0]?.url;
+  const getImageUrl = (p: Product): string => {
+    const path = p.image || p.thumbnail || p.image_url || p.images?.[0]?.url || p.images?.[0]?.image_path || "";
+    if (!path) return "";
+    if (path.startsWith("http")) return path;
+    const storageUrl = process.env.NEXT_PUBLIC_STORAGE_URL || "http://localhost:8000";
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    return `${storageUrl}${normalizedPath}`;
+  };
 
-  const image = rawImage
-    ? rawImage.startsWith("http")
-      ? rawImage
-      : `${BACKEND_URL}${rawImage}`
-    : null;
-
+  const image = getImageUrl(product);
   const category = product.categories?.[0]?.name || "Uncategorized";
 
   return (
