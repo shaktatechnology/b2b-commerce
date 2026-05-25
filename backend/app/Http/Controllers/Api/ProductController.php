@@ -39,9 +39,14 @@ class ProductController extends Controller
     /**
      * Display the specified product by slug.
      */
-    public function show(string $slug)
+    public function show(Request $request, string $slug)
     {
-        $product = $this->productService->getProductBySlug($slug);
+        $filters = [];
+        if (!$request->user() || $request->user()->role !== 'admin') {
+            $filters['active'] = true;
+        }
+
+        $product = $this->productService->resolveProduct($slug, $filters);
 
         return response()->json([
             'data' => $product

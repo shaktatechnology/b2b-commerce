@@ -11,10 +11,21 @@ export function proxy(request: NextRequest) {
   const roleCookie = request.cookies.get('role');
   const role = roleCookie?.value || 'user'; // default fallback
 
+  // 0. Checkout requires authentication
+  if (pathname === '/checkout' && !isAuth) {
+    const url = new URL('/login', request.url);
+    url.searchParams.set('redirect', '/checkout');
+    return NextResponse.redirect(url);
+  }
+
   // 1. Redirect Logged-in Users away from Auth Pages
   if (isAuth && (pathname === '/login' || pathname === '/register' || pathname === '/wholeseller_login')) {
     if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     if (role === 'wholeseller' || role === 'wholesaler') return NextResponse.redirect(new URL('/wholeseller', request.url));
+    const redirectParam = request.nextUrl.searchParams.get('redirect');
+    if (redirectParam && redirectParam.startsWith('/') && role !== 'admin') {
+      return NextResponse.redirect(new URL(redirectParam, request.url));
+    }
     return NextResponse.redirect(new URL('/', request.url));
   }
 

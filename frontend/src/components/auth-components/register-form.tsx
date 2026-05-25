@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -56,6 +56,8 @@ export function RegisterForm() {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const setUser = useAppStore((s) => s.setUser);
 
   const {
@@ -87,7 +89,9 @@ export function RegisterForm() {
       setUser(res.data.user);
 
       const role = res.data.user?.role;
-      if (role === 'admin') {
+      if (redirectTo && redirectTo.startsWith('/')) {
+        router.push(redirectTo);
+      } else if (role === 'admin') {
         router.push('/admin/dashboard');
       } else if (role === 'wholeseller' || role === 'wholesaler') {
         router.push('/wholeseller');

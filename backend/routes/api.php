@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Discount\DiscountController;
 use App\Http\Controllers\Api\Cart\CartController;
 use App\Http\Controllers\Api\Order\OrderController;
 use App\Http\Controllers\Api\Payment\PaymentController;
+use App\Http\Controllers\Api\Review\ReviewController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -36,6 +37,7 @@ Route::get('/categories/{slug}',     [CategoryController::class, 'show']);
 
 // Products
 Route::get('/products',             [ProductController::class, 'index']);
+Route::get('/products/{slug}/reviews', [ReviewController::class, 'index']);
 Route::get('/products/{slug}',       [ProductController::class, 'show']);
 
 // Offers
@@ -53,6 +55,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'profile']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
+
+    // Product reviews (authenticated)
+    Route::get('/products/{slug}/reviews/me', [ReviewController::class, 'myReview']);
+    Route::get('/products/{slug}/reviews/can-review', [ReviewController::class, 'canReview']);
+    Route::post('/products/{slug}/reviews', [ReviewController::class, 'store']);
+    Route::put('/products/{slug}/reviews/{id}', [ReviewController::class, 'update']);
+    Route::delete('/products/{slug}/reviews/{id}', [ReviewController::class, 'destroy']);
 
     // Cart
     Route::get('/cart',              [CartController::class, 'index']);

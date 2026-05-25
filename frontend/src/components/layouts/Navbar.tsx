@@ -7,6 +7,7 @@ import {
   useLayoutEffect,
   useCallback,
 } from "react";
+import Link from "next/link";
 
 import {
   Menu,
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   ChevronLeft,
 } from "lucide-react";
+import { useCartStore } from "@/src/store/use-cart-store";
 
 interface Category {
   id: string;
@@ -37,6 +39,7 @@ export default function Navbar({
   contactPhone,
   logo,
 }: NavbarProps) {
+  const cartCount = useCartStore((s) => s.itemCount());
   const [menuOpen, setMenuOpen] = useState(false);
 
   const categoryRef = useRef<HTMLDivElement>(null);
@@ -171,13 +174,19 @@ export default function Navbar({
             </div>
 
             {/* cart */}
-            <div className="justify-self-end relative text-white cursor-pointer">
+            <Link
+              href="/cart"
+              className="justify-self-end relative text-white cursor-pointer"
+              aria-label="View cart"
+            >
               <ShoppingCart size={24} />
 
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center">
-                0
-              </span>
-            </div>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-0.5">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
 
@@ -240,13 +249,15 @@ export default function Navbar({
           
           <div className="flex items-center gap-4">
             {/* cart */}
-            <div className="relative">
+            <Link href="/cart" className="relative" aria-label="View cart">
               <ShoppingCart size={22} className="text-gray-700" />
 
-              <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center">
-                0
-              </span>
-            </div>
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-0.5">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* menu button */}
             <button onClick={() => setMenuOpen(true)}>

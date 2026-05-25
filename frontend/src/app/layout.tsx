@@ -12,7 +12,7 @@ const lato = Lato({
 });
 
 export const metadata: Metadata = {
-  title: "Shakta Next.js Starter Kit",
+  title: "shaktatech Ecommerce",
   description: "A premium production-ready starter kit for Next.js",
 };
 

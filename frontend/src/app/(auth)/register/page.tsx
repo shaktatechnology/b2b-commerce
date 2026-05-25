@@ -1,7 +1,16 @@
+import { Suspense } from 'react';
 import { RegisterForm } from '@/src/components/auth-components/register-form';
 import Link from 'next/link';
 
-export default function RegisterPage() {
+interface RegisterPageProps {
+  searchParams: Promise<{ redirect?: string }>;
+}
+
+export default async function RegisterPage({ searchParams }: RegisterPageProps) {
+  const { redirect } = await searchParams;
+  const loginHref = redirect
+    ? `/login?redirect=${encodeURIComponent(redirect)}`
+    : '/login';
   return (
     <div className="min-h-screen relative flex items-center justify-center bg-zinc-100/50 p-4 overflow-hidden">
       {/* Background Content Simulation */}
@@ -45,11 +54,13 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <RegisterForm />
+          <Suspense fallback={<div className="h-48 animate-pulse bg-zinc-100 rounded" />}>
+            <RegisterForm />
+          </Suspense>
 
           <div className="mt-8 text-center" style={{ fontFamily: 'Lato, sans-serif' }}>
             <span className="text-zinc-500 text-sm">Already have an account? </span>
-            <Link href="/login" className="text-[#966FD6] text-sm font-semibold hover:underline underline-offset-4">
+            <Link href={loginHref} className="text-[#966FD6] text-sm font-semibold hover:underline underline-offset-4">
               Log in
             </Link>
           </div>
