@@ -15,10 +15,6 @@ export default async function OrdersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <OrdersPageClient initialOrders={orders} />
-      </div>
-    </main>
+    <OrdersPageClient initialOrders={orders} />
   );
 }
