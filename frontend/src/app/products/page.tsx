@@ -19,7 +19,7 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
   const [{ storefront }, categories, products, offers] = await Promise.all([
     fetchAllSettings(),
     fetchCategories(),
-    fetchProducts(),
+    fetchProducts(offer_id ? { offer_id } : undefined),
     fetchOffers(),
   ]);
 
@@ -29,14 +29,6 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
     filtered = filtered.filter((p) =>
       p.categories?.some((c) => c.slug === categorySlug)
     );
-  }
-
-  if (offer_id) {
-    const offer = offers.find((o) => o.id.toString() === offer_id);
-    if (offer && offer.product_ids) {
-      const targetIds = offer.product_ids.map(id => id.toString());
-      filtered = filtered.filter((p) => targetIds.includes(p.id.toString()));
-    }
   }
 
   const activeCategory = categories.find((c) => c.slug === categorySlug);
@@ -73,7 +65,7 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
             {filtered.map((product) => (
               <ProductCard
                 key={product.id}
-                product={product as CartProductInput}
+                product={product as any}
               />
             ))}
           </div>

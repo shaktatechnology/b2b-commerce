@@ -25,8 +25,13 @@ export async function fetchCategories(): Promise<StorefrontCategory[]> {
   return json.data ?? [];
 }
 
-export async function fetchProducts(): Promise<StorefrontProduct[]> {
-  const json = await apiGet<{ data: StorefrontProduct[] }>('/products');
+export async function fetchProducts(queryParams?: Record<string, string>): Promise<StorefrontProduct[]> {
+  let path = '/products';
+  if (queryParams) {
+    const params = new URLSearchParams(queryParams).toString();
+    if (params) path += `?${params}`;
+  }
+  const json = await apiGet<{ data: StorefrontProduct[] }>(path);
   return json.data ?? [];
 }
 

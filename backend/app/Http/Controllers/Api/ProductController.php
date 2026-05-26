@@ -22,7 +22,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $filters = $request->only(['category_slug', 'search', 'active']);
+        $filters = $request->only(['category_slug', 'search', 'active', 'offer_id']);
         
         // Non-admin can only view active products
         if (!$request->user() || $request->user()->role !== 'admin') {
