@@ -62,6 +62,7 @@ const chartData = [
 ];
 
 export default function PreviewPage() {
+  const [date, setDate] = React.useState<Date | undefined>();
   return (
     <PublicLayout>
       <div className="pt-24 pb-20">
@@ -151,7 +152,7 @@ export default function PreviewPage() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Date Picker</label>
-                      <DatePicker />
+                      <DatePicker date={date} setDate={setDate} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Input with Icon</label>

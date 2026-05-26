@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { apiFetch } from '@/src/lib/api';
 import { getAuthToken } from '@/src/lib/auth';
-import { Product, Category, ProductVariant } from '@/src/types';
+import { Product, Category, ProductVariant, Discount } from '@/src/types';
 import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
 import { DatePicker } from '@/src/components/ui/date-picker';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import PreviewPage from '@/src/app/preview/page';
 
 const initialVariant: ProductVariant = {
   variant_name: 'Default',
@@ -37,17 +38,30 @@ const initialVariant: ProductVariant = {
   wholesale_price: 0,
   moq: 1,
   stock: 0,
-  weight: 0,
+  weight: '',
+  color_id: '',
+  size_id: '',
   is_active: true,
+  discount: null,
 };
 
 const emptyForm = {
   name: '',
   slug: '',
   description: '',
+  long_description: '',
   is_active: true,
   category_ids: [] as string[],
+  brand_id: '',
+  color_id: '',
+  size_id: '',
+  weight: '',
   variants: [] as ProductVariant[],
+
+  is_popular: false,
+  is_top_selling:false,
+  is_trending:false,
+  discount: null as Discount | null,
 };
 
 const slugify = (text: string) => {
@@ -66,6 +80,9 @@ const generateSKU = (name: string = 'PROD') => {
 export default function AdminProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [categories, setCategories] = React.useState<Category[]>([]);
+  const [brands, setBrands] = React.useState<any[]>([]);
+  const [colors, setColors] = React.useState<any[]>([]);
+  const [sizes, setSizes] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -91,9 +108,12 @@ export default function AdminProductsPage() {
     setIsLoading(true);
     try {
       const freshToken = getAuthToken();
-      const [prodRes, catRes] = await Promise.all([
-        apiFetch<any>(`/products?include_inactive=true&status=all&page=${page}`, { token: freshToken || undefined }),
-        apiFetch<any>('/categories?include_inactive=true&all=true&status=all', { token: freshToken || undefined }),
+      const [prodRes, catRes, brandsRes, colorsRes, sizesRes] = await Promise.all([
+        apiFetch<any>(`/products?include_inactive=1&status=all&page=${page}`, { token: freshToken || undefined }),
+        apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
+        apiFetch<any>('/brands', { token: freshToken || undefined }),
+        apiFetch<any>('/colors', { token: freshToken || undefined }),
+        apiFetch<any>('/sizes', { token: freshToken || undefined }),
       ]);
 
       let categoriesData: Category[] = [];
@@ -106,8 +126,16 @@ export default function AdminProductsPage() {
       else if (Array.isArray(prodRes?.data)) productsData = prodRes.data;
       else if (Array.isArray(prodRes?.data?.data)) productsData = prodRes.data.data;
 
+      productsData.sort((a, b) =>{
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+
+      });
+
       setCategories(categoriesData);
       setProducts(productsData);
+      setBrands(brandsRes?.data || []);
+      setColors(colorsRes?.data || []);
+      setSizes(sizesRes?.data || []);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load data');
     } finally {
@@ -162,10 +190,38 @@ export default function AdminProductsPage() {
       setFormData({
         name: product.name,
         slug: product.slug,
+
         description: product.description || '',
+        long_description: product.long_description || '',
         is_active: Boolean(product.is_active),
         category_ids: product.categories?.map(c => c.id.toString()) || [],
-        variants: product.variants.length > 0 ? product.variants : [{ ...initialVariant }],
+        brand_id: product.brand_id || '',
+        color_id: product.color_id || '',
+        size_id: product.size_id || '',
+        weight: product.weight || '',
+        discount: product.discounts?.[0] ? {
+           type: product.discounts[0].type,
+           value: product.discounts[0].value,
+           starts_at: product.discounts[0].starts_at ? product.discounts[0].starts_at.split('T')[0] : '',
+           ends_at: product.discounts[0].ends_at ? product.discounts[0].ends_at.split('T')[0] : '',
+           is_active: product.discounts[0].is_active,
+        } : null,
+        variants: product.variants.length > 0 ? product.variants.map((v: any) => ({
+          ...v, 
+          color_id: v.color_id || '', 
+          size_id: v.size_id || '', 
+          weight: v.weight || '',
+          discount: v.discounts?.[0] ? {
+             type: v.discounts[0].type,
+             value: v.discounts[0].value,
+             starts_at: v.discounts[0].starts_at ? v.discounts[0].starts_at.split('T')[0] : '',
+             ends_at: v.discounts[0].ends_at ? v.discounts[0].ends_at.split('T')[0] : '',
+             is_active: v.discounts[0].is_active,
+          } : null
+        })) : [{ ...initialVariant }],
+        is_popular: Boolean(product.is_popular),
+        is_top_selling: Boolean(product.is_top_selling),
+        is_trending: Boolean(product.is_trending),
       });
       // Set existing image from available fields
       const imgPath = product.image || product.thumbnail || product.image_url || product.images?.[0]?.url || '';
@@ -208,7 +264,11 @@ export default function AdminProductsPage() {
   const addVariant = () => {
     setFormData((prev) => ({
       ...prev,
-      variants: [...prev.variants, { ...initialVariant, sku: generateSKU(prev.name || 'VAR') }],
+      variants: [
+        // ...prev.variants, { ...initialVariant, sku: generateSKU(prev.name || 'VAR') }],
+         { ...initialVariant, sku: generateSKU(prev.name || 'VAR') },
+        ...prev.variants,
+      ],
     }));
   };
 
@@ -249,9 +309,26 @@ export default function AdminProductsPage() {
       body.append('name', formData.name);
       body.append('slug', formData.slug);
       body.append('description', formData.description);
+      body.append('long_description', formData.long_description);
       body.append('is_active', formData.is_active ? '1' : '0');
+      body.append('is_popular', formData.is_popular ? '1' : '0');
+      body.append('is_top_selling', formData.is_top_selling ? '1' : '0');
+      body.append('is_trending', formData.is_trending ? '1' : '0');
+
+      body.append('brand_id', formData.brand_id || '');
+      body.append('color_id', formData.color_id || '');
+      body.append('size_id', formData.size_id || '');
+      body.append('weight', formData.weight || '');
 
       formData.category_ids.forEach((id) => body.append('category_ids[]', id));
+
+      if (formData.discount && formData.discount.type && formData.discount.value !== '' && formData.discount.starts_at && formData.discount.ends_at) {
+        body.append('discount[type]', formData.discount.type);
+        body.append('discount[value]', String(formData.discount.value));
+        body.append('discount[starts_at]', formData.discount.starts_at);
+        body.append('discount[ends_at]', formData.discount.ends_at);
+        body.append('discount[is_active]', formData.discount.is_active ? '1' : '0');
+      }
 
       formData.variants.forEach((v, i) => {
         if (v.id) body.append(`variants[${i}][id]`, String(v.id));
@@ -261,12 +338,22 @@ export default function AdminProductsPage() {
         body.append(`variants[${i}][wholesale_price]`, String(v.wholesale_price));
         body.append(`variants[${i}][moq]`, String(v.moq));
         body.append(`variants[${i}][stock]`, String(v.stock));
-        body.append(`variants[${i}][weight]`, String(v.weight));
+        body.append(`variants[${i}][weight]`, String(v.weight || ''));
+        body.append(`variants[${i}][color_id]`, v.color_id || '');
+        body.append(`variants[${i}][size_id]`, v.size_id || '');
         body.append(`variants[${i}][is_active]`, v.is_active ? '1' : '0');
         if (v.image) {
           body.append(`variants[${i}][image]`, v.image);
         } else if (v.image_url) {
           body.append(`variants[${i}][image_url]`, v.image_url);
+        }
+
+        if (v.discount && v.discount.type && v.discount.value !== '' && v.discount.starts_at && v.discount.ends_at) {
+          body.append(`variants[${i}][discount][type]`, v.discount.type);
+          body.append(`variants[${i}][discount][value]`, String(v.discount.value));
+          body.append(`variants[${i}][discount][starts_at]`, v.discount.starts_at);
+          body.append(`variants[${i}][discount][ends_at]`, v.discount.ends_at);
+          body.append(`variants[${i}][discount][is_active]`, v.discount.is_active ? '1' : '0');
         }
       });
 
@@ -577,18 +664,19 @@ export default function AdminProductsPage() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[24px] md:rounded-[32px] shadow-2xl w-full max-w-4xl my-auto overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="flex justify-between items-center p-5 border-b border-zinc-50">
-              <h2 className="text-2xl font-black">
+        <div className="fixed inset-0 z-[100] bg-zinc-50/95 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
+          <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col">
+            <div className="flex items-center gap-4 mb-8">
+              <Button variant="ghost" size="icon" onClick={closeModal} className="rounded-full bg-white shadow-sm border border-zinc-200 h-12 w-12 hover:bg-zinc-100 shrink-0">
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              <h2 className="text-3xl font-black">
                 {formMode === 'create' ? 'Add New Product' : 'Edit Product'}
               </h2>
-              <Button variant="ghost" size="icon" onClick={closeModal} className="rounded-full">
-                <X className="h-6 w-6" />
-              </Button>
             </div>
-
-            <form onSubmit={handleSubmit} className="p-5 space-y-5 max-h-[80vh] overflow-y-auto scrollbar-hide">
+            
+            <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col border border-zinc-100 mb-8">
+            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-6">
                    <div className="space-y-2">
@@ -624,38 +712,181 @@ export default function AdminProductsPage() {
                              required 
                            />
                         </div>
-                        <div className="pt-2">
-                           <label className="flex items-center gap-2 cursor-pointer group">
-                             <div className={cn("w-10 h-6 rounded-full transition-colors relative", formData.is_active ? "bg-green-500" : "bg-zinc-200")}>
-                                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm", formData.is_active ? "translate-x-5" : "translate-x-1")} />
-                             </div>
-                             <input type="checkbox" className="hidden" checked={!!formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.checked})} />
-                             <span className="text-sm font-bold text-zinc-600 transition-colors group-hover:text-black">Product is Active</span>
-                           </label>
-                        </div>
+                        <div className="space-y-3 pt-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                          Product Status
+                        </label>
+
+                        {/* Active */}
+                        <label className="flex items-center justify-between cursor-pointer group">
+                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                            Product is Active
+                          </span>
+
+                          <input
+                            type="checkbox"
+                            checked={!!formData.is_active}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_active: e.target.checked })
+                            }
+                            className="h-4 w-4 accent-[#966FD6]"
+                          />
+                        </label>
+
+                        {/* Popular */}
+                        <label className="flex items-center justify-between cursor-pointer group">
+                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                            Popular Product
+                          </span>
+
+                          <input
+                            type="checkbox"
+                            checked={!!formData.is_popular}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_popular: e.target.checked })
+                            }
+                            className="h-4 w-4 accent-[#966FD6]"
+                          />
+                        </label>
+
+                        {/* Top Selling */}
+                        <label className="flex items-center justify-between cursor-pointer group">
+                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                            Top Selling
+                          </span>
+
+                          <input
+                            type="checkbox"
+                            checked={!!formData.is_top_selling}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_top_selling: e.target.checked })
+                            }
+                            className="h-4 w-4 accent-[#966FD6]"
+                          />
+                        </label>
+
+                        {/* Trending */}
+                        <label className="flex items-center justify-between cursor-pointer group">
+                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                            Trending
+                          </span>
+
+                          <input
+                            type="checkbox"
+                            checked={!!formData.is_trending}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_trending: e.target.checked })
+                            }
+                            className="h-4 w-4 accent-[#966FD6]"
+                          />
+                        </label>
+                      </div>
                       </div>
                    </div>
 
-                   <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Primary Category <span className="text-red-500">*</span></label>
-                      <Select 
-                        value={formData.category_ids[0] || 'none'} 
-                        onValueChange={(val) => setFormData({ ...formData, category_ids: val === 'none' ? [] : [val] })}
-                      >
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2 col-span-2 sm:col-span-1">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                        Categories <span className="text-red-500">*</span>
+                      </label>
+
+                      <Select>
                         <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
-                          <SelectValue placeholder="Select Category" />
+                          <SelectValue
+                            placeholder={
+                              formData.category_ids.length > 0
+                                ? `${formData.category_ids.length} selected`
+                                : "Select Categories"
+                            }
+                          />
                         </SelectTrigger>
+
                         <SelectContent className="rounded-xl">
-                          {categories.length === 0 ? (
-                            <SelectItem value="none" disabled>No categories found</SelectItem>
-                          ) : (
-                            <SelectItem value="none">Select a category</SelectItem>
-                          )}
-                          {categories.map((c) => (
-                            <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                          ))}
+                          {categories.map((c) => {
+                            const selected = formData.category_ids.includes(c.id.toString());
+
+                            return (
+                              <div
+                                key={c.id}
+                                onClick={() => toggleCategory(c.id.toString())}
+                                className={cn(
+                                  "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md",
+                                  selected && "bg-[#966FD6]/10 text-[#966FD6] font-bold"
+                                )}
+                              >
+                                <span>{c.name}</span>
+                                {selected && <Check className="h-4 w-4" />}
+                              </div>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Brand</label>
+                        <Select 
+                          value={formData.brand_id || 'none'} 
+                          onValueChange={(val) => setFormData({ ...formData, brand_id: val === 'none' ? '' : val })}
+                        >
+                          <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                            <SelectValue placeholder="Select Brand" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="none">No Brand</SelectItem>
+                            {brands.map((b) => (
+                              <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                     </div>
+                     {!formData.weight && (
+                       <>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Color (Default)</label>
+                            <Select 
+                              value={formData.color_id || 'none'} 
+                              onValueChange={(val) => setFormData({ ...formData, color_id: val === 'none' ? '' : val })}
+                            >
+                              <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                                <SelectValue placeholder="Select Color" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="none">No Color</SelectItem>
+                                {colors.map((c) => (
+                                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Size (Default)</label>
+                            <Select 
+                              value={formData.size_id || 'none'} 
+                              onValueChange={(val) => setFormData({ ...formData, size_id: val === 'none' ? '' : val })}
+                            >
+                              <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                                <SelectValue placeholder="Select Size" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="none">No Size</SelectItem>
+                                {sizes.map((s) => (
+                                  <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                         </div>
+                       </>
+                     )}
+                     {!formData.color_id && !formData.size_id && (
+                       <div className="space-y-2 col-span-2">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Weight (String, e.g. 15kg)</label>
+                          <Input 
+                            value={formData.weight || ''} 
+                            onChange={(e) => setFormData({ ...formData, weight: e.target.value })} 
+                            className="h-12 rounded-xl bg-white border-zinc-200"
+                          />
+                       </div>
+                     )}
                    </div>
 
                    <div className="space-y-2">
@@ -702,13 +933,75 @@ export default function AdminProductsPage() {
 
                 <div className="space-y-6">
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Description</label>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Short Description</label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         placeholder="Detail the product's features, specs, and selling points..."
                         className="w-full min-h-[148px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30"
                       />
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Long Description</label>
+                      <textarea
+                        value={formData.long_description}
+                        onChange={(e) => setFormData({ ...formData, long_description: e.target.value })}
+                        placeholder="Comprehensive details for the product page..."
+                        className="w-full min-h-[200px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30"
+                      />
+                   </div>
+
+                   <div className="space-y-4 pt-4 border-t border-zinc-100">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Discount (Applies to all variants)</label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input type="checkbox" checked={formData.discount !== null} onChange={(e) => {
+                             if (e.target.checked) {
+                               setFormData({ ...formData, discount: { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true } });
+                             } else {
+                               setFormData({ ...formData, discount: null });
+                             }
+                          }} className="accent-[#966FD6] h-4 w-4" />
+                          <span className="text-[10px] font-black uppercase text-[#966FD6]">Enable Parent Discount</span>
+                        </label>
+                      </div>
+                      {formData.discount && (
+                        <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
+                           <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
+                              <Select 
+                                value={formData.discount.type} 
+                                onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, type: val } })}
+                              >
+                                <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="percent">Percentage (%)</SelectItem>
+                                  <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                </SelectContent>
+                              </Select>
+                           </div>
+                           <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
+                              <Input type="number" value={formData.discount.value} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
+                              <Input type="date" value={formData.discount.starts_at} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: e.target.value } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                           </div>
+                           <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
+                              <Input type="date" value={formData.discount.ends_at} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: e.target.value } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                           </div>
+                           <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={formData.discount.is_active} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, is_active: e.target.checked } })} className="accent-[#966FD6] h-4 w-4" />
+                                <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
+                              </label>
+                           </div>
+                        </div>
+                      )}
                    </div>
 
                    <div className="space-y-4">
@@ -809,15 +1102,106 @@ export default function AdminProductsPage() {
                                 </div>
                              </div>
 
-                             <div className="flex items-center justify-between border-t border-zinc-100 pt-4">
-                                <div className="flex items-center gap-4">
-                                   <div className="flex items-center gap-2">
-                                      <span className="text-[10px] font-black uppercase text-zinc-400">Weight</span>
-                                      <input type="number" step="0.1" value={v.weight} onChange={(e) => updateVariant(i, 'weight', Number(e.target.value))} className="w-16 h-8 rounded-lg border border-zinc-200 px-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#966FD6]" />
-                                      <span className="text-xs font-bold text-zinc-500">kg</span>
-                                   </div>
-                                </div>
-                                <label className="flex items-center gap-2 cursor-pointer">
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+                                    {!v.weight && (
+                                      <>
+                                        <div className="space-y-1">
+                                           <span className="text-[10px] font-black uppercase text-zinc-400">Color Override</span>
+                                           <Select 
+                                             value={v.color_id || 'none'} 
+                                             onValueChange={(val) => updateVariant(i, 'color_id', val === 'none' ? '' : val)}
+                                           >
+                                             <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                               <SelectValue placeholder="Default" />
+                                             </SelectTrigger>
+                                             <SelectContent>
+                                               <SelectItem value="none">Use Product Default</SelectItem>
+                                               {colors.map((c) => (
+                                                 <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                                               ))}
+                                             </SelectContent>
+                                           </Select>
+                                        </div>
+                                        <div className="space-y-1">
+                                           <span className="text-[10px] font-black uppercase text-zinc-400">Size Override</span>
+                                           <Select 
+                                             value={v.size_id || 'none'} 
+                                             onValueChange={(val) => updateVariant(i, 'size_id', val === 'none' ? '' : val)}
+                                           >
+                                             <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                               <SelectValue placeholder="Default" />
+                                             </SelectTrigger>
+                                             <SelectContent>
+                                               <SelectItem value="none">Use Product Default</SelectItem>
+                                               {sizes.map((s) => (
+                                                 <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                               ))}
+                                             </SelectContent>
+                                           </Select>
+                                        </div>
+                                      </>
+                                    )}
+                                    {!v.color_id && !v.size_id && (
+                                      <div className="space-y-1 col-span-1 sm:col-span-2">
+                                         <span className="text-[10px] font-black uppercase text-zinc-400">Weight Override</span>
+                                         <Input type="text" value={v.weight || ''} onChange={(e) => updateVariant(i, 'weight', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" placeholder="e.g. 5kg" />
+                                      </div>
+                                    )}
+                                 </div>
+
+                                 <div className="space-y-4 pt-4 border-t border-zinc-100">
+                                    <div className="flex items-center justify-between">
+                                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Variant Discount (Overrides parent discount)</label>
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={v.discount !== null && v.discount !== undefined} onChange={(e) => {
+                                           if (e.target.checked) {
+                                              updateVariant(i, 'discount', { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true });
+                                           } else {
+                                              updateVariant(i, 'discount', null);
+                                           }
+                                        }} className="accent-[#966FD6] h-4 w-4" />
+                                        <span className="text-[10px] font-black uppercase text-[#966FD6]">Enable Variant Discount</span>
+                                      </label>
+                                    </div>
+                                    {v.discount && (
+                                      <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
+                                         <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
+                                            <Select 
+                                              value={v.discount.type} 
+                                              onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, type: val })}
+                                            >
+                                              <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                                <SelectValue placeholder="Select type" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="percent">Percentage (%)</SelectItem>
+                                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                         </div>
+                                         <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
+                                            <Input type="number" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                         </div>
+                                         <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
+                                            <Input type="date" value={v.discount.starts_at} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, starts_at: e.target.value })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                         </div>
+                                         <div className="space-y-1">
+                                            <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
+                                            <Input type="date" value={v.discount.ends_at} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, ends_at: e.target.value })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                         </div>
+                                         <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                              <input type="checkbox" checked={v.discount.is_active} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, is_active: e.target.checked })} className="accent-[#966FD6] h-4 w-4" />
+                                              <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
+                                            </label>
+                                         </div>
+                                      </div>
+                                    )}
+                                 </div>
+                                 <div className="flex items-center justify-end border-t border-zinc-100 pt-4"><label className="flex items-center gap-2 cursor-pointer">
                                   <input type="checkbox" checked={v.is_active} onChange={(e) => updateVariant(i, 'is_active', e.target.checked)} className="accent-[#966FD6] h-4 w-4" />
                                   <span className="text-[10px] font-black uppercase text-zinc-500">Variant Active</span>
                                 </label>
@@ -848,6 +1232,7 @@ export default function AdminProductsPage() {
                  </div>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

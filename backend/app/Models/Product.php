@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
@@ -17,10 +18,20 @@ class Product extends Model
         'slug',
         'description',
         'is_active',
+        'is_popular',
+        'is_top_selling',
+        'is_trending',
+        'brand_id',
+        'color_id',
+        'size_id',
+        'weight',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_popular' => 'boolean',
+        'is_top_selling' => 'boolean',
+        'is_trending' => 'boolean',
     ];
 
     protected $appends = ['image_url'];
@@ -84,5 +95,29 @@ class Product extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Get brand of this product.
+     */
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * Get default color of this product.
+     */
+    public function color(): BelongsTo
+    {
+        return $this->belongsTo(Color::class);
+    }
+
+    /**
+     * Get default size of this product.
+     */
+    public function size(): BelongsTo
+    {
+        return $this->belongsTo(Size::class);
     }
 }

@@ -1,19 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import { Heart } from "lucide-react";
 
 interface ProductGalleryProps {
   images: string[];
   productName: string;
+  activeIndex?: number;
+  onChangeImage?: (index: number) => void;
 }
 
 export default function ProductGallery({
   images,
   productName,
+  activeIndex = 0,
+  onChangeImage,
 }: ProductGalleryProps) {
   const galleryImages = images.length > 0 ? images : [];
-  const [activeIndex, setActiveIndex] = useState(0);
   const mainImage = galleryImages[activeIndex] ?? null;
 
   return (
@@ -45,7 +47,7 @@ export default function ProductGallery({
             <button
               key={`${src}-${index}`}
               type="button"
-              onClick={() => setActiveIndex(index)}
+              onClick={() => onChangeImage?.(index)}
               className={`w-16 h-16 sm:w-20 sm:h-20 shrink-0 border rounded overflow-hidden bg-gray-50 ${
                 activeIndex === index
                   ? "border-primary ring-1 ring-primary"

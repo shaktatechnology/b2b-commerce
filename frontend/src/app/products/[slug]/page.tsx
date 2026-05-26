@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import StorefrontLayout from "@/src/components/layouts/StorefrontLayout";
 import ProductBreadcrumb from "@/src/components/product/ProductBreadcrumb";
-import ProductGallery from "@/src/components/product/ProductGallery";
-import ProductPurchasePanel from "@/src/components/product/ProductPurchasePanel";
+import ProductMainArea from "@/src/components/product/ProductMainArea";
 import ProductDetailSidebar from "@/src/components/product/ProductDetailSidebar";
 import ProductDetailTabs from "@/src/components/product/ProductDetailTabs";
 import ProductCarouselSection from "@/src/components/product/ProductCarouselSection";
@@ -61,7 +60,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     variants: product.variants,
     images: product.images,
   };
-  const galleryImages = getProductDisplayImages(cartProduct);
+  // Removed getProductDisplayImages since ProductMainArea handles images internally.
 
   return (
     <StorefrontLayout categories={categories} settings={storefront}>
@@ -73,17 +72,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
         <div className="flex flex-col xl:flex-row gap-8">
           <div className="flex-1 min-w-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
-              <ProductGallery
-                images={galleryImages}
-                productName={product.name}
-              />
-              <ProductPurchasePanel
-                product={product}
-                reviewCount={reviewsData.summary.count}
-                averageRating={reviewsData.summary.average_rating}
-              />
-            </div>
+            <ProductMainArea 
+              product={product}
+              reviewCount={reviewsData.summary.count}
+              averageRating={reviewsData.summary.average_rating}
+            />
 
             <ProductDetailTabs
               product={product}

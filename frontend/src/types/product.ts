@@ -1,5 +1,14 @@
 import { Category } from './category';
 
+export interface Discount {
+  id?: string;
+  type: 'percent' | 'fixed';
+  value: number | '';
+  starts_at: string;
+  ends_at: string;
+  is_active: boolean;
+}
+
 export interface ProductVariant {
   id?: string | number;
   variant_name: string;
@@ -8,10 +17,13 @@ export interface ProductVariant {
   wholesale_price: number;
   moq: number;
   stock: number;
-  weight: number;
+  weight?: string | number | null;
+  color_id?: string | null;
+  size_id?: string | null;
   is_active: boolean;
   image_url?: string;
   image?: File | null;
+  discount?: Discount | null;
 }
 
 export interface Product {
@@ -19,14 +31,23 @@ export interface Product {
   name: string;
   slug: string;
   description?: string;
+  long_description?: string;
   is_active: boolean;
+  is_popular?: boolean;
+  is_top_selling?: boolean;
+  is_trending?: boolean;
   category_id?: string;
+  brand_id?: string | null;
+  color_id?: string | null;
+  size_id?: string | null;
+  weight?: string | null;
   categories?: Category[];
   image?: string;
   thumbnail?: string;
   image_url?: string;
-  images?: Array<{ id: string | number; image_path: string }>;
+  images?: Array<{ id: string | number; image_path: string; url?: string }>;
   variants: ProductVariant[];
+  discounts?: Discount[];
   created_at: string;
   updated_at: string;
 }
@@ -35,8 +56,17 @@ export interface ProductFormData {
   name: string;
   slug: string;
   description: string;
+  long_description: string;
   is_active: boolean;
+  is_popular?: boolean;
+  is_top_selling?: boolean;
+  is_trending?: boolean;
   category_ids: string[];
+  brand_id?: string | null;
+  color_id?: string | null;
+  size_id?: string | null;
+  weight?: string | null;
   variants: ProductVariant[];
   image?: File | null;
+  discount?: Discount | null;
 }

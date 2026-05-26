@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { StorefrontCategory, StorefrontProduct } from "@/src/types/storefront";
 import { resolveProductImageUrl, getProductPath } from "@/src/lib/product-utils";
+import CategorySidebar from "../home-page-components/CategorySidebar";
 
 interface CategoryWithCount {
   category: StorefrontCategory;
@@ -18,24 +19,14 @@ export default function ProductDetailSidebar({
 }: ProductDetailSidebarProps) {
   return (
     <aside className="space-y-6 w-full lg:w-72 shrink-0">
-      <div className="border border-gray-200 rounded-lg p-4 bg-white">
-        <h3 className="text-primary font-semibold text-base mb-3">Category</h3>
-        <ul className="space-y-2">
-          {categoriesWithCounts.slice(0, 8).map(({ category, count }) => (
-            <li key={category.id}>
-              <Link
-                href={`/products?category=${category.slug}`}
-                className="flex items-center justify-between text-sm text-gray-700 hover:text-primary"
-              >
-                <span className="line-clamp-1 pr-2">{category.name}</span>
-                <span className="shrink-0 min-w-[22px] h-[22px] rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-medium">
-                  {count}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <CategorySidebar 
+        categories={categoriesWithCounts.map((c) => ({
+          id: c.category.id.toString(),
+          name: c.category.name,
+          slug: c.category.slug,
+          products_count: c.count,
+        }))} 
+      />
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white">
         <h3 className="text-primary font-semibold text-base mb-3">

@@ -60,10 +60,10 @@ export default function ProductDetailTabs({
       <div className="py-6 text-sm text-gray-700 leading-relaxed space-y-4">
         {active === "description" && (
           <>
-            {product.description ? (
+            {(product.long_description || product.description) ? (
               <div
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                dangerouslySetInnerHTML={{ __html: product.long_description || product.description || "" }}
               />
             ) : (
               <p>No description available for this product.</p>
@@ -98,11 +98,27 @@ export default function ProductDetailTabs({
         )}
 
         {active === "brand" && (
-          <p>
-            Distributed by{" "}
-            <span className="text-primary font-medium">Store</span>. Contact
-            support for brand partnership inquiries.
-          </p>
+          <div>
+            {product.brand ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-900">{product.brand.name}</h3>
+                {product.brand.long_description ? (
+                  <div
+                    className="prose prose-sm max-w-none text-gray-600"
+                    dangerouslySetInnerHTML={{ __html: product.brand.long_description }}
+                  />
+                ) : (
+                  <p className="text-gray-600">No additional details available for brand {product.brand.name}.</p>
+                )}
+              </div>
+            ) : (
+              <p>
+                Distributed by{" "}
+                <span className="text-primary font-medium">Store</span>. Contact
+                support for brand partnership inquiries.
+              </p>
+            )}
+          </div>
         )}
 
         {active === "reviews" && (
