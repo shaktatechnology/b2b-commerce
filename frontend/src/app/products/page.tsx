@@ -78,6 +78,7 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
             ))}
           </div>
         )}
+        
       </div>
     </StorefrontLayout>
   );
