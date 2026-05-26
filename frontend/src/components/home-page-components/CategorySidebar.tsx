@@ -11,6 +11,11 @@ export interface Category {
   products_count?: number;
 }
 
+export interface Product{
+  id: string;
+  category: Category;
+}
+
 interface Props {
   categories: Category[];
   products?: Product[];

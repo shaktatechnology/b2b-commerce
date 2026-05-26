@@ -10,6 +10,24 @@ export function resolveProductImageUrl(raw?: string | null): string | null {
   return `${BACKEND_URL}${raw.startsWith('/') ? '' : '/'}${raw}`;
 }
 
+function firstProductImageSource(product: CartProductInput): string | null {
+  const fromImages = product.images?.[0];
+  return (
+    product.image_url ??
+    product.image ??
+    product.thumbnail ??
+    fromImages?.url ??
+    fromImages?.image_path ??
+    null
+  );
+}
+
+export function resolveProductImageFromInput(
+  product: CartProductInput
+): string | null {
+  return resolveProductImageUrl(firstProductImageSource(product));
+}
+
 export function productToCartLineItem(
   product: CartProductInput,
   options?: {
@@ -27,7 +45,7 @@ export function productToCartLineItem(
 
   const price = parseFloat(String(variant.retail_price ?? 0));
   const image = resolveProductImageUrl(
-    variant.image_url ?? product.images?.[0]?.url ?? null
+    variant.image_url ?? firstProductImageSource(product)
   );
 
   return {
@@ -43,15 +61,20 @@ export function productToCartLineItem(
 }
 
 export function getProductDisplayImages(product: CartProductInput): string[] {
+  const topLevel = resolveProductImageFromInput(product);
   const fromProduct = (product.images ?? [])
-    .map((img) => resolveProductImageUrl(img.url))
+    .map((img) => resolveProductImageUrl(img.url ?? img.image_path))
     .filter((url): url is string => Boolean(url));
 
   const fromVariants = (product.variants ?? [])
     .map((v) => resolveProductImageUrl(v.image_url))
     .filter((url): url is string => Boolean(url));
 
-  const merged = [...fromProduct, ...fromVariants];
+  const merged = [
+    ...(topLevel ? [topLevel] : []),
+    ...fromProduct,
+    ...fromVariants,
+  ];
   return merged.length > 0 ? [...new Set(merged)] : [];
 }
 

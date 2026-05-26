@@ -3,84 +3,78 @@
 import React from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface Variant {
-  id: string;
-  retail_price: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  categories: Category[];
-  variants: Variant[];
-  images: { url: string }[];
-}
+import { toast } from "sonner";
+import { useCartStore } from "@/src/store/use-cart-store";
+import {
+  getProductPath,
+  productToCartLineItem,
+} from "@/src/lib/product-utils";
+import type { CartProductInput } from "@/src/types/cart";
 
 interface ProductCardProps {
-  product: Product;
+  product: CartProductInput;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const variant = product.variants?.[0];
-  const price = parseFloat(variant?.retail_price || "0");
+  const addItem = useCartStore((s) => s.addItem);
+  const lineItem = productToCartLineItem(product);
+  const price = lineItem?.price ?? 0;
+  const image = lineItem?.image;
+  const category = lineItem?.category ?? "Uncategorized";
+  const href = getProductPath({ id: product.id, slug: product.slug });
 
-  const rawImage = product.images?.[0]?.url;
-
-  const image = rawImage
-    ? rawImage.startsWith("http")
-      ? rawImage
-      : `${process.env.NEXT_PUBLIC_STORAGE_URL}${rawImage}`
-    : null;
-
-  const category = product.categories?.[0]?.name || "Uncategorized";
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!lineItem) {
+      toast.error("This product cannot be added to cart.");
+      return;
+    }
+    addItem(lineItem);
+    toast.success(`${product.name} added to cart`);
+  };
 
   return (
-    <div className="border rounded-xl bg-white shadow-sm hover:shadow-md transition overflow-hidden">
-      {/* image */}
-      <div className="h-48 bg-gray-50 flex items-center justify-center">
-        {image ? (
-          <img
-            src={image}
-            alt={product.name}
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          <div className="text-center">
-            <p className="text-primary font-semibold text-sm">
-              {product.name}
-            </p>
-          </div>
-        )}
-      </div>
+    <div className="border rounded-xl bg-white shadow-sm hover:shadow-md transition overflow-hidden h-full flex flex-col">
+      <Link href={href} className="block">
+        <div className="h-48 bg-gray-50 flex items-center justify-center">
+          {image ? (
+            <img
+              src={image}
+              alt={product.name}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="text-center px-2">
+              <p className="text-primary font-semibold text-sm">{product.name}</p>
+            </div>
+          )}
+        </div>
+      </Link>
 
-      {/* content */}
-      <div className="p-3">
-        {/* category */}
+      <div className="p-3 flex flex-col flex-1">
         <p className="text-xs text-gray-500 mb-1">{category}</p>
 
-        {/* title */}
-        <h3 className="text-sm font-semibold line-clamp-1">
-          {product.name}
-        </h3>
+        <Link href={href}>
+          <h3 className="text-sm font-semibold line-clamp-2 hover:text-primary">
+            {product.name}
+          </h3>
+        </Link>
 
-        {/* price */}
         <p className="mt-2 text-primary font-bold text-base">
           Rs.{price.toFixed(0)}/-
         </p>
 
-        {/* footer */}
-        <div className="mt-3 flex items-center justify-between border-t border-primary/20 pt-2">
+        <div className="mt-auto pt-3 flex items-center justify-between border-t border-primary/20">
           <p className="text-xs text-gray-400">
             By <span className="text-primary">Store</span>
           </p>
 
-          <button className="flex items-center gap-1 text-xs bg-primary text-white px-3 py-1 rounded-full hover:opacity-90">
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="flex items-center gap-1 text-xs bg-primary text-white px-3 py-1 rounded-full hover:opacity-90"
+          >
             <ShoppingCart size={14} />
             Add
           </button>

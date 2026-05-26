@@ -7,7 +7,6 @@ import {
   fetchProducts,
   fetchOffers,
 } from "@/src/lib/storefront-api";
-import type { CartProductInput } from "@/src/types/cart";
 
 interface PageProps {
   searchParams: Promise<{ category?: string; offer_id?: string }>;
@@ -71,10 +70,7 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {filtered.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product as CartProductInput}
-              />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}

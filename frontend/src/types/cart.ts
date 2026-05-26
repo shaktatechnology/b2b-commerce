@@ -9,6 +9,11 @@ export interface CartLineItem {
   seller: string;
 }
 
+export interface CartProductImageInput {
+  url?: string;
+  image_path?: string;
+}
+
 export interface CartProductInput {
   id: string;
   name: string;
@@ -20,5 +25,8 @@ export interface CartProductInput {
     variant_name?: string;
     image_url?: string | null;
   }[];
-  images?: { url: string }[];
+  image?: string;
+  thumbnail?: string;
+  image_url?: string | null;
+  images?: CartProductImageInput[];
 }

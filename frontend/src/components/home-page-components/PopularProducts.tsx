@@ -3,30 +3,15 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronLeft, ShoppingBag } from "lucide-react";
 import ProductCard from "../cards/ProductCard";
+import type { CartProductInput } from "@/src/types/cart";
 
 interface Category {
   id: string;
   name: string;
 }
 
-interface Variant {
-  id: string;
-  retail_price: string;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  categories: Category[];
-  variants: Variant[];
-  image?: string;
-  thumbnail?: string;
-  image_url?: string;
-  images: { url?: string; image_path?: string }[];
-}
-
 interface PopularProductsProps {
-  products: Product[];
+  products: CartProductInput[];
   categories: Category[];
 }
 
@@ -43,7 +28,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   const swiperRef = useRef<any>(null);
 
   const filteredProducts = activeCategory
-    ? products.filter((p) => p.categories.some((c) => c.id === activeCategory))
+    ? products.filter((p) => p.categories?.some((c) => c.id === activeCategory) ?? false)
     : products;
 
   const containerRef = useRef<HTMLDivElement>(null);
