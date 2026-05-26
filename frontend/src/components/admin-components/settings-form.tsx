@@ -19,6 +19,7 @@ import {
   SelectValue 
 } from '@/src/components/ui/select';
 import { getSettings, updateSettings } from '@/src/lib/settings';
+import { fetchCategories } from '@/src/lib/storefront-api';
 import { toast } from 'sonner';
 import { 
   FaFacebookF,
@@ -65,6 +66,7 @@ export function SettingsForm() {
   const [showEsewaSecret, setShowEsewaSecret] = React.useState(false);
   const [showPaypalSecret, setShowPaypalSecret] = React.useState(false);
   const [settings, setSettings] = React.useState<Record<string, string | null>>({});
+  const [categories, setCategories] = React.useState<any[]>([]);
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -86,8 +88,18 @@ export function SettingsForm() {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const data = await fetchCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    }
+  };
+
   React.useEffect(() => {
     fetchSettings();
+    loadCategories();
   }, []);
 
   const handleChange = (key: string, value: string | null) => {
@@ -152,7 +164,7 @@ export function SettingsForm() {
   const generalKeys = [
     'site_name', 'site_tagline', 'site_logo', 'site_favicon',
     'contact_email', 'contact_phone', 'contact_address',
-    'google_analytics', 'meta_description'
+    'google_analytics', 'meta_description', 'showcase_category_id'
   ];
 
   const businessKeys = [
@@ -399,6 +411,39 @@ export function SettingsForm() {
                         rows={2}
                         className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:border-primary/50 text-gray-900 placeholder-gray-400"
                       />
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-gray-100" />
+
+                {/* Dashboard / Home Page Section */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2 uppercase tracking-wider">
+                    <Monitor className="size-4 text-primary" /> Storefront Styling
+                  </h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1.5">
+                      <label style={labelStyle}>Featured Showcase Category</label>
+                      <Select
+                        value={settings.showcase_category_id || ''}
+                        onValueChange={(val) => handleChange('showcase_category_id', val)}
+                      >
+                        <SelectTrigger className="h-10 rounded-lg bg-white border-gray-200 text-sm shadow-none text-gray-900">
+                          <SelectValue placeholder="Display random root category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Auto-select (First available)</SelectItem>
+                          {categories.filter(cat => !cat.parent_id).map((cat) => (
+                            <SelectItem key={cat.id} value={String(cat.id)}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[10px] text-gray-500 font-medium">
+                        Choose which parent category should be spotlighted in the premium Category Showcase section on your home page.
+                      </p>
                     </div>
                   </div>
                 </div>

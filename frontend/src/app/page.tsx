@@ -5,6 +5,7 @@ import DealOfTheDay from "../components/home-page-components/DealOfTheDay";
 import HeroSlider from "../components/home-page-components/HeroSlider";
 import PopularProducts from "../components/home-page-components/PopularProducts";
 import ProductSuggestions from "../components/home-page-components/ProductSuggestions";
+import CategoryShowcase from "../components/home-page-components/CategoryShowcase";
 import Footer from "../components/layouts/Footer";
 import Navbar from "../components/layouts/Navbar";
 
@@ -115,6 +116,33 @@ export default async function Page() {
         offers={rawOffers}
         categories={categoryData?.data || []}
       />
+
+      {/* Category Showcase Section */}
+      {(() => {
+        const rootCategories = (categoryData?.data || []).filter((c: any) => !c.parent_id);
+        const showcaseId = settingsData?.data?.general?.showcase_category_id;
+        
+        // Try to find the category selected by admin, otherwise fallback to first non-empty root
+        let featuredCategory = rootCategories.find((c: any) => String(c.id) === showcaseId);
+        
+        if (!featuredCategory || showcaseId === 'none' || showcaseId === '') {
+          featuredCategory = rootCategories.find((c: any) => 
+            (productData?.data || []).some((p: any) => p.categories?.some((cat: any) => cat.name === c.name))
+          ) || rootCategories[0];
+        }
+        
+        if (featuredCategory) {
+          const subCategories = (categoryData?.data || []).filter((c: any) => c.parent_id === featuredCategory.id);
+          return (
+            <CategoryShowcase 
+              category={featuredCategory}
+              subCategories={subCategories}
+              products={productData.data}
+            />
+          );
+        }
+        return null;
+      })()}
 
       <DealOfTheDay dealProducts={dealOfTheDayProducts} />
 
