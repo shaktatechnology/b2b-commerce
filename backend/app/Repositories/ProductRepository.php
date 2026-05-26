@@ -16,9 +16,17 @@ class ProductRepository implements ProductRepositoryInterface
         $query = Product::with(['categories', 'variants', 'images']);
 
         if (isset($filters['category_slug'])) {
-            $query->whereHas('categories', function ($q) use ($filters) {
-                $q->where('slug', $filters['category_slug']);
-            });
+            $category = \App\Models\Category::where('slug', $filters['category_slug'])->first();
+            if ($category) {
+                // Get the category itself and all its direct children slugs
+                $slugs = [$category->slug];
+                $childSlugs = $category->children()->pluck('slug')->toArray();
+                $allSlugs = array_merge($slugs, $childSlugs);
+                
+                $query->whereHas('categories', function ($q) use ($allSlugs) {
+                    $q->whereIn('slug', $allSlugs);
+                });
+            }
         }
 
         if (isset($filters['search'])) {
