@@ -176,7 +176,7 @@ export default function ProductSuggestions({ products }: { products: Product[] }
           >
             {/* Column header with Underline style */}
             <div className="relative mb-4 sm:mb-6 pb-2">
-              <h3 className="text-[17px] sm:text-[20px] font-medium text-primary">
+              <h3 className="px-3 text-[17px] sm:text-[20px] font-medium text-primary">
                 {tab.label}
               </h3>
               <div className="absolute bottom-0 left-0 w-24 sm:w-32 h-[3px] bg-primary rounded-full"></div>
@@ -184,7 +184,7 @@ export default function ProductSuggestions({ products }: { products: Product[] }
             </div>
 
             {/* Products */}
-            <div className="divide-y divide-gray-50">
+            <div className="px-5 divide-y divide-gray-50">
               {tab.products.slice(0, 4).map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -193,7 +193,7 @@ export default function ProductSuggestions({ products }: { products: Product[] }
             {/* View all */}
             <Link
               href="/products"
-              className="mt-4 flex items-center justify-start gap-1 text-[13px] font-medium text-gray-400 hover:text-primary transition-colors"
+              className="px-3 py-2 mt-4 flex items-center justify-start gap-1 text-[13px] font-medium text-gray-400 hover:text-primary transition-colors"
             >
               View All <ChevronRight className="size-3" />
             </Link>
