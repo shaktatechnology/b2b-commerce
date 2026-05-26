@@ -1,0 +1,127 @@
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { getAuthToken } from "@/src/lib/auth";
+import { useCartStore } from "@/src/store/use-cart-store";
+
+export default function PaymentVerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Verifying your payment...</p>
+          </div>
+        </div>
+      }
+    >
+      <PaymentVerifyContent />
+    </Suspense>
+  );
+}
+
+function PaymentVerifyContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const clearCart = useCartStore((state) => state.clearCart);
+
+  const paymentId = searchParams.get("payment_id");
+  const gateway = searchParams.get("gateway");
+  const status = searchParams.get("status");
+  const orderId = searchParams.get("order_id");
+
+  const [verifying, setVerifying] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    verifyPayment();
+  }, [paymentId, gateway, status]);
+
+  const verifyPayment = async () => {
+    try {
+      if (!paymentId || !gateway || !status) {
+        setError("Invalid payment verification parameters");
+        setVerifying(false);
+        return;
+      }
+
+      const token = getAuthToken();
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      // For eSewa, we need to get all the callback parameters
+      const queryParams = new URLSearchParams(searchParams);
+      const verifyParams: Record<string, string> = {};
+      queryParams.forEach((value, key) => {
+        verifyParams[key] = value;
+      });
+
+      const response = await fetch("/api/payments/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(verifyParams),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Payment verification failed");
+      }
+
+      const data = await response.json();
+      
+      clearCart();
+      toast.success("Payment verified successfully!");
+      
+      // Redirect to order confirmation
+      setTimeout(() => {
+        router.push(`/order-confirmation?order_id=${data.data.order_id}`);
+      }, 1500);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Payment verification failed";
+      setError(message);
+      toast.error(message);
+      setVerifying(false);
+    }
+  };
+
+  if (verifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying your payment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-lg font-semibold mb-2">
+            Payment Verification Failed
+          </div>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <button
+            onClick={() => router.push("/checkout")}
+            className="bg-primary text-white px-6 py-2 rounded hover:opacity-90"
+          >
+            Back to Checkout
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}

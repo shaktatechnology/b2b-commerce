@@ -27,6 +27,7 @@ import {
 import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
+import { RichTextEditor } from '@/src/components/ui/rich-text-editor';
 import { DatePicker } from '@/src/components/ui/date-picker';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import PreviewPage from '@/src/app/preview/page';
@@ -50,6 +51,7 @@ const emptyForm = {
   slug: '',
   description: '',
   long_description: '',
+  additional_info: '',
   is_active: true,
   category_ids: [] as string[],
   brand_id: '',
@@ -193,6 +195,7 @@ export default function AdminProductsPage() {
 
         description: product.description || '',
         long_description: product.long_description || '',
+        additional_info: product.additional_info || '',
         is_active: Boolean(product.is_active),
         category_ids: product.categories?.map(c => c.id.toString()) || [],
         brand_id: product.brand_id || '',
@@ -302,6 +305,49 @@ export default function AdminProductsPage() {
       return;
     }
 
+    // Validate prices and discounts for all variants
+    for (let i = 0; i < formData.variants.length; i++) {
+      const v = formData.variants[i];
+      
+      // Check prices are greater than 0
+      if (v.retail_price <= 0) {
+        toast.error(`Variant ${i + 1}: Retail price must be greater than 0.`);
+        return;
+      }
+      if (v.wholesale_price <= 0) {
+        toast.error(`Variant ${i + 1}: Wholesale price must be greater than 0.`);
+        return;
+      }
+      
+      // Validate variant discount if it exists and is complete
+      if (v.discount && v.discount.type && v.discount.value !== '' && v.discount.starts_at && v.discount.ends_at) {
+        const discountValue = Number(v.discount.value);
+        const retailPrice = Number(v.retail_price);
+        
+        if (v.discount.type === 'percent') {
+          if (discountValue < 0 || discountValue > 100) {
+            toast.error(`Variant ${i + 1}: Discount percentage must be between 0 and 100.`);
+            return;
+          }
+        } else if (v.discount.type === 'fixed') {
+          if (discountValue >= retailPrice) {
+            toast.error(`Variant ${i + 1}: Fixed discount amount ($${discountValue}) cannot be greater than or equal to retail price ($${retailPrice}).`);
+            return;
+          }
+        }
+      }
+    }
+
+    // Validate parent product discount if it exists
+    if (formData.discount && formData.discount.type && formData.discount.value !== '') {
+      if (formData.discount.type === 'percent') {
+        if (formData.discount.value < 0 || formData.discount.value > 100) {
+          toast.error('Product discount percentage must be between 0 and 100.');
+          return;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const freshToken = getAuthToken();
@@ -310,6 +356,7 @@ export default function AdminProductsPage() {
       body.append('slug', formData.slug);
       body.append('description', formData.description);
       body.append('long_description', formData.long_description);
+      body.append('additional_info', formData.additional_info);
       body.append('is_active', formData.is_active ? '1' : '0');
       body.append('is_popular', formData.is_popular ? '1' : '0');
       body.append('is_top_selling', formData.is_top_selling ? '1' : '0');
@@ -933,21 +980,37 @@ export default function AdminProductsPage() {
 
                 <div className="space-y-6">
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Short Description</label>
+                      <div className="flex justify-between items-center">
+                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Short Description</label>
+                         <span className={cn(
+                           "text-[10px] font-bold uppercase",
+                           (formData.description || '').length >= 263 ? "text-red-500" : "text-zinc-400"
+                         )}>
+                           {(formData.description || '').length}/263
+                         </span>
+                      </div>
                       <textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        value={formData.description || ''}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, 263) })}
+                        maxLength={263}
                         placeholder="Detail the product's features, specs, and selling points..."
-                        className="w-full min-h-[148px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30"
+                        className="w-full min-h-[120px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30 font-bold"
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Long Description</label>
-                      <textarea
-                        value={formData.long_description}
-                        onChange={(e) => setFormData({ ...formData, long_description: e.target.value })}
+                      <RichTextEditor
+                        label="Long Description"
+                        value={formData.long_description || ''}
+                        onChange={(val) => setFormData({ ...formData, long_description: val })}
                         placeholder="Comprehensive details for the product page..."
-                        className="w-full min-h-[200px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30"
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <RichTextEditor
+                        label="Additional Info"
+                        value={formData.additional_info || ''}
+                        onChange={(val) => setFormData({ ...formData, additional_info: val })}
+                        placeholder="Extra details like specifications, care instructions, warranty info, etc..."
                       />
                    </div>
 
@@ -955,11 +1018,16 @@ export default function AdminProductsPage() {
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Discount (Applies to all variants)</label>
                         <label className="flex items-center gap-2 cursor-pointer">
-                          <input type="checkbox" checked={formData.discount !== null} onChange={(e) => {
+                          <input type="checkbox" checked={!!formData.discount} onChange={(e) => {
                              if (e.target.checked) {
                                setFormData({ ...formData, discount: { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true } });
                              } else {
-                               setFormData({ ...formData, discount: null });
+                               // When disabling parent discount, also clear all variant discounts
+                               setFormData({ 
+                                 ...formData, 
+                                 discount: null,
+                                 variants: formData.variants.map(v => ({ ...v, discount: null }))
+                               });
                              }
                           }} className="accent-[#966FD6] h-4 w-4" />
                           <span className="text-[10px] font-black uppercase text-[#966FD6]">Enable Parent Discount</span>
@@ -984,15 +1052,23 @@ export default function AdminProductsPage() {
                            </div>
                            <div className="space-y-1">
                               <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
-                              <Input type="number" value={formData.discount.value} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                              <Input type="number" min="0" value={formData.discount.value} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
                            </div>
                            <div className="space-y-1">
                               <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
-                              <Input type="date" value={formData.discount.starts_at} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: e.target.value } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                              <DatePicker 
+                                date={formData.discount.starts_at ? new Date(formData.discount.starts_at) : undefined}
+                                setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' } })}
+                                placeholder="Start Date"
+                              />
                            </div>
                            <div className="space-y-1">
                               <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
-                              <Input type="date" value={formData.discount.ends_at} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: e.target.value } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                              <DatePicker 
+                                date={formData.discount.ends_at ? new Date(formData.discount.ends_at) : undefined}
+                                setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' } })}
+                                placeholder="End Date"
+                              />
                            </div>
                            <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
                               <label className="flex items-center gap-2 cursor-pointer">
@@ -1030,11 +1106,11 @@ export default function AdminProductsPage() {
                                 </div>
                                 <div className="space-y-1">
                                    <span className="text-[10px] font-black uppercase text-zinc-400">Retail Price <span className="text-red-500">*</span></span>
-                                   <Input type="number" step="0.01" value={v.retail_price} onChange={(e) => updateVariant(i, 'retail_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                                   <Input type="number" step="0.01" min="0.01" value={v.retail_price} onChange={(e) => updateVariant(i, 'retail_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
                                    <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price <span className="text-red-500">*</span></span>
-                                   <Input type="number" step="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                                   <Input type="number" step="0.01" min="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                                 </div>
                                 <div className="space-y-1">
                                    <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock <span className="text-red-500">*</span></span>
@@ -1153,7 +1229,7 @@ export default function AdminProductsPage() {
                                     <div className="flex items-center justify-between">
                                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Variant Discount (Overrides parent discount)</label>
                                       <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={v.discount !== null && v.discount !== undefined} onChange={(e) => {
+                                        <input type="checkbox" checked={!!v.discount} onChange={(e) => {
                                            if (e.target.checked) {
                                               updateVariant(i, 'discount', { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true });
                                            } else {
@@ -1182,15 +1258,23 @@ export default function AdminProductsPage() {
                                          </div>
                                          <div className="space-y-1">
                                             <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
-                                            <Input type="number" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                            <Input type="number" min="0" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
                                          </div>
                                          <div className="space-y-1">
                                             <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
-                                            <Input type="date" value={v.discount.starts_at} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, starts_at: e.target.value })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                            <DatePicker 
+                                              date={v.discount.starts_at ? new Date(v.discount.starts_at) : undefined}
+                                              setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' })}
+                                              placeholder="Start Date"
+                                            />
                                          </div>
                                          <div className="space-y-1">
                                             <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
-                                            <Input type="date" value={v.discount.ends_at} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, ends_at: e.target.value })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                            <DatePicker 
+                                              date={v.discount.ends_at ? new Date(v.discount.ends_at) : undefined}
+                                              setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' })}
+                                              placeholder="End Date"
+                                            />
                                          </div>
                                          <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
                                             <label className="flex items-center gap-2 cursor-pointer">

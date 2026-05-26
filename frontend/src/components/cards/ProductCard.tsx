@@ -67,13 +67,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         <div className="mt-auto pt-3 flex items-center justify-between border-t border-primary/20">
           <p className="text-xs text-gray-400">
-            By <span className="text-primary">Store</span>
+            By <span className="text-primary">{product.brand?.name || "Store"}</span>
           </p>
 
           <button
             type="button"
             onClick={handleAdd}
-            className="flex items-center gap-1 text-xs bg-primary text-white px-3 py-1 rounded-full hover:opacity-90"
+            className="flex items-center gap-1 text-xs bg-primary text-white px-3 py-1 rounded-full hover:opacity-90 cursor-pointer"
           >
             <ShoppingCart size={14} />
             Add

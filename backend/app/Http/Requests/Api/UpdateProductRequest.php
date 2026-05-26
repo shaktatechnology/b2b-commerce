@@ -29,6 +29,7 @@ class UpdateProductRequest extends FormRequest
             'size_id' => 'nullable|uuid|exists:sizes,id',
             'weight' => 'nullable|string|max:255',
             'long_description' => 'nullable|string',
+            'additional_info' => 'nullable|string',
             
             // Categories pivot
             'category_ids' => 'sometimes|required|array|min:1',

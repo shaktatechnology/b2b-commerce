@@ -19,6 +19,7 @@ import {
   TableRow,
 } from '@/src/components/ui/table';
 import { cn } from '@/src/lib/utils';
+import { RichTextEditor } from '@/src/components/ui/rich-text-editor';
 
 type Tab = 'brands' | 'colors' | 'sizes';
 
@@ -32,8 +33,8 @@ interface AttributeItem {
 
 const TABS: { key: Tab; label: string; icon: React.ElementType; accent: string; bg: string }[] = [
   { key: 'brands', label: 'Brands',  icon: Tag,     accent: '#966FD6', bg: '#966FD6/10' },
-  { key: 'colors', label: 'Colors',  icon: Palette,  accent: '#E97B6A', bg: '#E97B6A/10' },
-  { key: 'sizes',  label: 'Sizes',   icon: Ruler,    accent: '#4AABAB', bg: '#4AABAB/10' },
+  { key: 'colors', label: 'Colors',  icon: Palette,  accent: '#966FD6', bg: '#966FD6/10' },
+  { key: 'sizes',  label: 'Sizes',   icon: Ruler,    accent: '#966FD6', bg: '#966FD6/10' },
 ];
 
 export default function AttributesPage() {
@@ -269,16 +270,11 @@ export default function AttributesPage() {
               {/* Brands: long description field */}
               {activeTab === 'brands' && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                    Long Description
-                  </label>
-                  <textarea
+                  <RichTextEditor
+                    label="Long Description"
                     value={longDescription}
-                    onChange={e => setLongDescription(e.target.value)}
+                    onChange={setLongDescription}
                     placeholder="Describe the brand story, catalog, or warranty details..."
-                    rows={4}
-                    className="w-full rounded-xl border border-zinc-200 p-3 text-sm font-bold focus:outline-none focus:ring-2"
-                    style={{ '--tw-ring-color': activeConfig.accent } as any}
                   />
                 </div>
               )}

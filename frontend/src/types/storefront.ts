@@ -43,6 +43,7 @@ export interface StorefrontProduct {
   weight?: string | null;
   discounts?: Discount[];
   long_description?: string | null;
+  additional_info?: string | null;
   brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
 }
 

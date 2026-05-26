@@ -10,6 +10,7 @@ import { formatRs } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
 import type { CartProductInput } from "@/src/types/cart";
 import RecommendedProductCard from "./RecommendedProductCard";
+import { ConfirmDialog } from "@/src/components/modals/confirm-dialog";
 
 interface CartPageClientProps {
   recommendedProducts: CartProductInput[];
@@ -31,6 +32,9 @@ export default function CartPageClient({
 
   const [coupon, setCoupon] = useState("");
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
 
   const subtotalAmount = subtotal();
   const totalAmount = subtotalAmount + SHIPPING_ESTIMATE;
@@ -59,6 +63,19 @@ export default function CartPageClient({
       return;
     }
     router.push("/checkout");
+  };
+
+  const handleRemoveClick = (variantId: string) => {
+    setVariantToRemove(variantId);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmRemove = () => {
+    if (variantToRemove) {
+      removeItem(variantToRemove);
+    }
+    setConfirmOpen(false);
+    setVariantToRemove(null);
   };
 
   return (
@@ -144,8 +161,8 @@ export default function CartPageClient({
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeItem(item.variantId)}
-                    className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded transition-colors"
+                    onClick={() => handleRemoveClick(item.variantId)}
+                    className="flex items-center gap-1 text-xs text-gray-600 bg-gray-100 hover:bg-red-500 px-3 py-1.5 rounded transition-colors cursor-pointer"
                   >
                     <Trash2 size={14} />
                     Remove
@@ -199,9 +216,9 @@ export default function CartPageClient({
             type="button"
             onClick={handleCheckout}
             disabled={items.length === 0}
-            className="w-full mt-5 bg-primary text-white font-medium py-3 rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mt-5 bg-primary cursor-pointer text-white font-medium py-3 rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Process to Checkout
+            Proceed to Checkout
           </button>
         </aside>
       </div>
@@ -234,6 +251,17 @@ export default function CartPageClient({
           </div>
         </section>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmRemove}
+        title="Remove item"
+        description="Are you sure you want to remove this item from the cart?"
+        confirmLabel="Remove"
+        overlayClassName="bg-black/50 backdrop-blur-none"
+        // variant="destructive"
+      />
     </div>
   );
 }

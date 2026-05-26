@@ -27,6 +27,7 @@ class CreateProductRequest extends FormRequest
             'size_id' => 'nullable|uuid|exists:sizes,id',
             'weight' => 'nullable|string|max:255',
             'long_description' => 'nullable|string',
+            'additional_info' => 'nullable|string',
             
             // Categories pivot
             'category_ids' => 'required|array|min:1',

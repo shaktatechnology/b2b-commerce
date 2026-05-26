@@ -25,6 +25,8 @@ class Product extends Model
         'color_id',
         'size_id',
         'weight',
+        'long_description',
+        'additional_info',
     ];
 
     protected $casts = [

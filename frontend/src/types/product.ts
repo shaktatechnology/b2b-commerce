@@ -32,6 +32,7 @@ export interface Product {
   slug: string;
   description?: string;
   long_description?: string;
+  additional_info?: string;
   is_active: boolean;
   is_popular?: boolean;
   is_top_selling?: boolean;
@@ -57,6 +58,7 @@ export interface ProductFormData {
   slug: string;
   description: string;
   long_description: string;
+  additional_info: string;
   is_active: boolean;
   is_popular?: boolean;
   is_top_selling?: boolean;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -48,6 +48,29 @@ export default function CheckoutPageClient({
     country: "Nepal",
     notes: "",
   });
+
+  const [isEditingAddress, setIsEditingAddress] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Clear any pending payment configs from previous sessions
+    sessionStorage.removeItem("pending_payment_config");
+    
+    const savedAddress = localStorage.getItem("b2b_shipping_address");
+    if (savedAddress) {
+      try {
+        const parsed = JSON.parse(savedAddress);
+        setForm((prev) => ({ ...prev, ...parsed }));
+        // If there's a saved address, default to not showing the edit form
+        setIsEditingAddress(false);
+      } catch (e) {
+        console.error("Failed to parse saved address");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("b2b_shipping_address", JSON.stringify(form));
+  }, [form]);
 
   const total = subtotal();
 
@@ -121,16 +144,15 @@ export default function CheckoutPageClient({
           amount: payment.amount,
         });
         setStep("redirecting");
-        clearCart();
         return;
       }
 
       if (selectedGateway === "paypal" && payment.paypal) {
-        clearCart();
-        toast.info(
-          `PayPal (${payment.paypal.mode}) is configured. Complete payment for order ${payment.order_number} using PayPal client ID on file.`
+        // Stash the full config so the /payment page can render PayPal without a second API call
+        sessionStorage.setItem("pending_payment_config", JSON.stringify(payment));
+        router.push(
+          `/payment?order_id=${orderId}&payment_id=${payment.payment_id}&gateway=paypal`
         );
-        router.push("/");
         return;
       }
 
@@ -194,28 +216,61 @@ export default function CheckoutPageClient({
           {step === "shipping" ? (
             <>
               <h2 className="font-medium text-gray-900">Shipping address</h2>
-              {(
-                [
-                  ["street", "Street address"],
-                  ["city", "City"],
-                  ["state", "State / Province"],
-                  ["zip", "ZIP / Postal code"],
-                  ["country", "Country"],
-                ] as const
-              ).map(([key, label]) => (
-                <div key={key}>
-                  <label className="text-sm text-gray-600 block mb-1">
-                    {label}
-                  </label>
-                  <input
-                    type="text"
-                    value={form[key]}
-                    onChange={(e) => handleChange(key, e.target.value)}
-                    required
-                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-primary"
-                  />
+              {!isEditingAddress ? (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="text-sm text-gray-700">
+                    <div className="font-medium">{form.street}</div>
+                    <div>
+                      {form.city}, {form.state} {form.zip}
+                    </div>
+                    <div className="text-xs text-gray-500">{form.country}</div>
+                    {form.notes ? (
+                      <div className="mt-2 text-sm text-gray-600">Notes: {form.notes}</div>
+                    ) : null}
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingAddress(true)}
+                      className="px-3 py-1 bg-white border rounded text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.removeItem("b2b_shipping_address");
+                        setForm({ street: "", city: "", state: "", zip: "", country: "Nepal", notes: "" });
+                        setIsEditingAddress(true);
+                      }}
+                      className="px-3 py-1 bg-white border rounded text-sm text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                (
+                  [
+                    ["street", "Street address"],
+                    ["city", "City"],
+                    ["state", "State / Province"],
+                    ["zip", "ZIP / Postal code"],
+                    ["country", "Country"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <div key={key}>
+                    <label className="text-sm text-gray-600 block mb-1">{label}</label>
+                    <input
+                      type="text"
+                      value={form[key]}
+                      onChange={(e) => handleChange(key, e.target.value)}
+                      required
+                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-primary"
+                    />
+                  </div>
+                ))
+              )}
               <div>
                 <label className="text-sm text-gray-600 block mb-1">
                   Order notes (optional)
@@ -319,11 +374,11 @@ export default function CheckoutPageClient({
             </span>
           </div>
           <Link
-            href="/cart"
-            className="block text-center text-sm text-gray-500 mt-4 hover:text-primary"
-          >
-            Back to cart
-          </Link>
+          href="/cart"
+          className="inline-flex items-center justify-center mt-4 px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-primary transition-colors"
+        >
+          Back to cart
+        </Link>
         </div>
       </div>
     </div>

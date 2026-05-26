@@ -29,4 +29,5 @@ export interface CartProductInput {
   thumbnail?: string;
   image_url?: string | null;
   images?: CartProductImageInput[];
+  brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
 }

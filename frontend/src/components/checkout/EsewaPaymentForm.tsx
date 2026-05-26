@@ -16,7 +16,11 @@ export default function EsewaPaymentForm({
 }: EsewaPaymentFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
-  const formattedAmount = amount.toFixed(2);
+  // Ensure `amount` is a number before calling `toFixed` (sometimes it's returned as a string)
+  const amountNumber = Number(amount);
+  const formattedAmount = Number.isFinite(amountNumber)
+    ? amountNumber.toFixed(2)
+    : "0.00";
 
   useEffect(() => {
     formRef.current?.submit();

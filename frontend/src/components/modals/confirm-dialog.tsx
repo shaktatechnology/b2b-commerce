@@ -22,6 +22,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   variant?: 'destructive' | 'default';
   isLoading?: boolean;
+  overlayClassName?: string;
 }
 
 export function ConfirmDialog({
@@ -34,10 +35,11 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   variant = 'destructive',
   isLoading = false,
+  overlayClassName,
 }: ConfirmDialogProps) {
   return (
     <Modal open={isOpen} onOpenChange={onClose}>
-      <ModalContent className="max-w-md">
+      <ModalContent className="max-w-md bg-white" overlayClassName={overlayClassName}>
         <ModalHeader className="flex flex-col items-center sm:items-start text-center sm:text-left pt-4">
           <div className={`h-12 w-12 rounded-full mb-4 flex items-center justify-center ${variant === 'destructive' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
             {variant === 'destructive' ? <Trash2 className="size-6" /> : <AlertCircle className="size-6" />}

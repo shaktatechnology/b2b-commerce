@@ -92,8 +92,8 @@ class PaymentService implements PaymentServiceInterface
                 'signature' => $signature,
                 'mode' => $mode,
                 'action_url' => $actionUrl,
-                'success_url' => url("/api/payments/verify?gateway=esewa&status=completed&payment_id={$payment->id}"),
-                'failure_url' => url("/api/payments/verify?gateway=esewa&status=failed&payment_id={$payment->id}"),
+                'success_url' => url("/payment-verify?gateway=esewa&status=completed&payment_id={$payment->id}&order_id={$order->id}"),
+                'failure_url' => url("/payment-verify?gateway=esewa&status=failed&payment_id={$payment->id}&order_id={$order->id}"),
             ];
         } elseif ($gateway === 'paypal') {
             $clientId = Setting::get('paypal_client_id', '');

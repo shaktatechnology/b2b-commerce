@@ -106,12 +106,12 @@ export function OrdersPageClient({ initialOrders }: Props) {
         title="Order Management"
         description="Monitor, track, and manage customer shipments and payments."
       >
-        <Button
+        {/* <Button
           onClick={() => setModalOpen(true)}
           className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white rounded-xl h-11 px-6 shadow-lg shadow-[#966FD6]/20 transition-all active:scale-95"
         >
           <Plus className="mr-2 h-4 w-4" /> Create Order
-        </Button>
+        </Button> */}
       </PageHeader>
 
 

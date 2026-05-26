@@ -222,7 +222,7 @@ export default function Navbar({
               {categories.map((cat) => (
                 <a
                   key={cat.id}
-                  href={`/category/${cat.slug}`}
+                  href={`/products?category=${cat.slug}`}
                   className="whitespace-nowrap hover:text-primary transition-colors"
                 >
                   {cat.name}

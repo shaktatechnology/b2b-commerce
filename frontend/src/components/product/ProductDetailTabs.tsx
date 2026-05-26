@@ -46,7 +46,7 @@ export default function ProductDetailTabs({
             key={tab.id}
             type="button"
             onClick={() => setActive(tab.id)}
-            className={`pb-3 text-sm font-medium transition-colors ${
+            className={`pb-3 text-sm font-medium cursor-pointer transition-colors ${
               active === tab.id
                 ? "text-primary border-b-2 border-primary -mb-px"
                 : "text-gray-500 hover:text-primary"
@@ -60,10 +60,10 @@ export default function ProductDetailTabs({
       <div className="py-6 text-sm text-gray-700 leading-relaxed space-y-4">
         {active === "description" && (
           <>
-            {(product.long_description || product.description) ? (
+            {product.long_description ? (
               <div
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: product.long_description || product.description || "" }}
+                dangerouslySetInnerHTML={{ __html: product.long_description }}
               />
             ) : (
               <p>No description available for this product.</p>
@@ -82,19 +82,33 @@ export default function ProductDetailTabs({
         )}
 
         {active === "additional" && (
-          <ul className="space-y-2">
-            {variants.map((v) => (
-              <li
-                key={v.id}
-                className="flex justify-between max-w-md border-b border-gray-100 py-2 gap-4"
-              >
-                <span>{v.variant_name}</span>
-                <span className="text-right text-gray-500">
-                  Weight: {v.weight ?? "—"} | Stock: {v.stock ?? "—"}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-6">
+            {product.additional_info ? (
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: product.additional_info }}
+              />
+            ) : (
+              <p className="text-gray-500">No additional information available for this product.</p>
+            )}
+            
+            <div className="pt-4 border-t border-gray-100">
+              <h4 className="font-bold text-gray-800 mb-2">Variant Details</h4>
+              <ul className="space-y-2">
+                {variants.map((v) => (
+                  <li
+                    key={v.id}
+                    className="flex justify-between max-w-md border-b border-gray-100 py-2 gap-4"
+                  >
+                    <span>{v.variant_name}</span>
+                    <span className="text-right text-gray-500">
+                      Weight: {v.weight ?? "—"} | Stock: {v.stock ?? "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         )}
 
         {active === "brand" && (
