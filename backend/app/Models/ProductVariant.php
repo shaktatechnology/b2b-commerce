@@ -23,6 +23,8 @@ class ProductVariant extends Model
         'weight',
         'is_active',
         'image_url',
+        'color_id',
+        'size_id',
     ];
 
     protected $casts = [
@@ -30,7 +32,6 @@ class ProductVariant extends Model
         'wholesale_price' => 'decimal:2',
         'moq' => 'integer',
         'stock' => 'integer',
-        'weight' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
@@ -48,5 +49,21 @@ class ProductVariant extends Model
     public function discounts(): HasMany
     {
         return $this->hasMany(Discount::class, 'variant_id');
+    }
+
+    /**
+     * Get color of this variant.
+     */
+    public function color(): BelongsTo
+    {
+        return $this->belongsTo(Color::class);
+    }
+
+    /**
+     * Get size of this variant.
+     */
+    public function size(): BelongsTo
+    {
+        return $this->belongsTo(Size::class);
     }
 }

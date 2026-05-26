@@ -9,12 +9,12 @@ class CategoryRepository implements CategoryRepositoryInterface
 {
     public function all()
     {
-        return Category::with('parent')->get();
+        return Category::with('parent')->withCount('products')->get();
     }
 
     public function getActive()
     {
-        return Category::with('parent')->get();
+        return Category::with('parent')->withCount('products')->get();
     }
 
     public function findBySlug(string $slug)

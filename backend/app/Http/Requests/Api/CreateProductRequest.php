@@ -19,10 +19,26 @@ class CreateProductRequest extends FormRequest
             'slug' => 'nullable|string|max:255|unique:products,slug',
             'description' => 'nullable|string',
             'is_active' => 'nullable|boolean',
+            'is_popular' => 'nullable|boolean',
+            'is_top_selling' => 'nullable|boolean',
+            'is_trending' => 'nullable|boolean',
+            'brand_id' => 'nullable|uuid|exists:brands,id',
+            'color_id' => 'nullable|uuid|exists:colors,id',
+            'size_id' => 'nullable|uuid|exists:sizes,id',
+            'weight' => 'nullable|string|max:255',
+            'long_description' => 'nullable|string',
             
             // Categories pivot
             'category_ids' => 'required|array|min:1',
             'category_ids.*' => 'required|uuid|exists:categories,id',
+
+            // Discounts
+            'discount' => 'nullable|array',
+            'discount.type' => 'required_with:discount|in:percent,fixed',
+            'discount.value' => 'required_with:discount|numeric|min:0',
+            'discount.starts_at' => 'required_with:discount|date',
+            'discount.ends_at' => 'required_with:discount|date|after:discount.starts_at',
+            'discount.is_active' => 'nullable|boolean',
 
             // Variants (At least one required)
             'variants' => 'required|array|min:1',
@@ -32,10 +48,18 @@ class CreateProductRequest extends FormRequest
             'variants.*.wholesale_price' => 'required|numeric|min:0',
             'variants.*.moq' => 'nullable|integer|min:1',
             'variants.*.stock' => 'nullable|integer|min:0',
-            'variants.*.weight' => 'nullable|numeric|min:0',
+            'variants.*.weight' => 'nullable|string|max:50',
             'variants.*.is_active' => 'nullable|boolean',
             'variants.*.image' => 'nullable|file|image|max:5120',
             'variants.*.image_url' => 'nullable|string|max:2083',
+            'variants.*.color_id' => 'nullable|uuid|exists:colors,id',
+            'variants.*.size_id' => 'nullable|uuid|exists:sizes,id',
+            'variants.*.discount' => 'nullable|array',
+            'variants.*.discount.type' => 'required_with:variants.*.discount|in:percent,fixed',
+            'variants.*.discount.value' => 'required_with:variants.*.discount|numeric|min:0',
+            'variants.*.discount.starts_at' => 'required_with:variants.*.discount|date',
+            'variants.*.discount.ends_at' => 'required_with:variants.*.discount|date|after:variants.*.discount.starts_at',
+            'variants.*.discount.is_active' => 'nullable|boolean',
         ];
     }
 }

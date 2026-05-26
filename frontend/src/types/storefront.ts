@@ -1,3 +1,5 @@
+import type { Discount } from './product';
+
 export interface StorefrontCategory {
   id: string;
   name: string;
@@ -15,6 +17,9 @@ export interface StorefrontProductVariant {
   weight?: string | number;
   image_url?: string | null;
   is_active?: boolean;
+  color?: { id: string; name: string } | null;
+  size?: { id: string; name: string } | null;
+  discounts?: Discount[];
 }
 
 export interface StorefrontProductImage {
@@ -33,6 +38,12 @@ export interface StorefrontProduct {
   images?: StorefrontProductImage[];
   variants?: StorefrontProductVariant[];
   image_url?: string | null;
+  color?: { id: string; name: string } | null;
+  size?: { id: string; name: string } | null;
+  weight?: string | null;
+  discounts?: Discount[];
+  long_description?: string | null;
+  brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
 }
 
 export interface StorefrontSettings {

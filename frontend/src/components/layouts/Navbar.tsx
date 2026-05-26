@@ -41,6 +41,11 @@ export default function Navbar({
 }: NavbarProps) {
   const cartCount = useCartStore((s) => s.itemCount());
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const categoryRef = useRef<HTMLDivElement>(null);
 
@@ -181,7 +186,7 @@ export default function Navbar({
             >
               <ShoppingCart size={24} />
 
-              {cartCount > 0 && (
+              {isMounted && cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-0.5">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
@@ -252,7 +257,7 @@ export default function Navbar({
             <Link href="/cart" className="relative" aria-label="View cart">
               <ShoppingCart size={22} className="text-gray-700" />
 
-              {cartCount > 0 && (
+              {isMounted && cartCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-0.5">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>

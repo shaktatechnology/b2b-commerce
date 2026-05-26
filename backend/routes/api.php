@@ -13,6 +13,9 @@ use App\Http\Controllers\Api\Cart\CartController;
 use App\Http\Controllers\Api\Order\OrderController;
 use App\Http\Controllers\Api\Payment\PaymentController;
 use App\Http\Controllers\Api\Review\ReviewController;
+use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\ColorController;
+use App\Http\Controllers\Api\SizeController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -34,6 +37,11 @@ Route::get('/social-links',         [SocialLinkController::class, 'index']);
 // Categories
 Route::get('/categories',           [CategoryController::class, 'index']);
 Route::get('/categories/{slug}',     [CategoryController::class, 'show']);
+
+// Master Attributes
+Route::get('/brands',               [BrandController::class, 'index']);
+Route::get('/colors',               [ColorController::class, 'index']);
+Route::get('/sizes',                [SizeController::class, 'index']);
 
 // Products
 Route::get('/products',             [ProductController::class, 'index']);
@@ -99,6 +107,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/categories/{id}',        [CategoryController::class, 'update']);
         Route::post('/categories/{id}',       [CategoryController::class, 'update']); // POST fallback for form-data image uploads
         Route::delete('/categories/{id}',     [CategoryController::class, 'destroy']);
+
+        // Master Attributes
+        Route::post('/brands',                [BrandController::class, 'store']);
+        Route::put('/brands/{brand}',         [BrandController::class, 'update']);
+        Route::delete('/brands/{brand}',      [BrandController::class, 'destroy']);
+        
+        Route::post('/colors',                [ColorController::class, 'store']);
+        Route::put('/colors/{color}',         [ColorController::class, 'update']);
+        Route::delete('/colors/{color}',      [ColorController::class, 'destroy']);
+        
+        Route::post('/sizes',                 [SizeController::class, 'store']);
+        Route::put('/sizes/{size}',           [SizeController::class, 'update']);
+        Route::delete('/sizes/{size}',        [SizeController::class, 'destroy']);
 
         // Products & Variants
         Route::post('/products',              [ProductController::class, 'store']);

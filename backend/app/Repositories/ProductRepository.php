@@ -13,7 +13,7 @@ class ProductRepository implements ProductRepositoryInterface
 {
     public function all(array $filters = [])
     {
-        $query = Product::with(['categories', 'variants', 'images']);
+        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
 
         if (isset($filters['category_slug'])) {
             $query->whereHas('categories', function ($q) use ($filters) {
@@ -48,7 +48,7 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function resolve(string $identifier, array $filters = [])
     {
-        $query = Product::with(['categories', 'variants', 'images']);
+        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
 
         if (isset($filters['active'])) {
             $query->where(
@@ -85,11 +85,30 @@ class ProductRepository implements ProductRepositoryInterface
                 'slug' => $data['slug'] ?? Str::slug($data['name']),
                 'description' => $data['description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
+                'is_popular' => $data['is_popular'] ?? false,
+                'is_top_selling' => $data['is_top_selling'] ?? false,
+                'is_trending' => $data['is_trending'] ?? false,
+                'brand_id' => $data['brand_id'] ?? null,
+                'color_id' => $data['color_id'] ?? null,
+                'size_id' => $data['size_id'] ?? null,
+                'weight' => $data['weight'] ?? null,
+                'long_description' => $data['long_description'] ?? null,
             ]);
 
             // Sync categories (Many-to-Many)
             if (isset($data['category_ids'])) {
                 $product->categories()->sync($data['category_ids']);
+            }
+
+            // Create product discount
+            if (isset($data['discount']) && is_array($data['discount']) && isset($data['discount']['type'])) {
+                $product->discounts()->create([
+                    'type' => $data['discount']['type'],
+                    'value' => $data['discount']['value'],
+                    'starts_at' => $data['discount']['starts_at'],
+                    'ends_at' => $data['discount']['ends_at'],
+                    'is_active' => filter_var($data['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                ]);
             }
 
             // Create variants
@@ -101,21 +120,34 @@ class ProductRepository implements ProductRepositoryInterface
                         $variantImageUrl = \Illuminate\Support\Facades\Storage::url($path);
                     }
 
-                    $product->variants()->create([
+                    $newVariant = $product->variants()->create([
                         'variant_name' => $variant['variant_name'],
                         'sku' => $variant['sku'],
                         'retail_price' => $variant['retail_price'],
                         'wholesale_price' => $variant['wholesale_price'],
                         'moq' => $variant['moq'] ?? 1,
                         'stock' => $variant['stock'] ?? 0,
-                        'weight' => $variant['weight'] ?? null,
+                        'weight' => $variant['weight'] ?? $data['weight'] ?? null,
+                        'color_id' => $variant['color_id'] ?? $data['color_id'] ?? null,
+                        'size_id' => $variant['size_id'] ?? $data['size_id'] ?? null,
                         'is_active' => $variant['is_active'] ?? true,
                         'image_url' => $variantImageUrl,
                     ]);
+
+                    if (isset($variant['discount']) && is_array($variant['discount']) && isset($variant['discount']['type'])) {
+                        $newVariant->discounts()->create([
+                            'product_id' => $product->id,
+                            'type' => $variant['discount']['type'],
+                            'value' => $variant['discount']['value'],
+                            'starts_at' => $variant['discount']['starts_at'],
+                            'ends_at' => $variant['discount']['ends_at'],
+                            'is_active' => filter_var($variant['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                        ]);
+                    }
                 }
             }
 
-            return $product->load(['categories', 'variants', 'images']);
+            return $product->load(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
         });
     }
 
@@ -129,10 +161,32 @@ class ProductRepository implements ProductRepositoryInterface
                 'slug' => $data['slug'] ?? ($data['name'] ? Str::slug($data['name']) : $product->slug),
                 'description' => $data['description'] ?? $product->description,
                 'is_active' => $data['is_active'] ?? $product->is_active,
+                'is_popular' => $data['is_popular'] ?? $product->is_popular,
+                'is_top_selling' => $data['is_top_selling'] ?? $product->is_top_selling,
+                'is_trending' => $data['is_trending'] ?? $product->is_trending,
+                'brand_id' => array_key_exists('brand_id', $data) ? $data['brand_id'] : $product->brand_id,
+                'color_id' => array_key_exists('color_id', $data) ? $data['color_id'] : $product->color_id,
+                'size_id' => array_key_exists('size_id', $data) ? $data['size_id'] : $product->size_id,
+                'weight' => array_key_exists('weight', $data) ? $data['weight'] : $product->weight,
+                'long_description' => array_key_exists('long_description', $data) ? $data['long_description'] : $product->long_description,
             ]);
 
             if (isset($data['category_ids'])) {
                 $product->categories()->sync($data['category_ids']);
+            }
+
+            // Update product discount
+            if (array_key_exists('discount', $data)) {
+                $product->discounts()->whereNull('variant_id')->delete();
+                if (is_array($data['discount']) && isset($data['discount']['type'])) {
+                    $product->discounts()->create([
+                        'type' => $data['discount']['type'],
+                        'value' => $data['discount']['value'],
+                        'starts_at' => $data['discount']['starts_at'],
+                        'ends_at' => $data['discount']['ends_at'],
+                        'is_active' => filter_var($data['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                    ]);
+                }
             }
 
             // Sync variants (create new ones, update existing, or delete omitted)
@@ -146,6 +200,7 @@ class ProductRepository implements ProductRepositoryInterface
                         $variantImageUrl = \Illuminate\Support\Facades\Storage::url($path);
                     }
 
+                    $variantModel = null;
                     if (isset($variantData['id'])) {
                         // Update existing variant
                         $variant = ProductVariant::where('product_id', $product->id)->findOrFail($variantData['id']);
@@ -160,6 +215,7 @@ class ProductRepository implements ProductRepositoryInterface
                             'image_url' => $variantImageUrl ?? $variant->image_url,
                         ]));
                         $incomingVariantIds[] = $variant->id;
+                        $variantModel = $variant;
                     } else {
                         // Create new variant
                         $newVariant = $product->variants()->create([
@@ -169,11 +225,28 @@ class ProductRepository implements ProductRepositoryInterface
                             'wholesale_price' => $variantData['wholesale_price'],
                             'moq' => $variantData['moq'] ?? 1,
                             'stock' => $variantData['stock'] ?? 0,
-                            'weight' => $variantData['weight'] ?? null,
+                            'weight' => $variantData['weight'] ?? $data['weight'] ?? $product->weight,
+                            'color_id' => $variantData['color_id'] ?? $data['color_id'] ?? $product->color_id,
+                            'size_id' => $variantData['size_id'] ?? $data['size_id'] ?? $product->size_id,
                             'is_active' => $variantData['is_active'] ?? true,
                             'image_url' => $variantImageUrl,
                         ]);
                         $incomingVariantIds[] = $newVariant->id;
+                        $variantModel = $newVariant;
+                    }
+
+                    if (array_key_exists('discount', $variantData)) {
+                        $variantModel->discounts()->delete();
+                        if (is_array($variantData['discount']) && isset($variantData['discount']['type'])) {
+                            $variantModel->discounts()->create([
+                                'product_id' => $product->id,
+                                'type' => $variantData['discount']['type'],
+                                'value' => $variantData['discount']['value'],
+                                'starts_at' => $variantData['discount']['starts_at'],
+                                'ends_at' => $variantData['discount']['ends_at'],
+                                'is_active' => filter_var($variantData['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                            ]);
+                        }
                     }
                 }
 
@@ -183,7 +256,7 @@ class ProductRepository implements ProductRepositoryInterface
                 }
             }
 
-            return $product->load(['categories', 'variants', 'images']);
+            return $product->load(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
         });
     }
 

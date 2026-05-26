@@ -33,6 +33,11 @@ interface SidebarProps {
 const navItems = [
   { name: 'Dashboard', icon: LayoutDashboard, href: '/admin/dashboard' },
   { name: 'Categories', icon: Layers, href: '/admin/categories' },
+  // { name: 'Brands', icon: Tag, href: '/admin/brands' },
+  // { name: 'Colors', icon: Tag, href: '/admin/colors' },
+  // { name: 'Sizes', icon: Tag, href: '/admin/sizes' },
+  
+  { name: 'Attributes', icon: Globe, href: '/admin/attributes' },
   { name: 'Products', icon: Globe, href: '/admin/products' },
   { name: 'Orders', icon: ShoppingCart, href: '/admin/orders' },
   { name: 'Payments', icon: CreditCard, href: '/admin/payments' },
