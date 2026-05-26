@@ -52,6 +52,17 @@ function getOfferImageUrl(offer: Offer | string | null | undefined): string | nu
   return `${BACKEND_URL}/storage/${imagePath}`;
 }
 
+function parseBackendDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  // If it's already an ISO string, return it
+  if (dateStr.includes('T')) return dateStr;
+  // If it's Y-m-d H:i:s, assume UTC and convert to ISO
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z').toISOString();
+  }
+  return dateStr;
+}
+
 export default function AdminOffersPage() {
   const [offers, setOffers] = React.useState<Offer[]>([]);
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -82,7 +93,7 @@ export default function AdminOffersPage() {
     try {
       const freshToken = getAuthToken();
       const [offerRes, prodRes] = await Promise.all([
-        apiFetch<any>("/offers", { token: freshToken || undefined }),
+        apiFetch<any>("/offers?include_inactive=1&status=all", { token: freshToken || undefined }),
         apiFetch<any>("/products?include_inactive=1&status=all", { token: freshToken || undefined }),
       ]);
 
@@ -128,14 +139,20 @@ export default function AdminOffersPage() {
     setFormMode(mode);
     if (mode === "edit" && offer) {
       setEditingId(offer.id);
+      
+      // Get IDs from either product_ids array or products relationship objects
+      const linkedIds = (offer.product_ids || (offer as any).products)?.map((p: any) => 
+        (typeof p === 'object' ? p.id.toString() : p.toString())
+      ) || [];
+
       setFormData({
         title: offer.title,
         description: offer.description || "",
         placement: offer.placement,
-        is_active: Boolean(offer.is_active),
-        starts_at: offer.starts_at || "",
-        ends_at: offer.ends_at || "",
-        product_ids: offer.product_ids || [],
+        is_active: offer.is_active == null ? true : Boolean(Number(offer.is_active)),
+        starts_at: parseBackendDate(offer.starts_at),
+        ends_at: parseBackendDate(offer.ends_at),
+        product_ids: linkedIds,
       });
       setImagePreview(offer.image_url || offer.image);
     } else {
@@ -192,25 +209,11 @@ export default function AdminOffersPage() {
       body.append("is_active", formData.is_active ? "1" : "0");
       
       if (formData.starts_at) {
-        try {
-          const d = new Date(formData.starts_at);
-          if (!isNaN(d.getTime())) {
-            body.append("starts_at", format(d, "yyyy-MM-dd HH:mm:ss"));
-          }
-        } catch (e) {
-          console.error("Invalid starts_at date", e);
-        }
+        body.append("starts_at", formData.starts_at);
       }
       
       if (formData.ends_at) {
-        try {
-          const d = new Date(formData.ends_at);
-          if (!isNaN(d.getTime())) {
-            body.append("ends_at", format(d, "yyyy-MM-dd HH:mm:ss"));
-          }
-        } catch (e) {
-          console.error("Invalid ends_at date", e);
-        }
+        body.append("ends_at", formData.ends_at);
       }
 
       if (formData.product_ids && formData.product_ids.length > 0) {
@@ -489,7 +492,7 @@ export default function AdminOffersPage() {
                           <div className="flex items-center gap-2 mt-2">
                             <Tag className="size-3 text-[#966FD6]" />
                             <span className="text-[10px] font-black uppercase text-zinc-400 tracking-tighter">
-                              {Array.isArray(offer.product_ids) ? offer.product_ids.length : 0} Linked Products
+                              {(Array.isArray(offer.product_ids) && offer.product_ids.length > 0) ? offer.product_ids.length : (Array.isArray((offer as any).products) ? (offer as any).products.length : 0)} Linked Products
                             </span>
                           </div>
                         </div>
@@ -508,13 +511,13 @@ export default function AdminOffersPage() {
                         <div className="flex items-center gap-2 text-zinc-500">
                           <Calendar className="size-3.5" />
                           <span className="text-xs font-bold whitespace-nowrap">
-                            {offer.starts_at ? format(new Date(offer.starts_at), "MMM d, yyyy") : "ASAP"}
+                            {offer.starts_at ? format(new Date(parseBackendDate(offer.starts_at)), "MMM d, yyyy HH:mm") : "ASAP"}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-zinc-400">
                           <ArrowRight className="size-3.5" />
                           <span className="text-xs font-bold whitespace-nowrap">
-                            {offer.ends_at ? format(new Date(offer.ends_at), "MMM d, yyyy") : "Indefinite"}
+                            {offer.ends_at ? format(new Date(parseBackendDate(offer.ends_at)), "MMM d, yyyy HH:mm") : "Indefinite"}
                           </span>
                         </div>
                       </div>
@@ -777,10 +780,11 @@ export default function AdminOffersPage() {
                          <div className="flex flex-wrap gap-2 pt-2 max-h-[120px] overflow-y-auto scrollbar-hide">
                            {formData.product_ids.map(id => {
                              const p = products.find(prod => prod.id.toString() === id);
-                             if (!p) return null;
                              return (
                                <div key={id} className="flex items-center gap-2 bg-zinc-100/50 border border-zinc-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full group hover:bg-red-50 hover:border-red-100 transition-all">
-                                  <span className="text-[9px] sm:text-[10px] font-extrabold text-zinc-600 group-hover:text-red-600 truncate max-w-[100px] sm:max-w-[120px]">{p.name}</span>
+                                  <span className="text-[9px] sm:text-[10px] font-extrabold text-zinc-600 group-hover:text-red-600 truncate max-w-[100px] sm:max-w-[120px]">
+                                    {p ? p.name : `Product #${id}`}
+                                  </span>
                                   <button type="button" onClick={() => toggleProductSelection(id)} className="text-zinc-400 hover:text-red-600">
                                     <X className="size-2.5 sm:size-3" />
                                   </button>

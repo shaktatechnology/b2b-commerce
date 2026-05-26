@@ -92,8 +92,8 @@ export default function AdminProductsPage() {
     try {
       const freshToken = getAuthToken();
       const [prodRes, catRes] = await Promise.all([
-        apiFetch<any>(`/products?include_inactive=1&status=all&page=${page}`, { token: freshToken || undefined }),
-        apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
+        apiFetch<any>(`/products?include_inactive=true&status=all&page=${page}`, { token: freshToken || undefined }),
+        apiFetch<any>('/categories?include_inactive=true&all=true&status=all', { token: freshToken || undefined }),
       ]);
 
       let categoriesData: Category[] = [];

@@ -5,6 +5,7 @@ import type {
 } from '@/src/types/storefront';
 import type { PaymentSettings } from '@/src/types/payment-settings';
 import { parsePaymentSettings } from './payment-settings';
+import { Offer } from '../types/offer';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -26,6 +27,11 @@ export async function fetchCategories(): Promise<StorefrontCategory[]> {
 
 export async function fetchProducts(): Promise<StorefrontProduct[]> {
   const json = await apiGet<{ data: StorefrontProduct[] }>('/products');
+  return json.data ?? [];
+}
+
+export async function fetchOffers(): Promise<Offer[]> {
+  const json = await apiGet<{ data: Offer[] }>('/offers');
   return json.data ?? [];
 }
 

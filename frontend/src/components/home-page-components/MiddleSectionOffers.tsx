@@ -38,6 +38,16 @@ function resolveImage(offer: Offer): string {
 // Match any variant the backend might send for "mid"
 const MID_PLACEMENTS = new Set(["mid", "middle", "Middle Section", "middle_section"]);
 
+function parseBackendDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  // If it's Y-m-d H:i:s, assume UTC by appending Z
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function isOfferLive(offer: Offer): boolean {
   // Treat 1, "1", true all as active
   const active = offer.is_active == null ? true : Boolean(Number(offer.is_active));
@@ -45,12 +55,12 @@ function isOfferLive(offer: Offer): boolean {
 
   const now = new Date();
   if (offer.starts_at) {
-    const start = new Date(offer.starts_at);
-    if (!isNaN(start.getTime()) && now < start) return false;
+    const start = parseBackendDate(offer.starts_at);
+    if (start && now < start) return false;
   }
   if (offer.ends_at) {
-    const end = new Date(offer.ends_at);
-    if (!isNaN(end.getTime()) && now > end) return false;
+    const end = parseBackendDate(offer.ends_at);
+    if (end && now > end) return false;
   }
   return true;
 }

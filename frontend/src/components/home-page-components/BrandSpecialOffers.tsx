@@ -43,26 +43,63 @@ const defaultOffers = [
   },
 ];
 
-export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
-  // Use API offers if available, otherwise use defaults
-  const displayOffers = (offers && offers.length > 0) 
-    ? offers.slice(0, 3).map((offer, idx) => {
-        const rawImage = offer.image_url || offer.image;
-        const image = rawImage
-          ? rawImage.startsWith("http")
-            ? rawImage
-            : `${process.env.NEXT_PUBLIC_STORAGE_URL}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`
-          : "/placeholder.png";
+// Matches any "top" variant the backend might send
+const TOP_PLACEMENTS = new Set(["top", "Top Banner", "top_banner"]);
 
-        return {
-          id: offer.id,
-          image,
-          title: offer.title,
-          description: offer.description || "",
-          link: `/products?offer_id=${offer.id}`,
-          bgColor: idx === 0 ? "bg-[#8B1A1A]" : idx === 1 ? "bg-[#1A237E]" : "bg-[#FBC02D]",
-        };
-      })
+const STORAGE_URL =
+  process.env.NEXT_PUBLIC_STORAGE_URL ||
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+  "http://localhost:8000";
+
+function resolveImage(raw: string | null | undefined): string {
+  if (!raw) return "/placeholder.png";
+  if (raw.startsWith("http") || raw.startsWith("blob")) return raw;
+  if (raw.startsWith("/storage/")) return `${STORAGE_URL}${raw}`;
+  if (raw.startsWith("storage/")) return `${STORAGE_URL}/${raw}`;
+  if (raw.startsWith("/")) return `${STORAGE_URL}${raw}`;
+  return `${STORAGE_URL}/storage/${raw}`;
+}
+
+function parseBackendDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  // If it's Y-m-d H:i:s, assume UTC by appending Z
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function isOfferLive(offer: Offer): boolean {
+  const active = offer.is_active == null ? true : Boolean(Number(offer.is_active));
+  if (!active) return false;
+  const now = new Date();
+  if (offer.starts_at) {
+    const start = parseBackendDate(offer.starts_at);
+    if (start && now < start) return false;
+  }
+  if (offer.ends_at) {
+    const end = parseBackendDate(offer.ends_at);
+    if (end && now > end) return false;
+  }
+  return true;
+}
+
+export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
+  // Filter to live "top" placement offers only — fall back to defaults if none
+  const topOffers = offers.filter(
+    (o) => o.placement != null && TOP_PLACEMENTS.has(o.placement) && isOfferLive(o)
+  );
+
+  const displayOffers = topOffers.length > 0
+    ? topOffers.slice(0, 3).map((offer, idx) => ({
+        id: offer.id,
+        image: resolveImage(offer.image_url || offer.image),
+        title: offer.title,
+        description: offer.description || "",
+        link: `/products?offer_id=${offer.id}`,
+        bgColor: idx === 0 ? "bg-[#8B1A1A]" : idx === 1 ? "bg-[#1A237E]" : "bg-[#FBC02D]",
+      }))
     : defaultOffers;
 
   return (
@@ -103,18 +140,6 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
                   </div>
 
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors duration-300" />
-                  
-                  {/*<div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/20 to-transparent">
-                    <h3 className="text-white text-xl font-bold mb-1 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                      {offer.title}
-                    </h3>
-                    {offer.description && (
-                      <p className="text-primary font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300 mb-2">
-                        {offer.description}
-                      </p>
-                    )}
-                    <div className="w-10 h-1 bg-primary rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
-                  </div>*/}
                 </div>
                 
                 <Link href={offer.link} className="absolute inset-0 z-10">
@@ -145,7 +170,6 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
                 </Link>
               ))}
               
-              {/* Fallback mock tags if no categories */}
               {categories.length === 0 && ["Brown", "Coffees", "Cream", "Hodo Foods", "Meats", "Organic", "Snack", "Vegetables"].map((tag) => (
                 <div
                   key={tag}
