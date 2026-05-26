@@ -257,7 +257,7 @@ export default function ProductPurchasePanel({
           <button
             type="button"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="w-9 h-9 flex items-center justify-center hover:bg-gray-100"
+            className="w-9 h-9 flex cursor-pointer items-center justify-center hover:bg-gray-100"
             aria-label="Decrease quantity"
           >
             <Minus size={14} />
@@ -266,7 +266,7 @@ export default function ProductPurchasePanel({
           <button
             type="button"
             onClick={() => setQuantity((q) => q + 1)}
-            className="w-9 h-9 flex items-center justify-center hover:bg-gray-100"
+            className="w-9 h-9 cursor-pointer flex items-center justify-center hover:bg-gray-100"
             aria-label="Increase quantity"
           >
             <Plus size={14} />
@@ -276,7 +276,7 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleBuyNow}
-          className="flex-1 min-w-[120px] bg-primary text-white font-medium px-6 py-2.5 rounded hover:opacity-90"
+          className="flex-1 min-w-[120px] bg-primary cursor-pointer text-white font-medium px-6 py-2.5 rounded hover:opacity-90"
         >
           Buy
         </button>
@@ -284,7 +284,7 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleShare}
-          className="w-10 h-10 border border-gray-300 rounded flex items-center justify-center text-gray-600 hover:border-primary hover:text-primary"
+          className="w-10 h-10 cursor-pointer border border-gray-300 rounded flex items-center justify-center text-gray-600 hover:border-primary hover:text-primary"
           aria-label="Share product"
         >
           <Share2 size={18} />
@@ -295,7 +295,7 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleAddToCart}
-          className="flex items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium"
+          className="flex cursor-pointer items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium"
         >
           <ShoppingCart size={16} />
           Add to cart

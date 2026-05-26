@@ -145,12 +145,12 @@ export default function Footer({
             )}
           </div>
 
-          <h3 className="text-lg font-semibold mb-2">Subscribe</h3>
+          {/* <h3 className="text-lg font-semibold mb-2">Subscribe</h3>
           <p className="text-sm text-white/90 mb-3">
             Get 10% off your first order
-          </p>
+          </p> */}
 
-          <div className="flex border border-white rounded-md overflow-hidden">
+          {/* <div className="flex border border-white rounded-md overflow-hidden">
             <input
               type="email"
               placeholder="Enter your email"
@@ -159,7 +159,7 @@ export default function Footer({
             <button className="bg-white text-primary px-4 font-semibold  cursor-pointer hover:bg-white/90 transition">
               <Send size={18} />
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 

@@ -21,4 +21,5 @@ export interface CartProductInput {
     image_url?: string | null;
   }[];
   images?: { url: string }[];
+  brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
 }

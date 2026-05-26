@@ -28,7 +28,7 @@ export default function ProductDetailSidebar({
         }))} 
       />
 
-      <div className="border border-gray-200 rounded-lg p-4 bg-white">
+      {/* <div className="border border-gray-200 rounded-lg p-4 bg-white">
         <h3 className="text-primary font-semibold text-base mb-3">
           Fill by Price
         </h3>
@@ -57,7 +57,7 @@ export default function ProductDetailSidebar({
         >
           Filter
         </button>
-      </div>
+      </div> */}
 
       <div className="border border-gray-200 rounded-lg p-4 bg-white">
         <h3 className="text-primary font-semibold text-base mb-3">
@@ -93,7 +93,7 @@ export default function ProductDetailSidebar({
                     <p className="text-sm font-bold text-primary mt-0.5">
                       Rs.{price.toFixed(0)}
                     </p>
-                    <p className="text-[10px] text-primary">By Store</p>
+                    <p className="text-[10px] text-primary">By {item.brand?.name || "Store"}</p>
                   </div>
                 </Link>
               </li>

@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\Discount\DiscountController;
 use App\Http\Controllers\Api\Cart\CartController;
 use App\Http\Controllers\Api\Order\OrderController;
 use App\Http\Controllers\Api\Payment\PaymentController;
+use App\Http\Controllers\Api\Payment\PayPalController;
+use App\Http\Controllers\Api\Payment\EsewaController;
 use App\Http\Controllers\Api\Review\ReviewController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ColorController;
@@ -88,6 +90,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments/initiate', [PaymentController::class, 'initiate']);
     Route::post('/payments/verify',   [PaymentController::class, 'verify']);
     Route::get('/payments/{id}',      [PaymentController::class, 'show']);
+
+    // PayPal Payments
+    Route::post('/paypal/create-order', [PayPalController::class, 'createOrder']);
+    Route::post('/paypal/capture-order', [PayPalController::class, 'captureOrder']);
+    Route::get('/paypal/return', [PayPalController::class, 'handleReturn']);
+
+    // eSewa Payments
+    Route::post('/esewa/success', [EsewaController::class, 'handleSuccess']);
+    Route::post('/esewa/failure', [EsewaController::class, 'handleFailure']);
 
     // ── Admin Protected APIs (role:admin) ───────────────────────────────────
     Route::prefix('admin')->middleware('role:admin')->group(function () {

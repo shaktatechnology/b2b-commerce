@@ -93,6 +93,7 @@ class ProductRepository implements ProductRepositoryInterface
                 'size_id' => $data['size_id'] ?? null,
                 'weight' => $data['weight'] ?? null,
                 'long_description' => $data['long_description'] ?? null,
+                'additional_info' => $data['additional_info'] ?? null,
             ]);
 
             // Sync categories (Many-to-Many)
@@ -169,6 +170,7 @@ class ProductRepository implements ProductRepositoryInterface
                 'size_id' => array_key_exists('size_id', $data) ? $data['size_id'] : $product->size_id,
                 'weight' => array_key_exists('weight', $data) ? $data['weight'] : $product->weight,
                 'long_description' => array_key_exists('long_description', $data) ? $data['long_description'] : $product->long_description,
+                'additional_info' => array_key_exists('additional_info', $data) ? $data['additional_info'] : $product->additional_info,
             ]);
 
             if (isset($data['category_ids'])) {
