@@ -17,6 +17,7 @@ interface Variant {
 interface Product {
   id: string;
   name: string;
+  slug: string;
   categories: Category[];
   variants: Variant[];
   image?: string;
