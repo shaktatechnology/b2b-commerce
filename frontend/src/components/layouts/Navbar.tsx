@@ -199,10 +199,12 @@ export default function Navbar({
         <div className="h-11 bg-white border-b">
           <div className="max-w-7xl mx-auto px-4 h-full flex items-center gap-4">
             {/* ALL CATEGORY */}
-            <button className="flex items-center gap-2 text-sm font-medium whitespace-nowrap">
+            <Link href="/">
+            <button className="flex items-center cursor-pointer gap-2 text-sm font-medium whitespace-nowrap">
               <Menu size={18} />
               <span>All Category</span>
             </button>
+            </Link>
 
             {/* left button */}
             {canScrollLeft && (

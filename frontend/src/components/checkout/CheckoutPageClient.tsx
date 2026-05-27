@@ -207,8 +207,8 @@ export default function CheckoutPageClient({
       <h1 className="text-2xl font-semibold text-primary mb-2">Checkout</h1>
       <p className="text-sm text-gray-500 mb-6">
         {step === "shipping"
-          ? "Step 1: Shipping details"
-          : `Step 2: Payment${orderNumber ? ` — Order #${orderNumber}` : ""}`}
+          ? " "
+          : `Payment${orderNumber ? ` — Order #${orderNumber}` : ""}`}
       </p>
 
       <div className="grid lg:grid-cols-5 gap-8">
