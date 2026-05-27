@@ -82,7 +82,7 @@ export function RegisterForm() {
           address: data.address,
           password: data.password,
           password_confirmation: data.password_confirmation,
-          role: 'wholesaler',
+          role: 'customer',
         }),
       });
       setAuthCookie(res.data.access_token);

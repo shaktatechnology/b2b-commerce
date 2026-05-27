@@ -1,7 +1,4 @@
 "use client";
-
-import { Heart } from "lucide-react";
-
 interface ProductGalleryProps {
   images: string[];
   productName: string;
@@ -32,13 +29,7 @@ export default function ProductGallery({
             {productName}
           </div>
         )}
-        <button
-          type="button"
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-primary shadow-sm"
-          aria-label="Add to wishlist"
-        >
-          <Heart size={18} />
-        </button>
+
       </div>
 
       {galleryImages.length > 1 && (
