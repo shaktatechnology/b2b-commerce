@@ -4,9 +4,18 @@ export interface CartLineItem {
   name: string;
   category: string;
   price: number;
+  discount?: number;
   quantity: number;
   image: string | null;
   seller: string;
+  moq?: number;
+  stock?: number;
+}
+
+export interface CartDiscount {
+  type: 'percent' | 'fixed';
+  value: number | '';
+  is_active: boolean;
 }
 
 export interface CartProductImageInput {
@@ -22,12 +31,17 @@ export interface CartProductInput {
   variants?: {
     id: string;
     retail_price: string | number;
+    wholesale_price?: string | number;
+    moq?: number;
+    stock?: number;
     variant_name?: string;
     image_url?: string | null;
+    discounts?: CartDiscount[];
   }[];
   image?: string;
   thumbnail?: string;
   image_url?: string | null;
   images?: CartProductImageInput[];
   brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
+  discounts?: CartDiscount[];
 }

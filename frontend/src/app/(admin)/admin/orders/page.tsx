@@ -11,30 +11,24 @@ export default async function OrdersPage() {
   let orders: Order[] = [];
   let total = 0;
   let lastPage = 1;
-
+  let perPage = 15;
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    const res = await fetchAllOrdersAdmin({ token });
-    
-    if (Array.isArray(res)) {
-      orders = res;
-      total = res.length;
-    } else {
-      const resData = res?.data?.data || res?.data || [];
-      orders = Array.isArray(resData) ? resData : [];
-      total = res?.total || res?.meta?.total || orders.length;
-      lastPage = res?.last_page || res?.meta?.last_page || 1;
-    }
+    const data = await fetchAllOrdersAdmin();
+    orders = data.orders;
+    total = data.total;
+    lastPage = data.lastPage;
+    perPage = data.perPage;
   } catch {
     // fall back to empty list
   }
 
   return (
     <OrdersPageClient 
+      
       initialOrders={orders} 
       initialTotal={total}
       initialLastPage={lastPage}
+      initialPerPage={perPage}
     />
   );
 }

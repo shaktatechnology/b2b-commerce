@@ -17,8 +17,19 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const addItem = useCartStore((s) => s.addItem);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const retailVariant = product.variants?.[0];
+  const retailPrice = parseFloat(String(retailVariant?.retail_price ?? 0));
+
   const lineItem = productToCartLineItem(product);
-  const price = lineItem?.price ?? 0;
+  const clientPrice = lineItem?.price ?? 0;
+
+  const price = mounted ? clientPrice : retailPrice;
   const image = lineItem?.image;
   const category = lineItem?.category ?? "Uncategorized";
   const href = getProductPath({ id: product.id, slug: product.slug });

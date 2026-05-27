@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import type { CartProductInput } from "@/src/types/cart";
@@ -15,9 +16,20 @@ export default function RecommendedProductCard({
   product,
 }: RecommendedProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const retailVariant = product.variants?.[0];
+  const retailPrice = parseFloat(String(retailVariant?.retail_price ?? 0));
+
   const lineItem = productToCartLineItem(product);
+  const clientPrice = lineItem?.price ?? 0;
+
+  const price = mounted ? clientPrice : retailPrice;
   const image = lineItem?.image;
-  const price = lineItem?.price ?? 0;
   const category = lineItem?.category ?? "Uncategorized";
 
   const productHref = getProductPath({ id: product.id, slug: product.slug });

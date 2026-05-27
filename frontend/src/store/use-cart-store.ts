@@ -10,6 +10,7 @@ interface CartState {
   clearCart: () => void;
   itemCount: () => number;
   subtotal: () => number;
+  discountTotal: () => number;
 }
 
 export const useCartStore = create<CartState>()(
@@ -58,6 +59,9 @@ export const useCartStore = create<CartState>()(
 
       subtotal: () =>
         get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+
+      discountTotal: () =>
+        get().items.reduce((sum, item) => sum + (item.discount ?? 0) * item.quantity, 0),
     }),
     { name: 'shakta-cart-storage' }
   )

@@ -20,6 +20,7 @@ export interface StorefrontProductVariant {
   color?: { id: string; name: string } | null;
   size?: { id: string; name: string } | null;
   discounts?: Discount[];
+  moq?: number;
 }
 
 export interface StorefrontProductImage {

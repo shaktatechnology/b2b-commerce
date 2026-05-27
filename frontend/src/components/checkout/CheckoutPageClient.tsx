@@ -24,12 +24,20 @@ export default function CheckoutPageClient({
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const subtotal = useCartStore((s) => s.subtotal);
+  const discountTotal = useCartStore((s) => s.discountTotal);
   const clearCart = useCartStore((s) => s.clearCart);
 
   const [step, setStep] = useState<Step>("shipping");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  
+  // Stored copy of checked out items so they persist in the UI summary when local cart is cleared
+  const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
+  const [checkoutDiscount, setCheckoutDiscount] = useState<number>(0);
+  
+  const [orderSubtotal, setOrderSubtotal] = useState<number>(0);
+  const [orderDiscount, setOrderDiscount] = useState<number>(0);
   const [orderTotal, setOrderTotal] = useState<number>(0);
   const [selectedGateway, setSelectedGateway] = useState<PaymentGatewayId | null>(
     paymentSettings.defaultGateway
@@ -51,6 +59,16 @@ export default function CheckoutPageClient({
 
   const [isEditingAddress, setIsEditingAddress] = useState<boolean>(true);
 
+  const activeGateways = paymentSettings.gateways;
+
+  // Set checkoutItems from cart items as soon as they are loaded
+  useEffect(() => {
+    if (items.length > 0 && checkoutItems.length === 0) {
+      setCheckoutItems(items);
+      setCheckoutDiscount(discountTotal());
+    }
+  }, [items, checkoutItems, discountTotal]);
+
   useEffect(() => {
     // Clear any pending payment configs from previous sessions
     sessionStorage.removeItem("pending_payment_config");
@@ -60,22 +78,33 @@ export default function CheckoutPageClient({
       try {
         const parsed = JSON.parse(savedAddress);
         setForm((prev) => ({ ...prev, ...parsed }));
-        // If there's a saved address, default to not showing the edit form
-        setIsEditingAddress(false);
+        // Only skip editing if all key required address fields are present
+        if (parsed.street?.trim() && parsed.city?.trim() && parsed.state?.trim() && parsed.zip?.trim() && parsed.country?.trim()) {
+          setIsEditingAddress(false);
+        } else {
+          setIsEditingAddress(true);
+        }
       } catch (e) {
         console.error("Failed to parse saved address");
+        setIsEditingAddress(true);
       }
+    } else {
+      setIsEditingAddress(true);
     }
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("b2b_shipping_address", JSON.stringify(form));
-  }, [form]);
-
   const total = subtotal();
+  const activeDiscount = step === "shipping" ? discountTotal() : (orderDiscount > 0 ? orderDiscount : checkoutDiscount);
 
   const handleChange = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const getImageUrl = (url?: string | null) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    const host = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace("/api", "");
+    return `${host}${url}`;
   };
 
   const handleCreateOrder = async () => {
@@ -84,9 +113,48 @@ export default function CheckoutPageClient({
       router.push("/login?redirect=/checkout");
       return;
     }
-    if (items.length === 0) {
+    
+    const activeItems = step === "shipping" ? items : checkoutItems;
+    if (activeItems.length === 0) {
       toast.error("Your cart is empty.");
       router.push("/cart");
+      return;
+    }
+
+    for (const item of activeItems) {
+      if (item.stock !== undefined && item.stock <= 0) {
+        toast.error(`Item "${item.name}" is out of stock and cannot be checked out.`);
+        return;
+      }
+      if (item.stock !== undefined && item.quantity > item.stock) {
+        toast.error(`Item "${item.name}" only has ${item.stock} unit${item.stock === 1 ? "" : "s"} available.`);
+        return;
+      }
+    }
+
+    if (!form.street.trim()) {
+      toast.error("Street address is required.");
+      setIsEditingAddress(true);
+      return;
+    }
+    if (!form.city.trim()) {
+      toast.error("City is required.");
+      setIsEditingAddress(true);
+      return;
+    }
+    if (!form.state.trim()) {
+      toast.error("State / Province is required.");
+      setIsEditingAddress(true);
+      return;
+    }
+    if (!form.zip.trim()) {
+      toast.error("ZIP / Postal code is required.");
+      setIsEditingAddress(true);
+      return;
+    }
+    if (!form.country.trim()) {
+      toast.error("Country is required.");
+      setIsEditingAddress(true);
       return;
     }
 
@@ -99,14 +167,16 @@ export default function CheckoutPageClient({
 
     setIsSubmitting(true);
     try {
-      await syncCartToServer(token, items);
+      // Sync local cart to server database first
+      await syncCartToServer(token, activeItems);
+      
       const res = await checkoutOrder(token, {
         shipping_address: {
-          street: form.street,
-          city: form.city,
-          state: form.state,
-          zip: form.zip,
-          country: form.country,
+          street: form.street.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          zip: form.zip.trim(),
+          country: form.country.trim(),
         },
         notes: form.notes || undefined,
       });
@@ -114,9 +184,26 @@ export default function CheckoutPageClient({
       const order = res.data;
       setOrderId(order.id);
       setOrderNumber(order.order_number);
+      setOrderSubtotal(parseFloat(String(order.subtotal || order.total)));
+      setOrderDiscount(parseFloat(String(order.discount_amount || 0)));
       setOrderTotal(parseFloat(String(order.total)));
+
+      // Save valid address to local storage
+      localStorage.setItem("b2b_shipping_address", JSON.stringify({
+        street: form.street.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        zip: form.zip.trim(),
+        country: form.country.trim(),
+        notes: form.notes,
+      }));
+      setIsEditingAddress(false);
+
+      // Empties the cart store locally upon successful order creation
+      clearCart();
+
       setStep("payment");
-      toast.success("Order created. Complete payment to confirm.");
+      toast.success("Order created successfully. Complete payment to confirm.");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Could not create order.";
@@ -148,7 +235,6 @@ export default function CheckoutPageClient({
       }
 
       if (selectedGateway === "paypal" && payment.paypal) {
-        // Stash the full config so the /payment page can render PayPal without a second API call
         sessionStorage.setItem("pending_payment_config", JSON.stringify(payment));
         router.push(
           `/payment?order_id=${orderId}&payment_id=${payment.payment_id}&gateway=paypal`
@@ -166,7 +252,9 @@ export default function CheckoutPageClient({
     }
   };
 
-  if (items.length === 0 && step === "shipping") {
+  const activeSummaryItems = step === "shipping" ? items : checkoutItems;
+
+  if (activeSummaryItems.length === 0 && step === "shipping") {
     return (
       <div className="max-w-lg mx-auto px-4 py-16 text-center">
         <p className="text-gray-600 mb-4">No items to checkout.</p>
@@ -215,26 +303,36 @@ export default function CheckoutPageClient({
         <div className="lg:col-span-3 space-y-4">
           {step === "shipping" ? (
             <>
-              <h2 className="font-medium text-gray-900">Shipping address</h2>
+              <h2 className="font-medium text-gray-900 text-base">Shipping address</h2>
               {!isEditingAddress ? (
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="text-sm text-gray-700">
-                    <div className="font-medium">{form.street}</div>
+                <div className="border border-gray-200 bg-zinc-50/30 rounded-xl p-5 space-y-2">
+                  <div className="text-sm text-gray-700 space-y-2">
                     <div>
-                      {form.city}, {form.state} {form.zip}
+                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">Street Address</span>
+                      <span className="text-gray-800 font-medium">{form.street}</span>
                     </div>
-                    <div className="text-xs text-gray-500">{form.country}</div>
+                    <div>
+                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">City, State, ZIP</span>
+                      <span className="text-gray-800 font-medium">{form.city}, {form.state} {form.zip}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">Country</span>
+                      <span className="text-gray-800 font-medium">{form.country}</span>
+                    </div>
                     {form.notes ? (
-                      <div className="mt-2 text-sm text-gray-600">Notes: {form.notes}</div>
+                      <div className="pt-1">
+                        <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">Order Notes</span>
+                        <span className="text-gray-800 font-medium italic">"{form.notes}"</span>
+                      </div>
                     ) : null}
                   </div>
-                  <div className="mt-4 flex gap-2">
+                  <div className="pt-4 flex gap-3">
                     <button
                       type="button"
                       onClick={() => setIsEditingAddress(true)}
-                      className="px-3 py-1 bg-white border rounded text-sm"
+                      className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                     >
-                      Edit
+                      Edit shipping details
                     </button>
                     <button
                       type="button"
@@ -243,68 +341,119 @@ export default function CheckoutPageClient({
                         setForm({ street: "", city: "", state: "", zip: "", country: "Nepal", notes: "" });
                         setIsEditingAddress(true);
                       }}
-                      className="px-3 py-1 bg-white border rounded text-sm text-red-600"
+                      className="px-4 py-2 bg-white border border-red-100 rounded-lg text-sm font-semibold text-red-650 hover:bg-red-50 transition-colors"
                     >
-                      Remove
+                      Clear address
                     </button>
                   </div>
                 </div>
               ) : (
-                (
-                  [
-                    ["street", "Street address"],
-                    ["city", "City"],
-                    ["state", "State / Province"],
-                    ["zip", "ZIP / Postal code"],
-                    ["country", "Country"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <div key={key}>
-                    <label className="text-sm text-gray-600 block mb-1">{label}</label>
+                <div className="space-y-4 bg-white border border-gray-150 rounded-xl p-5 shadow-sm">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">
+                      Street Address <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
-                      value={form[key]}
-                      onChange={(e) => handleChange(key, e.target.value)}
-                      required
-                      className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-primary"
+                      value={form.street}
+                      onChange={(e) => handleChange("street", e.target.value)}
+                      placeholder="e.g. 123 street"
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-all focus:ring-1 focus:ring-primary/20"
                     />
                   </div>
-                ))
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">
+                        City <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.city}
+                        onChange={(e) => handleChange("city", e.target.value)}
+                        placeholder="e.g. Kathmandu"
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-all focus:ring-1 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">
+                        State / Province <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={form.state}
+                        onChange={(e) => handleChange("state", e.target.value)}
+                        placeholder="e.g. Bagmati"
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-all focus:ring-1 focus:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">
+                        ZIP / Postal Code
+                      </label>
+                      <input
+                        type="text"
+                        value={form.zip}
+                        onChange={(e) => handleChange("zip", e.target.value)}
+                        placeholder="e.g. 44600"
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-all focus:ring-1 focus:ring-primary/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">
+                        Country <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={form.country}
+                        onChange={(e) => handleChange("country", e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none bg-white focus:border-primary transition-all focus:ring-1 focus:ring-primary/20"
+                      >
+                        <option value="Nepal">Nepal</option>
+                        <option value="Australia">Australia</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               )}
+              
               <div>
-                <label className="text-sm text-gray-600 block mb-1">
+                <label className="text-sm font-semibold text-gray-750 block mb-1">
                   Order notes (optional)
                 </label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => handleChange("notes", e.target.value)}
+                  placeholder="Any special instructions for delivery..."
                   rows={3}
-                  className="w-full border border-gray-200 rounded px-3 py-2 text-sm outline-none focus:border-primary"
+                  className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-all"
                 />
               </div>
+
               <button
                 type="button"
                 onClick={handleCreateOrder}
                 disabled={isSubmitting}
-                className="w-full bg-primary text-white font-medium py-3 rounded hover:opacity-90 disabled:opacity-50"
+                className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
                 {isSubmitting ? "Creating order…" : "Continue to payment"}
               </button>
             </>
           ) : (
             <>
-              <h2 className="font-medium text-gray-900">Payment method</h2>
-              {paymentSettings.gateways.length === 0 ? (
+              <h2 className="font-medium text-gray-900 text-base">Payment method</h2>
+              {activeGateways.length === 0 ? (
                 <p className="text-sm text-destructive">
-                  No payment gateways are active. Enable eSewa or PayPal in admin
-                  settings.
+                  No payment gateways are active for the selected country.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {paymentSettings.gateways.map((gateway) => (
+                  {activeGateways.map((gateway) => (
                     <label
                       key={gateway.id}
-                      className={`flex items-start gap-3 border rounded-lg p-4 cursor-pointer ${
+                      className={`flex items-start gap-3 border rounded-xl p-4 cursor-pointer transition-all ${
                         selectedGateway === gateway.id
                           ? "border-primary bg-primary/5"
                           : "border-gray-200"
@@ -318,7 +467,7 @@ export default function CheckoutPageClient({
                         className="mt-1 accent-primary"
                       />
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-semibold text-gray-900">
                           {gateway.label}
                         </p>
                         <p className="text-sm text-gray-500">
@@ -336,14 +485,14 @@ export default function CheckoutPageClient({
                 type="button"
                 onClick={handlePay}
                 disabled={isSubmitting || !selectedGateway}
-                className="w-full bg-primary text-white font-medium py-3 rounded hover:opacity-90 disabled:opacity-50"
+                className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
                 {isSubmitting ? "Processing…" : "Pay now"}
               </button>
               <button
                 type="button"
                 onClick={() => setStep("shipping")}
-                className="text-sm text-gray-500 hover:text-primary"
+                className="text-sm text-gray-500 hover:text-primary font-medium mt-2 self-center block text-center"
               >
                 Back to shipping
               </button>
@@ -351,34 +500,83 @@ export default function CheckoutPageClient({
           )}
         </div>
 
-        <div className="lg:col-span-2 border border-gray-200 rounded-lg p-5 h-fit">
-          <h2 className="text-primary font-semibold mb-4">Order summary</h2>
-          <ul className="space-y-2 text-sm mb-4 max-h-52 overflow-y-auto">
-            {items.map((item) => (
-              <li key={item.variantId} className="flex justify-between gap-2">
-                <span className="line-clamp-1 text-gray-700">
-                  {item.name} × {item.quantity}
-                </span>
-                <span className="font-medium shrink-0">
-                  {formatRs(item.price * item.quantity)}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="border-t pt-3 flex justify-between font-bold text-primary">
-            <span>Total</span>
-            <span>
-              {step === "payment" && orderTotal > 0
-                ? formatRs(orderTotal)
-                : formatRs(total)}
-            </span>
+        <div className="lg:col-span-2 border border-gray-200 rounded-2xl p-5 h-fit bg-white shadow-sm space-y-4">
+          <h2 className="text-primary font-bold text-base">Order summary</h2>
+          
+          <div className="space-y-1 divide-y divide-gray-100 max-h-[300px] overflow-y-auto pr-1">
+            {activeSummaryItems.map((item) => {
+              const fullImageUrl = getImageUrl(item.image);
+              return (
+                <div key={item.variantId} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                  {/* Thumbnail Image */}
+                  <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                    {fullImageUrl ? (
+                      <img
+                        src={fullImageUrl}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[9px] font-bold text-gray-400">No Image</span>
+                    )}
+                  </div>
+                  {/* Product Details */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-800 text-sm truncate" title={item.name}>
+                      {item.name}
+                    </h4>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      Qty: {item.quantity} × {formatRs(item.price)}
+                    </p>
+                    {item.discount > 0 && (
+                      <p className="text-xs text-green-600 font-medium">
+                        Discount: -{formatRs(item.discount)} each
+                      </p>
+                    )}
+                    <p className="text-xs font-bold text-primary mt-1">
+                      Total: {formatRs((item.price - (item.discount ?? 0)) * item.quantity)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex justify-between text-sm text-gray-600 font-medium">
+              <span>Total Gross:</span>
+              <span>
+                {step === "payment" && orderSubtotal > 0
+                  ? formatRs(orderSubtotal)
+                  : formatRs(total)}
+              </span>
+            </div>
+            
+            {activeDiscount > 0 ? (
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                <span>Discount:</span>
+                <span>
+                  - {formatRs(activeDiscount)}
+                </span>
+              </div>
+            ) : null}
+            
+            <div className="flex justify-between font-bold text-primary text-base border-t border-dashed border-gray-200 pt-2 mt-2">
+              <span>Amount to be Paid</span>
+              <span>
+                {step === "payment" && orderTotal > 0
+                  ? formatRs(orderTotal)
+                  : formatRs(total - activeDiscount)}
+              </span>
+            </div>
+          </div>
+
           <Link
-          href="/cart"
-          className="inline-flex items-center justify-center mt-4 px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-primary transition-colors"
-        >
-          Back to cart
-        </Link>
+            href="/cart"
+            className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:bg-gray-150 hover:text-primary transition-all text-center"
+          >
+            Back to cart
+          </Link>
         </div>
       </div>
     </div>

@@ -10,23 +10,7 @@ export function resolveProductImageUrl(raw?: string | null): string | null {
   return `${BACKEND_URL}${raw.startsWith('/') ? '' : '/'}${raw}`;
 }
 
-function firstProductImageSource(product: CartProductInput): string | null {
-  const fromImages = product.images?.[0];
-  return (
-    product.image_url ??
-    product.image ??
-    product.thumbnail ??
-    fromImages?.url ??
-    fromImages?.image_path ??
-    null
-  );
-}
-
-export function resolveProductImageFromInput(
-  product: CartProductInput
-): string | null {
-  return resolveProductImageUrl(firstProductImageSource(product));
-}
+import { getUserRole } from '@/src/lib/auth';
 
 export function productToCartLineItem(
   product: CartProductInput,
@@ -34,6 +18,7 @@ export function productToCartLineItem(
     variantId?: string;
     quantity?: number;
     seller?: string;
+    discount?: number;
   }
 ): CartLineItem | null {
   const seller = options?.seller ?? 'Store';
@@ -43,20 +28,47 @@ export function productToCartLineItem(
 
   if (!variant?.id) return null;
 
-  const price = parseFloat(String(variant.retail_price ?? 0));
+  const role = getUserRole();
+  const isWholesaler = role === 'wholesaler';
+
+  const rawPrice = isWholesaler
+    ? (variant.wholesale_price ?? variant.retail_price ?? 0)
+    : (variant.retail_price ?? 0);
+  const basePrice = parseFloat(String(rawPrice));
   const image = resolveProductImageUrl(
-    variant.image_url ?? firstProductImageSource(product)
+    variant.image_url ?? product.images?.[0]?.url ?? null
   );
+
+  // Auto-calculate discount from product/variant discount data if not explicitly provided
+  let discount = options?.discount ?? 0;
+  if (discount === 0 && options?.discount === undefined) {
+    // Check variant-level discounts first, then product-level
+    let activeDiscount = variant.discounts?.find((d) => d.is_active) ?? null;
+    if (!activeDiscount) {
+      activeDiscount = product.discounts?.find((d) => d.is_active) ?? null;
+    }
+    if (activeDiscount) {
+      const discountValue = Number(activeDiscount.value);
+      if (activeDiscount.type === 'percent') {
+        discount = basePrice * (discountValue / 100);
+      } else if (activeDiscount.type === 'fixed') {
+        discount = Math.min(discountValue, basePrice);
+      }
+    }
+  }
 
   return {
     productId: String(product.id),
     variantId: String(variant.id),
     name: product.name,
     category: product.categories?.[0]?.name ?? 'Uncategorized',
-    price: Number.isFinite(price) ? price : 0,
-    quantity: options?.quantity ?? 1,
+    price: Number.isFinite(basePrice) ? basePrice : 0,
+    discount,
+    quantity: options?.quantity ?? (isWholesaler ? (variant.moq ?? 1) : 1),
     image,
     seller,
+    moq: variant.moq,
+    stock: variant.stock ?? 0,
   };
 }
 

@@ -30,6 +30,30 @@ class OrderRepository implements OrderRepositoryInterface
             $query->where('order_number', 'like', '%' . $filters['order_number'] . '%');
         }
 
+        if (!empty($filters['from'])) {
+            $query->whereDate('created_at', '>=', $filters['from']);
+        }
+
+        if (!empty($filters['to'])) {
+            $query->whereDate('created_at', '<=', $filters['to']);
+        }
+
+        if (!empty($filters['user_type'])) {
+            $query->where('user_type', $filters['user_type']);
+        }
+
+        if (!empty($filters['customer'])) {
+            $search = $filters['customer'];
+            $query->where(function($q) use ($search) {
+                $q->where('order_number', 'like', '%' . $search . '%')
+                  ->orWhere('id', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function($uq) use ($search) {
+                      $uq->where('name', 'like', '%' . $search . '%')
+                         ->orWhere('email', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
         $perPage = $filters['per_page'] ?? 15;
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }

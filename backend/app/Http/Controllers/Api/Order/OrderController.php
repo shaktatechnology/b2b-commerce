@@ -74,7 +74,7 @@ class OrderController extends Controller
      */
     public function adminIndex(Request $request): JsonResponse
     {
-        $filters = $request->only(['status', 'payment_status', 'order_number', 'user_id', 'per_page']);
+        $filters = $request->only(['status', 'payment_status', 'order_number', 'user_id', 'per_page', 'from', 'to', 'customer', 'user_type']);
         $orders = $this->orderService->getAllOrders($filters);
 
         return response()->json([

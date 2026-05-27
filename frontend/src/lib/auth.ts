@@ -40,12 +40,10 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
   return transformedRes;
 }
 
-export async function fetchProfile(token: string): Promise<AuthUser> {
-  const res = await apiFetch<{ data: AuthUser }>('/profile', {
-    method: 'GET',
-    token,
-  });
-  return res.data;
+export function getUserRole(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|; )role=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 export async function logoutApi(): Promise<void> {
