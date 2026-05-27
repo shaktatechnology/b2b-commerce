@@ -12,9 +12,12 @@ import { Search, Plus, FilterX, ChevronLeft, ChevronRight } from "lucide-react";
 import { DatePicker } from "@/src/components/ui/date-picker";
 import { format } from "date-fns";
 import { PageHeader } from "@/src/components/layout-components/page-wrapper";
+import { Pagination } from "@/src/components/ui/pagination";
 
 interface Props {
   initialOrders: Order[];
+  initialTotal?: number;
+  initialLastPage?: number;
 }
 
 const STATUS_COUNTS = (orders: Order[]) => {
@@ -27,31 +30,50 @@ const STATUS_COUNTS = (orders: Order[]) => {
   };
 };
 
-export function OrdersPageClient({ initialOrders }: Props) {
+export function OrdersPageClient({ initialOrders, initialTotal = 0, initialLastPage = 1 }: Props) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   
   // Filters
+  const [statusFilter, setStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(initialLastPage);
+  const [totalItems, setTotalItems] = useState(initialTotal);
 
   const counts = STATUS_COUNTS(orders);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAllOrdersAdmin({
+      const res = await fetchAllOrdersAdmin({
         status: statusFilter || undefined,
         from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
         to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
         customer: searchQuery || undefined,
         page
       });
+      
+      let data: Order[] = [];
+      let total = 0;
+      let lastPage = 1;
+
+      if (Array.isArray(res)) {
+          data = res;
+          total = res.length;
+      } else {
+          const resData = res?.data?.data || res?.data || [];
+          data = Array.isArray(resData) ? resData : [];
+          total = res?.total || res?.meta?.total || data.length;
+          lastPage = res?.last_page || res?.meta?.last_page || 1;
+      }
+
       setOrders(data);
+      setTotalItems(total);
+      setTotalPages(lastPage);
     } catch (err: any) {
       toast.error(err.message || "Failed to load orders");
     } finally {
@@ -186,29 +208,9 @@ export function OrdersPageClient({ initialOrders }: Props) {
         <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
           <h2 className="text-lg font-black text-black">Order Registry</h2>
           <div className="flex items-center gap-4">
-            <span className="text-xs font-bold text-zinc-400">
-              Page {page}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                disabled={page <= 1 || loading} 
-                onClick={() => setPage(p => p - 1)}
-                className="size-8 rounded-lg"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                disabled={loading}
-                onClick={() => setPage(p => p + 1)}
-                className="size-8 rounded-lg"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
+             <span className="text-xs font-bold text-zinc-400">
+               {totalItems} Orders Total
+             </span>
           </div>
         </div>
         <OrdersTable 
@@ -217,6 +219,17 @@ export function OrdersPageClient({ initialOrders }: Props) {
           onUpdateStatus={handleUpdateStatus}
           onUpdatePayment={handleUpdatePayment}
         />
+        {!loading && totalPages > 1 && (
+          <div className="border-t border-zinc-100 bg-zinc-50/30">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          </div>
+        )}
       </div>
 
       <CreateOrderModal

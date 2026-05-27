@@ -6,6 +6,9 @@ export interface AuthUser {
   created_at: string;
   updated_at: string;
   role?: string; // e.g. 'admin' | 'wholeseller' | 'user'
+  phone?: string | null;
+  company_name?: string | null;
+  address?: string | null;
 }
 
 export interface LoginResponse {

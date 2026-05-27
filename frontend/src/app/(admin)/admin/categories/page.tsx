@@ -28,6 +28,7 @@ import { Edit2, Trash2, Plus, X, Image as ImageIcon, Layers, Search, Calendar, F
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
 import { DatePicker } from '@/src/components/ui/date-picker';
+import { Pagination } from '@/src/components/ui/pagination';
 import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 const slugify = (text: string) => {
@@ -47,6 +48,8 @@ export default function CategoriesPage() {
   const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
   const [dateTo, setDateTo] = React.useState<Date | undefined>();
   const [page, setPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalItems, setTotalItems] = React.useState(0);
   
   // Form State
   const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
@@ -69,13 +72,24 @@ export default function CategoriesPage() {
     setIsLoading(true);
     try {
       const freshToken = getAuthToken();
-      const res = await apiFetch<any>(`/categories?include_inactive=1&status=all&page=${page}`, { token: freshToken || undefined });
+      const res = await apiFetch<any>(`/categories?include_inactive=1&status=all&page=${page}&per_page=10`, { token: freshToken || undefined });
       let categoriesData: Category[] = [];
-      if (Array.isArray(res)) categoriesData = res;
-      else if (Array.isArray(res?.data)) categoriesData = res.data;
-      else if (Array.isArray(res?.data?.data)) categoriesData = res.data.data;
+      let total = 0;
+      let lastPage = 1;
+
+      if (Array.isArray(res)) {
+          categoriesData = res;
+          total = res.length;
+      } else {
+          const resData = res?.data?.data || res?.data || [];
+          categoriesData = Array.isArray(resData) ? resData : [];
+          total = res?.total || res?.meta?.total || categoriesData.length;
+          lastPage = res?.last_page || res?.meta?.last_page || 1;
+      }
                                                 
       setCategories(categoriesData);
+      setTotalItems(total);
+      setTotalPages(lastPage);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load categories');
     } finally {
@@ -297,29 +311,9 @@ export default function CategoriesPage() {
         <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
           <h2 className="text-lg font-black text-black">Category Registry</h2>
           <div className="flex items-center gap-4">
-            <span className="text-xs font-bold text-zinc-400">
-              Page {page}
-            </span>
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                disabled={page <= 1 || isLoading} 
-                onClick={() => setPage(p => p - 1)}
-                className="size-8 rounded-lg"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                disabled={isLoading}
-                onClick={() => setPage(p => p + 1)}
-                className="size-8 rounded-lg"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
+             <span className="text-xs font-bold text-zinc-400">
+               {totalItems} Categories Total
+             </span>
           </div>
         </div>
         <div className="overflow-x-auto scrollbar-hide">
@@ -444,6 +438,18 @@ export default function CategoriesPage() {
             </TableBody>
           </Table>
         </div>
+
+        {!isLoading && totalPages > 1 && (
+          <div className="border-t border-zinc-100 bg-zinc-50/30">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          </div>
+        )}
       </div>
 
       {/* Modal Overlay */}

@@ -10,14 +10,15 @@ function extractArray(data: any): Payment[] {
   return [];
 }
 
-export async function fetchAllPaymentsAdmin(filters?: PaymentFilters): Promise<Payment[]> {
-  const token = getAuthToken();
+export async function fetchAllPaymentsAdmin(filters?: PaymentFilters & { token?: string }): Promise<any> {
+  const token = filters?.token || getAuthToken();
   const query = new URLSearchParams();
   if (filters?.status) query.append("status", filters.status);
   if (filters?.from) query.append("from", filters.from);
   if (filters?.to) query.append("to", filters.to);
   if (filters?.customer) query.append("customer", filters.customer);
   if (filters?.page) query.append("page", filters.page.toString());
+  query.append("per_page", "10");
 
   const queryString = query.toString();
   const res = await fetch(`${API_BASE}/admin/payments${queryString ? `?${queryString}` : ""}`, {
@@ -29,11 +30,11 @@ export async function fetchAllPaymentsAdmin(filters?: PaymentFilters): Promise<P
   });
   if (!res.ok) throw new Error(`Failed to fetch payments: ${res.status}`);
   const data = await res.json();
-  return extractArray(data);
+  return data;
 }
 
-export async function fetchPaymentDetailsAdmin(id: string | number): Promise<Payment> {
-  const token = getAuthToken();
+export async function fetchPaymentDetailsAdmin(id: string | number, tokenOverride?: string): Promise<Payment> {
+  const token = tokenOverride || getAuthToken();
   const res = await fetch(`${API_BASE}/admin/payments/${id}`, {
     headers: {
       "Accept": "application/json",
