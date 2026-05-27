@@ -1,5 +1,5 @@
 import { apiFetch } from './api';
-import { LoginResponse, LogoutResponse } from '@/src/types';
+import { AuthUser, LoginResponse, LogoutResponse } from '@/src/types';
 
 const TOKEN_COOKIE = 'auth-token';
 
@@ -40,6 +40,14 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
   return transformedRes;
 }
 
+export async function fetchProfile(token: string): Promise<AuthUser> {
+  const res = await apiFetch<{ data: AuthUser }>('/profile', {
+    method: 'GET',
+    token,
+  });
+  return res.data;
+}
+
 export async function logoutApi(): Promise<void> {
   const token = getAuthToken();
   if (token) {
@@ -53,4 +61,21 @@ export async function logoutApi(): Promise<void> {
     }
   }
   clearAuthCookie();
+}
+
+export async function updateProfile(payload: {
+  name: string;
+  email: string;
+  phone?: string | null;
+  company_name?: string | null;
+  address?: string | null;
+  password?: string | null;
+  password_confirmation?: string | null;
+}): Promise<void> {
+  const token = getAuthToken();
+  await apiFetch('/profile', {
+    method: 'PUT',
+    token: token || undefined,
+    body: JSON.stringify(payload),
+  });
 }

@@ -45,7 +45,7 @@ export default function AttributesPage() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = React.useState(1);
-  const ITEMS_PER_PAGE = 8;
+  const ITEMS_PER_PAGE = 10;
 
   // Search state
   const [searchQuery, setSearchQuery] = React.useState('');

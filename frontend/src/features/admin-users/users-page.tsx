@@ -19,24 +19,45 @@ import {
 import { Badge } from '@/src/components/ui/badge';
 import { cn } from '@/src/lib/utils';
 import { toast } from 'sonner';
-import { MoreHorizontal, Shield, User, Mail, Calendar } from 'lucide-react';
+import { MoreHorizontal, User, Mail, Calendar } from 'lucide-react';
+import { Pagination } from '@/src/components/ui/pagination';
 
 export function UsersPage() {
   const [users, setUsers] = React.useState<AuthUser[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [page, setPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalItems, setTotalItems] = React.useState(0);
   const token = getAuthToken();
 
   const loadUsers = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch<any>('/admin/users', { token: token || undefined });
-      setUsers(res.data ? res.data : res);
+      const res = await apiFetch<any>(`/admin/users?page=${page}&per_page=10`, { token: token || undefined });
+      
+      let data: AuthUser[] = [];
+      let total = 0;
+      let lastPage = 1;
+
+      if (Array.isArray(res)) {
+        data = res;
+        total = res.length;
+      } else {
+        const resData = res?.data?.data || res?.data || [];
+        data = Array.isArray(resData) ? resData : [];
+        total = res?.total || res?.meta?.total || data.length;
+        lastPage = res?.last_page || res?.meta?.last_page || 1;
+      }
+
+      setUsers(data);
+      setTotalItems(total);
+      setTotalPages(lastPage);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load users');
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, page]);
 
   React.useEffect(() => {
     loadUsers();
@@ -135,6 +156,18 @@ export function UsersPage() {
             </TableBody>
           </Table>
         </div>
+        
+        {!isLoading && totalPages > 1 && (
+          <div className="border-t border-zinc-50 bg-zinc-50/30">
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

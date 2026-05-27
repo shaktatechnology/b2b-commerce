@@ -7,6 +7,7 @@ import { PageHeader } from "@/src/components/layout-components/page-wrapper";
 import { Input } from "@/src/components/ui/input";
 import { Button } from "@/src/components/ui/button";
 import { Search, FilterX, ChevronLeft, ChevronRight, CreditCard, DollarSign } from "lucide-react";
+import { Pagination } from "@/src/components/ui/pagination";
 import { DatePicker } from "@/src/components/ui/date-picker";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -15,9 +16,11 @@ import { cn } from "@/src/lib/utils";
 
 interface Props {
   initialPayments: Payment[];
+  initialTotal?: number;
+  initialLastPage?: number;
 }
 
-export function PaymentsPageClient({ initialPayments }: Props) {
+export function PaymentsPageClient({ initialPayments, initialTotal = 0, initialLastPage = 1 }: Props) {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,18 +28,37 @@ export function PaymentsPageClient({ initialPayments }: Props) {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(initialLastPage);
+  const [totalItems, setTotalItems] = useState(initialTotal);
 
   const loadPayments = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchAllPaymentsAdmin({
+      const res = await fetchAllPaymentsAdmin({
         status: statusFilter || undefined,
         from: dateFrom ? format(dateFrom, 'yyyy-MM-dd') : undefined,
         to: dateTo ? format(dateTo, 'yyyy-MM-dd') : undefined,
         customer: searchQuery || undefined,
         page
       });
+      
+      let data: Payment[] = [];
+      let total = 0;
+      let lastPage = 1;
+
+      if (Array.isArray(res)) {
+          data = res;
+          total = res.length;
+      } else {
+          const resData = res?.data?.data || res?.data || [];
+          data = Array.isArray(resData) ? resData : [];
+          total = res?.total || res?.meta?.total || data.length;
+          lastPage = res?.last_page || res?.meta?.last_page || 1;
+      }
+
       setPayments(data);
+      setTotalItems(total);
+      setTotalPages(lastPage);
     } catch (err: any) {
       toast.error(err.message || "Failed to load payments");
     } finally {
@@ -135,18 +157,12 @@ export function PaymentsPageClient({ initialPayments }: Props) {
         <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
           <h2 className="text-lg font-black text-black">Transaction Ledger</h2>
           <div className="flex items-center gap-4">
-             <span className="text-xs font-bold text-zinc-400">Page {page}</span>
-             <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" disabled={page <= 1 || loading} onClick={() => setPage(p => p - 1)} className="size-8 rounded-lg">
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" disabled={loading} onClick={() => setPage(p => p + 1)} className="size-8 rounded-lg">
-                  <ChevronRight className="size-4" />
-                </Button>
-             </div>
+             <span className="text-xs font-bold text-zinc-400">
+               {totalItems} Payments Total
+             </span>
           </div>
         </div>
-
+        
         <div className="overflow-x-auto scrollbar-hide">
           <table className="w-full text-sm">
             <thead>
@@ -203,6 +219,18 @@ export function PaymentsPageClient({ initialPayments }: Props) {
             </tbody>
           </table>
         </div>
+
+        {!loading && totalPages > 1 && (
+          <div className="border-t border-zinc-50 bg-zinc-50/30">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

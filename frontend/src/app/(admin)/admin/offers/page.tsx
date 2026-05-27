@@ -15,6 +15,7 @@ import { Edit2, Trash2, Plus, X, Image as ImageIcon, Tag, Check, Search, Calenda
 import { toast } from "sonner";
 import { cn } from "@/src/lib/utils";
 import { DatePicker } from "@/src/components/ui/date-picker";
+import { Pagination } from "@/src/components/ui/pagination";
 import { format, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
 import { DateTimePicker } from "@/src/components/ui/date-time-picker";
 import { Matcher } from "react-day-picker";
@@ -85,6 +86,9 @@ export default function AdminOffersPage() {
   const [placementFilter, setPlacementFilter] = React.useState<string>("all");
   const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
   const [dateTo, setDateTo] = React.useState<Date | undefined>();
+  const [page, setPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalItems, setTotalItems] = React.useState(0);
 
   const token = getAuthToken();
 
@@ -93,14 +97,23 @@ export default function AdminOffersPage() {
     try {
       const freshToken = getAuthToken();
       const [offerRes, prodRes] = await Promise.all([
-        apiFetch<any>("/offers?include_inactive=1&status=all", { token: freshToken || undefined }),
-        apiFetch<any>("/products?include_inactive=1&status=all", { token: freshToken || undefined }),
+        apiFetch<any>(`/offers?include_inactive=1&status=all&page=${page}&per_page=10`, { token: freshToken || undefined }),
+        apiFetch<any>("/products?include_inactive=1&status=all&all=1", { token: freshToken || undefined }),
       ]);
 
       let offersData: Offer[] = [];
-      if (Array.isArray(offerRes)) offersData = offerRes;
-      else if (Array.isArray(offerRes?.data)) offersData = offerRes.data;
-      else if (Array.isArray(offerRes?.data?.data)) offersData = offerRes.data.data;
+      let total = 0;
+      let lastPage = 1;
+
+      if (Array.isArray(offerRes)) {
+          offersData = offerRes;
+          total = offerRes.length;
+      } else {
+          const resData = offerRes?.data?.data || offerRes?.data || [];
+          offersData = Array.isArray(resData) ? resData : [];
+          total = offerRes?.total || offerRes?.meta?.total || offersData.length;
+          lastPage = offerRes?.last_page || offerRes?.meta?.last_page || 1;
+      }
 
       let productsData: Product[] = [];
       // Handle exhaustive nested data patterns common in paginated APIs
@@ -133,7 +146,7 @@ export default function AdminOffersPage() {
 
   React.useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, page]);
 
   const openModal = (mode: "create" | "edit", offer?: Offer) => {
     setFormMode(mode);
@@ -310,6 +323,7 @@ export default function AdminOffersPage() {
     setPlacementFilter('all');
     setDateFrom(undefined);
     setDateTo(undefined);
+    setPage(1);
   };
 
   return (
@@ -329,6 +343,12 @@ export default function AdminOffersPage() {
         {/* Filters Bar */}
         <div className="bg-zinc-50/30 border-b border-zinc-50 px-6 sm:px-10 py-6 sm:py-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
            <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
+             <h2 className="text-lg font-black text-black shrink-0">Offer Registry</h2>
+             <span className="text-xs font-bold text-zinc-400">
+               {totalItems} Offers Total
+             </span>
+           </div>
+           <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1 justify-end">
              {/* Search Input */}
              <div className="flex flex-col gap-1.5 flex-1 max-w-sm">
                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Search Offers</span>
@@ -555,6 +575,18 @@ export default function AdminOffersPage() {
             </TableBody>
           </Table>
         </div>
+
+        {!isLoading && totalPages > 1 && (
+          <div className="border-t border-zinc-50 bg-zinc-50/30">
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              totalItems={totalItems}
+              itemsPerPage={10}
+            />
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

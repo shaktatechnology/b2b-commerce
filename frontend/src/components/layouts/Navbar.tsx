@@ -1,26 +1,12 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useRef,
-  useLayoutEffect,
-  useCallback,
-} from "react";
+import {  useEffect,  useState,  useRef,  useLayoutEffect,  useCallback,} from "react";
 import Link from "next/link";
 
-import {
-  Menu,
-  Search,
-  ShoppingCart,
-  User,
-  Globe,
-  X,
-  Phone,
-  ChevronRight,
-  ChevronLeft,
-} from "lucide-react";
+import {  Menu,  Search,  ShoppingCart,  User,  Globe,  X,  Phone,  ChevronRight,  ChevronLeft,  ChevronDown,  LogOut} from "lucide-react";
 import { useCartStore } from "@/src/store/use-cart-store";
+import { useAppStore } from "@/src/store/use-app-store";
+import { getAuthToken, fetchProfile, logoutApi } from "@/src/lib/auth";
 
 interface Category {
   id: string;
@@ -40,12 +26,32 @@ export default function Navbar({
   logo,
 }: NavbarProps) {
   const cartCount = useCartStore((s) => s.itemCount());
+  const user = useAppStore((s) => s.user);
+  const setUser = useAppStore((s) => s.setUser);
+  const clearUser = useAppStore((s) => s.logout);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    
+    // Check for existing session
+    const token = getAuthToken();
+    if (token && !user) {
+      fetchProfile(token)
+        .then(u => setUser(u))
+        .catch(() => {});
+    }
+  }, [user, setUser]);
+
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+      clearUser();
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
 
   const categoryRef = useRef<HTMLDivElement>(null);
 
@@ -134,11 +140,6 @@ export default function Navbar({
               <span>Need help? Call Us: {contactPhone}</span>
 
               <div className="flex items-center gap-1">
-                <User size={14} />
-                <span>Retailer</span>
-              </div>
-
-              <div className="flex items-center gap-1">
                 <Globe size={14} />
                 <span>NP</span>
               </div>
@@ -178,20 +179,66 @@ export default function Navbar({
               </div>
             </div>
 
-            {/* cart */}
-            <Link
-              href="/cart"
-              className="justify-self-end relative text-white cursor-pointer"
-              aria-label="View cart"
-            >
-              <ShoppingCart size={24} />
-
-              {isMounted && cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-0.5">
-                  {cartCount > 99 ? "99+" : cartCount}
-                </span>
+            {/* cart & auth */}
+            <div className="justify-self-end flex items-center gap-6">
+              {/* Auth Logic */}
+              {isMounted && user ? (
+                <div className="relative group">
+                  <div className="flex items-center gap-2 cursor-pointer text-white/90 hover:text-white transition-colors py-2">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
+                       <User size={18} />
+                    </div>
+                    <span className="text-sm font-bold max-w-[100px] truncate">{user.name}</span>
+                    <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
+                  </div>
+                  
+                  {/* Hover Dropdown */}
+                  <div className="absolute right-0 top-full pt-2 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 z-[100]">
+                    <div className="w-52 bg-white border border-gray-100 rounded-xl shadow-2xl overflow-hidden p-1.5 ring-1 ring-black/5">
+                      <div className="px-3 py-2.5 border-b border-gray-50 mb-1">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest leading-none mb-1.5">User Identity</p>
+                        <p className="text-xs font-black text-zinc-800 truncate">{user.name}</p>
+                      </div>
+                      <Link 
+                        href="/account"
+                        className="flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold text-gray-600 hover:bg-gray-50 hover:text-primary rounded-lg transition-all"
+                      >
+                        <User size={16} className="text-zinc-400" />
+                        <span>My Account</span>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 text-[13px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition-all text-left"
+                      >
+                        <LogOut size={16} />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Link href="/login" className="flex items-center gap-2 text-white/90 hover:text-white transition-colors group">
+                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all border border-white/20 shadow-inner">
+                    <User size={20} />
+                  </div>
+                  <span className="text-sm font-black uppercase tracking-tight">Login</span>
+                </Link>
               )}
-            </Link>
+
+              <Link
+                href="/cart"
+                className="relative text-white cursor-pointer hover:scale-110 transition-transform flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10"
+                aria-label="View cart"
+              >
+                <ShoppingCart size={26} />
+
+                {isMounted && cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[20px] h-[20px] rounded-full flex items-center justify-center px-1 font-bold border-2 border-primary shadow-lg scale-90 group-hover:scale-100 transition-transform">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -322,10 +369,38 @@ export default function Navbar({
             <span>+977 9874563210</span>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <User size={16} />
-            <span>Retailer</span>
-          </div>
+          {isMounted && user ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <User size={16} />
+                <span>{user.name}</span>
+              </div>
+              <Link 
+                href="/account"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-primary"
+              >
+                <User size={16} />
+                <span>Account</span>
+              </Link>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-sm text-red-500 font-bold"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
+            <Link 
+              href="/login" 
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 text-sm text-gray-700"
+            >
+              <User size={16} />
+              <span>Login</span>
+            </Link>
+          )}
 
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Globe size={16} />
