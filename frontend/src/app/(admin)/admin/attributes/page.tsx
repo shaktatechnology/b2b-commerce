@@ -32,9 +32,9 @@ interface AttributeItem {
 }
 
 const TABS: { key: Tab; label: string; icon: React.ElementType; accent: string; bg: string }[] = [
-  { key: 'brands', label: 'Brands',  icon: Tag,     accent: '#966FD6', bg: '#966FD6/10' },
-  { key: 'colors', label: 'Colors',  icon: Palette,  accent: '#966FD6', bg: '#966FD6/10' },
-  { key: 'sizes',  label: 'Sizes',   icon: Ruler,    accent: '#966FD6', bg: '#966FD6/10' },
+  { key: 'brands', label: 'Brands', icon: Tag, accent: '#966FD6', bg: '#966FD6/10' },
+  { key: 'colors', label: 'Colors', icon: Palette, accent: '#966FD6', bg: '#966FD6/10' },
+  { key: 'sizes', label: 'Sizes', icon: Ruler, accent: '#966FD6', bg: '#966FD6/10' },
 ];
 
 export default function AttributesPage() {
@@ -66,8 +66,8 @@ export default function AttributesPage() {
     try {
       const endpoint =
         activeTab === 'brands' ? '/brands' :
-        activeTab === 'colors' ? '/colors' :
-        '/sizes';
+          activeTab === 'colors' ? '/colors' :
+            '/sizes';
       const res: any = await apiFetch(endpoint);
       setItems(res.data || []);
     } catch (e: any) {
@@ -122,9 +122,9 @@ export default function AttributesPage() {
       const token = getAuthToken();
       const base =
         activeTab === 'brands' ? '/admin/brands' :
-        activeTab === 'colors' ? '/admin/colors' :
-        '/admin/sizes';
-      const url    = editingId ? `${base}/${editingId}` : base;
+          activeTab === 'colors' ? '/admin/colors' :
+            '/admin/sizes';
+      const url = editingId ? `${base}/${editingId}` : base;
       const method = editingId ? 'PUT' : 'POST';
 
       const payload: Record<string, string> = { name };
@@ -137,7 +137,7 @@ export default function AttributesPage() {
         body: JSON.stringify(payload),
       });
 
-      toast.success(editingId ? `${activeConfig.label.slice(0,-1)} updated` : `${activeConfig.label.slice(0,-1)} created`);
+      toast.success(editingId ? `${activeConfig.label.slice(0, -1)} updated` : `${activeConfig.label.slice(0, -1)} created`);
       resetForm();
       fetchItems();
     } catch (e: any) {
@@ -154,13 +154,13 @@ export default function AttributesPage() {
       const token = getAuthToken();
       const base =
         activeTab === 'brands' ? '/admin/brands' :
-        activeTab === 'colors' ? '/admin/colors' :
-        '/admin/sizes';
+          activeTab === 'colors' ? '/admin/colors' :
+            '/admin/sizes';
       await apiFetch(`${base}/${deleteId}`, {
         method: 'DELETE',
         token: token || undefined,
       });
-      toast.success(`${activeConfig.label.slice(0,-1)} deleted`);
+      toast.success(`${activeConfig.label.slice(0, -1)} deleted`);
       setDeleteId(null);
       fetchItems();
     } catch (e: any) {
@@ -231,10 +231,10 @@ export default function AttributesPage() {
               style={{ backgroundColor: `${activeConfig.accent}0d` }}
             >
               <h2 className="text-base font-black text-black">
-                {editingId ? `Edit ${activeConfig.label.slice(0,-1)}` : `Add ${activeConfig.label.slice(0,-1)}`}
+                {editingId ? `Edit ${activeConfig.label.slice(0, -1)}` : `Add ${activeConfig.label.slice(0, -1)}`}
               </h2>
               <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                {editingId ? 'Update the details below.' : `Create a new ${activeConfig.label.toLowerCase().slice(0,-1)}.`}
+                {editingId ? 'Update the details below.' : `Create a new ${activeConfig.label.toLowerCase().slice(0, -1)}.`}
               </p>
             </div>
 
@@ -242,15 +242,15 @@ export default function AttributesPage() {
               {/* Name field */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                  {activeConfig.label.slice(0,-1)} Name <span className="text-red-500">*</span>
+                  {activeConfig.label.slice(0, -1)} Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={name}
                   onChange={e => { setName(e.target.value); setNameError(''); }}
                   placeholder={
                     activeTab === 'brands' ? 'e.g. Nike' :
-                    activeTab === 'colors' ? 'e.g. Crimson Red' :
-                    'e.g. Large'
+                      activeTab === 'colors' ? 'e.g. Crimson Red' :
+                        'e.g. L,XL,XXL,.... '
                   }
                   className={cn(
                     'h-11 rounded-xl font-bold focus-visible:ring-2',
@@ -313,7 +313,7 @@ export default function AttributesPage() {
                 >
                   {editingId
                     ? <><Check className="w-4 h-4 mr-2" /> Update</>
-                    : <><Plus className="w-4 h-4 mr-2" /> Add {activeConfig.label.slice(0,-1)}</>
+                    : <><Plus className="w-4 h-4 mr-2" /> Add {activeConfig.label.slice(0, -1)}</>
                   }
                 </Button>
                 {editingId && (
@@ -507,8 +507,8 @@ export default function AttributesPage() {
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
-        title={`Delete ${activeConfig.label.slice(0,-1)}`}
-        description={`Are you sure you want to delete this ${activeConfig.label.toLowerCase().slice(0,-1)}? This action cannot be undone.`}
+        title={`Delete ${activeConfig.label.slice(0, -1)}`}
+        description={`Are you sure you want to delete this ${activeConfig.label.toLowerCase().slice(0, -1)}? This action cannot be undone.`}
       />
     </div>
   );

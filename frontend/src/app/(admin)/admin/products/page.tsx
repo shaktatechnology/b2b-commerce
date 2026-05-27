@@ -79,6 +79,15 @@ const generateSKU = (name: string = 'PROD') => {
   return `${prefix}-${random}`;
 };
 
+const ColorOption = ({color, showName = true}: { color: any; showName?: boolean}) => (
+  <div className='flex items-center gap-2'>
+    <div className='w-4 h-4 rounded sm border-zinc-200 shadow-sm'
+    style={{ backgroundColor: color.hex_code || '#CCCCCC'}}
+    />
+    {showName && <span>{color.name}</span>}
+  </div>
+)
+
 export default function AdminProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [categories, setCategories] = React.useState<Category[]>([]);
@@ -889,22 +898,24 @@ export default function AdminProductsPage() {
                      {!formData.weight && (
                        <>
                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Color (Default)</label>
-                            <Select 
-                              value={formData.color_id || 'none'} 
-                              onValueChange={(val) => setFormData({ ...formData, color_id: val === 'none' ? '' : val })}
-                            >
-                              <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
-                                <SelectValue placeholder="Select Color" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="none">No Color</SelectItem>
-                                {colors.map((c) => (
-                                  <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                         </div>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Color (Default)</label>
+                          <Select 
+                            value={formData.color_id || 'none'} 
+                            onValueChange={(val) => setFormData({ ...formData, color_id: val === 'none' ? '' : val })}
+                          >
+                            <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                              <SelectValue placeholder="Select Color" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                              <SelectItem value="none">No Color</SelectItem>
+                              {colors.map((c) => (
+                                <SelectItem key={c.id} value={c.id.toString()}>
+                                  <ColorOption color={c} />
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                          <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Size (Default)</label>
                             <Select 
@@ -1182,22 +1193,24 @@ export default function AdminProductsPage() {
                                     {!v.weight && (
                                       <>
                                         <div className="space-y-1">
-                                           <span className="text-[10px] font-black uppercase text-zinc-400">Color Override</span>
-                                           <Select 
-                                             value={v.color_id || 'none'} 
-                                             onValueChange={(val) => updateVariant(i, 'color_id', val === 'none' ? '' : val)}
-                                           >
-                                             <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
-                                               <SelectValue placeholder="Default" />
-                                             </SelectTrigger>
-                                             <SelectContent>
-                                               <SelectItem value="none">Use Product Default</SelectItem>
-                                               {colors.map((c) => (
-                                                 <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
-                                               ))}
-                                             </SelectContent>
-                                           </Select>
-                                        </div>
+                                        <span className="text-[10px] font-black uppercase text-zinc-400">Color Override</span>
+                                        <Select 
+                                          value={v.color_id || 'none'} 
+                                          onValueChange={(val) => updateVariant(i, 'color_id', val === 'none' ? '' : val)}
+                                        >
+                                          <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                            <SelectValue placeholder="Default" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Use Product Default</SelectItem>
+                                            {colors.map((c) => (
+                                              <SelectItem key={c.id} value={c.id.toString()}>
+                                                <ColorOption color={c} />
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
                                         <div className="space-y-1">
                                            <span className="text-[10px] font-black uppercase text-zinc-400">Size Override</span>
                                            <Select 
