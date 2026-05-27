@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { formatRs } from "@/src/lib/product-utils";
-import { getAuthToken } from "@/src/lib/auth";
+import { getAuthToken, getUserRole } from "@/src/lib/auth";
 import type { CartProductInput } from "@/src/types/cart";
 import RecommendedProductCard from "./RecommendedProductCard";
 import { ConfirmDialog } from "@/src/components/modals/confirm-dialog";
@@ -35,8 +35,17 @@ export default function CartPageClient({
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
-  const subtotalAmount = subtotal();
+  useEffect(() => {
+    setRole(getUserRole());
+  }, []);
+
+  const isWholesaler = role === "wholesaler";
+
+  const rawSubtotal = subtotal();
+  const totalDiscount = useCartStore((s) => s.discountTotal)();
+  const subtotalAmount = rawSubtotal - totalDiscount;
   const totalAmount = subtotalAmount + SHIPPING_ESTIMATE;
   const totalItems = itemCount();
 
@@ -56,6 +65,21 @@ export default function CartPageClient({
     if (items.length === 0) {
       toast.error("Your cart is empty. Add products before checkout.");
       return;
+    }
+    for (const item of items) {
+      const moq = item.moq ?? 1;
+      if (isWholesaler && item.quantity < moq) {
+        toast.error(`Item "${item.name}" does not meet the wholesale MOQ of ${moq}.`);
+        return;
+      }
+      if (item.stock !== undefined && item.stock <= 0) {
+        toast.error(`Item "${item.name}" is out of stock and cannot be checked out.`);
+        return;
+      }
+      if (item.stock !== undefined && item.quantity > item.stock) {
+        toast.error(`Item "${item.name}" only has ${item.stock} unit${item.stock === 1 ? "" : "s"} available.`);
+        return;
+      }
     }
     const token = getAuthToken();
     if (!token) {
@@ -125,9 +149,21 @@ export default function CartPageClient({
                   <h3 className="font-semibold text-gray-900 text-sm sm:text-base mt-0.5 line-clamp-2">
                     {item.name}
                   </h3>
-                  <p className="text-primary font-bold text-lg mt-1">
-                    Rs. {item.price.toFixed(0)}
-                  </p>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    <p className="text-primary font-bold text-lg">
+                      Rs. {(item.price - (item.discount ?? 0)).toFixed(0)}
+                    </p>
+                    {(item.discount ?? 0) > 0 && (
+                      <>
+                        <span className="text-gray-400 line-through text-sm">
+                          Rs. {item.price.toFixed(0)}
+                        </span>
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-medium">
+                          {Math.round(((item.discount ?? 0) / item.price) * 100)}% off
+                        </span>
+                      </>
+                    )}
+                  </div>
                   <p className="text-xs text-primary mt-1">
                     By <span className="font-medium">{item.seller}</span>
                   </p>
@@ -137,22 +173,55 @@ export default function CartPageClient({
                   <div className="flex items-center border border-gray-300 rounded overflow-hidden text-sm">
                     <button
                       type="button"
-                      onClick={() =>
-                        updateQuantity(item.variantId, item.quantity - 1)
-                      }
+                      onClick={() => {
+                        const minQty = isWholesaler ? (item.moq ?? 1) : 1;
+                        if (item.quantity <= minQty) {
+                          toast.error(`Minimum order quantity for the item is ${minQty}.`);
+                          return;
+                        }
+                        updateQuantity(item.variantId, item.quantity - 1);
+                      }}
                       className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600"
                       aria-label="Decrease quantity"
                     >
                       <Minus size={14} />
                     </button>
-                    <span className="w-10 h-8 flex items-center justify-center border-x border-gray-300 font-medium">
-                      {item.quantity}
-                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const newQty = parseInt(e.target.value, 10);
+                        if (!isNaN(newQty)) {
+                          updateQuantity(item.variantId, newQty);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const newQty = parseInt(e.target.value, 10);
+                        if (isNaN(newQty)) return;
+                        const minQty = isWholesaler ? (item.moq ?? 1) : 1;
+                        if (newQty < minQty) {
+                          toast.error(`Minimum order quantity is ${minQty}.`);
+                          updateQuantity(item.variantId, minQty);
+                          return;
+                        }
+                        if (item.stock !== undefined && newQty > item.stock) {
+                          toast.error(`Only ${item.stock} unit${item.stock === 1 ? "" : "s"} are available.`);
+                          updateQuantity(item.variantId, item.stock);
+                          return;
+                        }
+                      }}
+                      className={`${isWholesaler ? "w-20 h-10 text-base" : "w-10 h-8 text-sm"} flex items-center justify-center border-x border-gray-300 font-medium text-center outline-none bg-white`}
+                    />
                     <button
                       type="button"
-                      onClick={() =>
-                        updateQuantity(item.variantId, item.quantity + 1)
-                      }
+                      onClick={() => {
+                        if (item.stock !== undefined && item.quantity >= item.stock) {
+                          toast.error(`Only ${item.stock} unit${item.stock === 1 ? "" : "s"} are available.`);
+                          return;
+                        }
+                        updateQuantity(item.variantId, item.quantity + 1);
+                      }}
                       className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600"
                       aria-label="Increase quantity"
                     >
@@ -188,8 +257,14 @@ export default function CartPageClient({
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-semibold">{formatRs(subtotalAmount)}</span>
+              <span className="font-semibold">{formatRs(rawSubtotal)}</span>
             </div>
+            {totalDiscount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-green-600">Discount</span>
+                <span className="font-semibold text-green-600">-{formatRs(totalDiscount)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-gray-600">Estimated Shipping</span>
               <span className="font-semibold">{formatRs(SHIPPING_ESTIMATE)}</span>

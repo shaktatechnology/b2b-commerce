@@ -10,6 +10,14 @@ function extractArray(data: any): Order[] {
   return [];
 }
 
+export interface PaginatedOrdersResponse {
+  orders: Order[];
+  total: number;
+  lastPage: number;
+  currentPage: number;
+  perPage: number;
+}
+
 // Admin: Fetch all orders with filters
 export async function fetchAllOrdersAdmin(filters?: {
   status?: string;
@@ -17,7 +25,8 @@ export async function fetchAllOrdersAdmin(filters?: {
   to?: string;
   customer?: string;
   page?: number;
-}): Promise<Order[]> {
+  user_type?: string;
+}): Promise<PaginatedOrdersResponse> {
   const token = getAuthToken();
   const query = new URLSearchParams();
   if (filters?.status) query.append("status", filters.status);
@@ -25,6 +34,7 @@ export async function fetchAllOrdersAdmin(filters?: {
   if (filters?.to) query.append("to", filters.to);
   if (filters?.customer) query.append("customer", filters.customer);
   if (filters?.page) query.append("page", filters.page.toString());
+  if (filters?.user_type) query.append("user_type", filters.user_type);
 
   const queryString = query.toString();
   const res = await fetch(`${API_BASE}/admin/orders${queryString ? `?${queryString}` : ""}`, {
@@ -35,8 +45,37 @@ export async function fetchAllOrdersAdmin(filters?: {
     }
   });
   if (!res.ok) throw new Error(`Failed to fetch admin orders: ${res.status}`);
-  const data = await res.json();
-  return extractArray(data);
+  const rawData = await res.json();
+
+  let orders: Order[] = [];
+  let total = 0;
+  let lastPage = 1;
+  let currentPage = 1;
+  let perPage = 15;
+
+  if (Array.isArray(rawData)) {
+    orders = rawData;
+    total = rawData.length;
+  } else if (rawData?.data) {
+    if (Array.isArray(rawData.data)) {
+      orders = rawData.data;
+      total = rawData.data.length;
+    } else if (rawData.data?.data && Array.isArray(rawData.data.data)) {
+      orders = rawData.data.data;
+      total = rawData.data.total ?? orders.length;
+      lastPage = rawData.data.last_page ?? 1;
+      currentPage = rawData.data.current_page ?? 1;
+      perPage = rawData.data.per_page ?? 15;
+    }
+  }
+
+  return {
+    orders,
+    total,
+    lastPage,
+    currentPage,
+    perPage
+  };
 }
 
 // User: Fetch own orders

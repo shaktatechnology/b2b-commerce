@@ -6,16 +6,27 @@ import { fetchAllPaymentsAdmin } from "@/src/lib/payments-api";
 import { PageHeader } from "@/src/components/layout-components/page-wrapper";
 import { Input } from "@/src/components/ui/input";
 import { Button } from "@/src/components/ui/button";
-import { Search, FilterX, ChevronLeft, ChevronRight, CreditCard, DollarSign } from "lucide-react";
+import { Search, FilterX } from "lucide-react";
 import { DatePicker } from "@/src/components/ui/date-picker";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { cn } from "@/src/lib/utils";
+import { Pagination } from "@/src/components/ui/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/src/components/ui/table";
 
 interface Props {
   initialPayments: Payment[];
 }
+
+const ITEMS_PER_PAGE = 20;
 
 export function PaymentsPageClient({ initialPayments }: Props) {
   const [payments, setPayments] = useState<Payment[]>(initialPayments);
@@ -25,6 +36,7 @@ export function PaymentsPageClient({ initialPayments }: Props) {
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const loadPayments = useCallback(async () => {
     setLoading(true);
@@ -37,8 +49,11 @@ export function PaymentsPageClient({ initialPayments }: Props) {
         page
       });
       setPayments(data);
+      const calculatedPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+      setTotalPages(calculatedPages > 0 ? calculatedPages : 1);
     } catch (err: any) {
       toast.error(err.message || "Failed to load payments");
+      setPayments([]);
     } finally {
       setLoading(false);
     }
@@ -59,6 +74,11 @@ export function PaymentsPageClient({ initialPayments }: Props) {
     setPage(1);
   };
 
+  const paginatedPayments = payments.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="space-y-8 font-lato">
       <PageHeader 
@@ -73,7 +93,10 @@ export function PaymentsPageClient({ initialPayments }: Props) {
           <Input 
             placeholder="Search by ID, customer or order..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
@@ -81,7 +104,10 @@ export function PaymentsPageClient({ initialPayments }: Props) {
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
             className="h-11 px-4 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 focus:border-[#966FD6]/30 focus:outline-none transition-all"
           >
             <option value="">All Statuses</option>
@@ -97,7 +123,10 @@ export function PaymentsPageClient({ initialPayments }: Props) {
               <div className="w-50">
                 <DatePicker 
                   date={dateFrom} 
-                  setDate={setDateFrom} 
+                  setDate={(date) => {
+                    setDateFrom(date);
+                    setPage(1);
+                  }}
                   placeholder="Start Date" 
                   disabled={dateTo ? { after: dateTo } : undefined}
                 />
@@ -109,7 +138,10 @@ export function PaymentsPageClient({ initialPayments }: Props) {
               <div className="w-50">
                 <DatePicker 
                   date={dateTo} 
-                  setDate={setDateTo} 
+                  setDate={(date) => {
+                    setDateTo(date);
+                    setPage(1);
+                  }}
                   placeholder="End Date" 
                   disabled={dateFrom ? { before: dateFrom } : undefined}
                 />
@@ -131,77 +163,94 @@ export function PaymentsPageClient({ initialPayments }: Props) {
       </div>
 
       {/* Table Card */}
-      <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-50 overflow-hidden relative">
-        <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
-          <h2 className="text-lg font-black text-black">Transaction Ledger</h2>
-          <div className="flex items-center gap-4">
-             <span className="text-xs font-bold text-zinc-400">Page {page}</span>
-             <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon" disabled={page <= 1 || loading} onClick={() => setPage(p => p - 1)} className="size-8 rounded-lg">
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button variant="ghost" size="icon" disabled={loading} onClick={() => setPage(p => p + 1)} className="size-8 rounded-lg">
-                  <ChevronRight className="size-4" />
-                </Button>
-             </div>
-          </div>
-        </div>
+      <div className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-50 overflow-hidden">
+        <Table className="w-full">
+          <TableHeader>
+            <TableRow className="bg-zinc-50/30">
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                SN
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Transaction ID
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Order ID
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Customer
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Amount
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Status
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Date
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              Array.from({ length: ITEMS_PER_PAGE }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-4 w-12" /></TableCell>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                  <TableCell className="px-6 py-5"><Skeleton className="h-4 w-24" /></TableCell>
+                </TableRow>
+              ))
+            ) : paginatedPayments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="py-20 text-center">
+                  <p className="text-sm font-semibold text-zinc-500">No payments found</p>
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedPayments.map((p, index) => (
+                <TableRow key={p.id} className="hover:bg-zinc-50/50 transition-colors">
+                  <TableCell className="px-6 py-5 font-bold text-zinc-900">
+                    {(page - 1) * ITEMS_PER_PAGE + index + 1}
+                  </TableCell>
+                  <TableCell className="px-6 py-5 font-mono text-xs font-black text-[#966FD6]">
+                    {p.transaction_id || p.id}
+                  </TableCell>
+                  <TableCell className="px-6 py-5 font-bold text-zinc-900">
+                    #{p.order_id}
+                  </TableCell>
+                  <TableCell className="px-6 py-5 font-medium text-zinc-600">
+                    {p.customer_name || "—"}
+                  </TableCell>
+                  <TableCell className="px-6 py-5 font-black text-black">
+                    {p.currency || "Rs."} {Number(p.amount).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="px-6 py-5">
+                    <PaymentBadge status={p.status} />
+                  </TableCell>
+                  <TableCell className="px-6 py-5 text-xs text-zinc-400 font-bold">
+                    {new Date(p.created_at).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
-        <div className="overflow-x-auto scrollbar-hide">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-zinc-50/50">
-                {["Transaction ID", "Order ID", "Customer", "Amount", "Status", "Date"].map(h => (
-                  <th key={h} className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-50">
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-5"><Skeleton className="h-4 w-24" /></td>
-                    <td className="px-6 py-5"><Skeleton className="h-4 w-12" /></td>
-                    <td className="px-6 py-5"><Skeleton className="h-4 w-32" /></td>
-                    <td className="px-6 py-5"><Skeleton className="h-4 w-16" /></td>
-                    <td className="px-6 py-5"><Skeleton className="h-6 w-20 rounded-full" /></td>
-                    <td className="px-6 py-5"><Skeleton className="h-4 w-24" /></td>
-                  </tr>
-                ))
-              ) : payments.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-20 text-center">
-                    <p className="text-sm font-semibold text-zinc-500">No payments found</p>
-                  </td>
-                </tr>
-              ) : (
-                payments.map(p => (
-                  <tr key={p.id} className="transition-colors hover:bg-zinc-50/50">
-                    <td className="px-6 py-5 font-mono text-xs font-black text-[#966FD6]">
-                      #{p.transaction_id || p.id}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-zinc-900">
-                      #{p.order_id}
-                    </td>
-                    <td className="px-6 py-5 font-medium text-zinc-600">
-                      {p.customer_name || "—"}
-                    </td>
-                    <td className="px-6 py-5 font-black text-black">
-                      ${p.amount.toLocaleString()}
-                    </td>
-                    <td className="px-6 py-5">
-                      <PaymentBadge status={p.status} />
-                    </td>
-                    <td className="px-6 py-5 text-xs text-zinc-400 font-bold">
-                      {new Date(p.created_at).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="border-t border-zinc-50 px-6 py-4">
+          <Pagination 
+            currentPage={page}
+            totalPages={totalPages}
+            totalItems={payments.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setPage}
+          />
         </div>
       </div>
     </div>

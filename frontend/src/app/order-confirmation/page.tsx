@@ -6,6 +6,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { getAuthToken } from "@/src/lib/auth";
 
+import { apiFetch } from "@/src/lib/api";
+
 interface Order {
   id: string;
   order_number: string;
@@ -57,18 +59,10 @@ function OrderConfirmationContent() {
         return;
       }
 
-      const response = await fetch(`/api/orders/${orderId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await apiFetch<{ data: Order }>(`/orders/${orderId}`, {
+        token,
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch order");
-      }
-
-      const data = await response.json();
-      setOrder(data.data);
+      setOrder(res.data);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to load order";
@@ -189,7 +183,7 @@ function OrderConfirmationContent() {
               <div className="border-t border-gray-200 pt-4 flex justify-between">
                 <span className="text-gray-900 font-semibold">Total Amount:</span>
                 <span className="text-2xl font-bold text-primary">
-                  ${parseFloat(String(order.total)).toFixed(2)}
+                  Rs. {parseFloat(String(order.total)).toLocaleString()}
                 </span>
               </div>
             </div>

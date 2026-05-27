@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { productToCartLineItem } from "@/src/lib/product-utils";
+import { getUserRole } from "@/src/lib/auth";
 import type { StorefrontProduct } from "@/src/types/storefront";
 import type { CartProductInput } from "@/src/types/cart";
 
@@ -40,13 +41,36 @@ export default function ProductPurchasePanel({
   );
 
   const [quantity, setQuantity] = useState(1);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole(getUserRole());
+  }, []);
 
   const selectedVariant =
     activeVariants.find((v) => v.id === selectedVariantId) ?? activeVariants[0];
 
-  const basePrice = parseFloat(String(selectedVariant?.retail_price ?? 0));
+  const isWholesaler = role === "wholesaler";
+  const moq = selectedVariant?.moq ?? 1;
+  const stock = selectedVariant?.stock ?? 0;
+  const isOutOfStock = stock <= 0;
+  const exceedsStock = stock > 0 ? quantity > stock : false;
+
+  // Sync quantity with MOQ for wholesalers when variant changes
+  useEffect(() => {
+    if (isWholesaler && selectedVariant) {
+      setQuantity(selectedVariant.moq ?? 1);
+    } else {
+      setQuantity(1);
+    }
+  }, [isWholesaler, selectedVariant]);
+
+  const rawBasePrice = isWholesaler
+    ? (selectedVariant?.wholesale_price ?? selectedVariant?.retail_price ?? 0)
+    : (selectedVariant?.retail_price ?? 0);
+  const basePrice = parseFloat(String(rawBasePrice));
   
-  // Calculate discount
+  // Calculate discount for all users (variant discount takes precedence over product discount)
   let activeDiscount = null;
   if (selectedVariant?.discounts && selectedVariant.discounts.length > 0) {
       activeDiscount = selectedVariant.discounts.find(d => d.is_active);
@@ -85,9 +109,22 @@ export default function ProductPurchasePanel({
     productToCartLineItem(cartInput, {
       variantId: selectedVariant?.id,
       quantity,
+      discount: Math.max(0, basePrice - price),
     });
 
   const handleAddToCart = () => {
+    if (isOutOfStock) {
+      toast.error("This variant is out of stock.");
+      return;
+    }
+    if (quantity > stock) {
+      toast.error(`Only ${stock} unit${stock === 1 ? "" : "s"} are available.`);
+      return;
+    }
+    if (isWholesaler && quantity < moq) {
+      toast.error(`Minimum order quantity for the item is ${moq}.`);
+      return;
+    }
     const line = buildLineItem();
     if (!line) {
       toast.error("Select a valid product option.");
@@ -98,6 +135,18 @@ export default function ProductPurchasePanel({
   };
 
   const handleBuyNow = () => {
+    if (isOutOfStock) {
+      toast.error("This variant is out of stock.");
+      return;
+    }
+    if (quantity > stock) {
+      toast.error(`Only ${stock} unit${stock === 1 ? "" : "s"} are available.`);
+      return;
+    }
+    if (isWholesaler && quantity < moq) {
+      toast.error(`Minimum order quantity for the item is ${moq}.`);
+      return;
+    }
     const line = buildLineItem();
     if (!line) {
       toast.error("Select a valid product option.");
@@ -159,6 +208,13 @@ export default function ProductPurchasePanel({
           </>
         )}
       </div>
+      <div className="mt-2">
+        {isOutOfStock ? (
+          <p className="text-sm font-semibold text-red-600">Out of stock</p>
+        ) : (
+          <p className="text-sm text-gray-600">Available: {stock} unit{stock === 1 ? "" : "s"}</p>
+        )}
+      </div>
 
       {(product.long_description || product.description) && (
         <p className="text-sm text-gray-600 mt-4 line-clamp-4">
@@ -183,7 +239,7 @@ export default function ProductPurchasePanel({
                         key={colorName}
                         type="button"
                         onClick={() => onVariantChange(vForColor.id)}
-                        className={`px-3 py-1.5 text-sm rounded border transition-colors ${
+                        className={`px-3 py-1.5 text-sm rounded border transition-colors cursor-pointer ${
                             selectedVariantId === vForColor.id || (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName
                             ? "bg-primary text-white border-primary"
                             : "border-gray-300 text-gray-700 hover:border-primary"
@@ -213,7 +269,7 @@ export default function ProductPurchasePanel({
                         key={sizeName}
                         type="button"
                         onClick={() => onVariantChange(vForSize.id)}
-                        className={`px-3 py-1.5 text-sm rounded border transition-colors ${
+                        className={`px-3 py-1.5 text-sm rounded border transition-colors cursor-pointer ${
                             (selectedVariant?.size?.name || product.size?.name || 'Default') === sizeName
                             ? "bg-primary text-white border-primary"
                             : "border-gray-300 text-gray-700 hover:border-primary"
@@ -237,7 +293,7 @@ export default function ProductPurchasePanel({
                     key={variant.id}
                     type="button"
                     onClick={() => onVariantChange(variant.id)}
-                    className={`px-3 py-1.5 text-sm rounded border transition-colors ${
+                    className={`px-3 py-1.5 text-sm rounded border transition-colors cursor-pointer ${
                       selectedVariantId === variant.id
                         ? "bg-primary text-white border-primary"
                         : "border-gray-300 text-gray-700 hover:border-primary"
@@ -256,7 +312,7 @@ export default function ProductPurchasePanel({
         <div className="flex items-center border border-gray-300 rounded overflow-hidden">
           <button
             type="button"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            onClick={() => setQuantity((q) => Math.max(isWholesaler ? moq : 1, q - 1))}
             className="w-9 h-9 flex cursor-pointer items-center justify-center hover:bg-gray-100"
             aria-label="Decrease quantity"
           >
@@ -265,7 +321,16 @@ export default function ProductPurchasePanel({
           <span className="w-10 text-center text-sm font-medium">{quantity}</span>
           <button
             type="button"
-            onClick={() => setQuantity((q) => q + 1)}
+            onClick={() => {
+              setQuantity((q) => {
+                const next = q + 1;
+                if (stock > 0 && next > stock) {
+                  toast.error(`Only ${stock} unit${stock === 1 ? "" : "s"} are available.`);
+                  return q;
+                }
+                return next;
+              });
+            }}
             className="w-9 h-9 cursor-pointer flex items-center justify-center hover:bg-gray-100"
             aria-label="Increase quantity"
           >
@@ -276,7 +341,8 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleBuyNow}
-          className="flex-1 min-w-[120px] bg-primary cursor-pointer text-white font-medium px-6 py-2.5 rounded hover:opacity-90"
+          disabled={isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)}
+          className="flex-1 min-w-[120px] bg-primary cursor-pointer text-white font-medium px-6 py-2.5 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Buy
         </button>
@@ -295,17 +361,20 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleAddToCart}
-          className="flex cursor-pointer items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium"
+          disabled={isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)}
+          className="flex items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <ShoppingCart size={16} />
           Add to cart
         </button>
-        <Link
-          href="/wholeseller_login"
-          className="flex items-center justify-center border border-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-50 text-sm font-medium"
-        >
-          Become Wholesaler
-        </Link>
+        {role !== "wholesaler" && (
+          <Link
+            href="/wholeseller_login"
+            className="flex items-center justify-center border border-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-50 text-sm font-medium"
+          >
+            Become Wholesaler
+          </Link>
+        )}
       </div>
     </div>
   );

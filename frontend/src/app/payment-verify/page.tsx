@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { getAuthToken } from "@/src/lib/auth";
 import { useCartStore } from "@/src/store/use-cart-store";
 
+import { apiFetch } from "@/src/lib/api";
+
 export default function PaymentVerifyPage() {
   return (
     <Suspense
@@ -54,29 +56,19 @@ function PaymentVerifyContent() {
         return;
       }
 
-      // For eSewa, we need to get all the callback parameters
-      const queryParams = new URLSearchParams(searchParams);
+      // Collect all callback parameters for verification
       const verifyParams: Record<string, string> = {};
+      const queryParams = new URLSearchParams(searchParams);
       queryParams.forEach((value, key) => {
         verifyParams[key] = value;
       });
 
-      const response = await fetch("/api/payments/verify", {
+      const data = await apiFetch<{ data: { order_id: string } }>("/payments/verify", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        token,
         body: JSON.stringify(verifyParams),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Payment verification failed");
-      }
-
-      const data = await response.json();
-      
       clearCart();
       toast.success("Payment verified successfully!");
       

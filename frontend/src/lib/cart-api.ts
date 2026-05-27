@@ -31,6 +31,8 @@ export interface CheckoutPayload {
 export interface PlacedOrder {
   id: string;
   order_number: string;
+  subtotal?: number | string;
+  discount_amount?: number | string;
   total: number | string;
   payment_status?: string;
 }

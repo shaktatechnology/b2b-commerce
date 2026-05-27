@@ -164,10 +164,7 @@ export default function Footer({
       </div>
 
       <div className="bg-gray-200 text-black text-center py-3 text-sm">
-        <div>Copyright © {new Date().getFullYear()} All Rights Reserved</div>
-
-        <div className="mt-1">
-          Designed & Developed by{" "}
+        <div>Copyright © {new Date().getFullYear()} All Rights Reserved |  Designed & Developed by{" "}
           <a
             href="https://shaktatechnology.com/"
             target="_blank"
@@ -175,8 +172,7 @@ export default function Footer({
             className="font-semibold hover:underline  cursor-pointer hover:text-primary/50 text-primary "
           >
             Shakta Technology
-          </a>
-        </div>
+          </a></div>
       </div>
     </footer>
   );

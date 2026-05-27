@@ -104,7 +104,7 @@ class OrderService implements OrderServiceInterface
                     ->first();
 
                 $unitDiscount = 0.00;
-                if ($discount) {
+                if ($userType !== 'wholesale' && $discount) {
                     if ($discount->type === 'percent') {
                         $unitDiscount = round($unitPrice * ($discount->value / 100), 2);
                     } elseif ($discount->type === 'fixed') {
@@ -207,7 +207,7 @@ class OrderService implements OrderServiceInterface
                     ->first();
 
                 $unitDiscount = 0.00;
-                if ($discount) {
+                if ($userType !== 'wholesale' && $discount) {
                     $unitDiscount = $discount->type === 'percent'
                         ? round($unitPrice * ($discount->value / 100), 2)
                         : $discount->value;

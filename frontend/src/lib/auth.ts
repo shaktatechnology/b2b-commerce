@@ -40,6 +40,12 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
   return transformedRes;
 }
 
+export function getUserRole(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|; )role=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export async function logoutApi(): Promise<void> {
   const token = getAuthToken();
   if (token) {
