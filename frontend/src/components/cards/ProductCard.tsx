@@ -21,6 +21,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const price = lineItem?.price ?? 0;
   const image = lineItem?.image;
   const category = lineItem?.category ?? "Uncategorized";
+  const categorySlug = product.categories?.[0]?.slug;
   const href = getProductPath({ id: product.id, slug: product.slug });
 
   const handleAdd = (e: React.MouseEvent) => {
@@ -53,7 +54,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       </Link>
 
       <div className="p-3 flex flex-col flex-1">
-        <p className="text-xs text-gray-500 mb-1">{category}</p>
+        {categorySlug ? (
+          <Link
+            href={`/category/${categorySlug}`}
+            className="text-xs text-gray-500 mb-1 hover:text-primary transition-colors w-fit"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {category}
+          </Link>
+        ) : (
+          <p className="text-xs text-gray-500 mb-1">{category}</p>
+        )}
 
         <Link href={href}>
           <h3 className="text-sm font-semibold line-clamp-2 hover:text-primary">

@@ -10,7 +10,8 @@ import { Input } from '@/src/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { toast } from 'sonner';
 import { Spinner } from '@/src/components/ui/spinner';
-import { Edit2, Save, X, User, Mail, Phone, Building, MapPin, Shield, ChevronLeft } from 'lucide-react';
+import { Edit2, Save, X, User, Mail, Phone, Building, MapPin, Shield } from 'lucide-react';
+import { AccountNavbar } from '@/src/components/layout-components/AccountNavbar';
 import { cn } from '@/src/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
 import { fetchUserOrders } from '@/src/lib/orders-api';
@@ -143,15 +144,9 @@ export function AccountPageFeature() {
   if (!user) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <Button 
-        variant="ghost" 
-        onClick={() => router.push('/')}
-        className="mb-8 font-black text-[10px] uppercase tracking-widest text-zinc-400 hover:text-black hover:bg-zinc-50 rounded-xl px-0"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" />
-        Back to store
-      </Button>
+    <>
+      <AccountNavbar />
+      <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
         <div>
@@ -334,5 +329,6 @@ export function AccountPageFeature() {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
