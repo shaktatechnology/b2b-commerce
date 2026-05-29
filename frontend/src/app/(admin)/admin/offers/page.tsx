@@ -142,7 +142,18 @@ export default function AdminOffersPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page]); // Removed offers from dependency to avoid loop if using setOffers inside
+
+  const getActiveCount = React.useCallback((placement: string) => {
+    return offers.filter(o => {
+      const isActive = o.is_active == null ? true : Boolean(Number(o.is_active));
+      return isActive && o.placement === placement && o.id !== editingId;
+    }).length;
+  }, [offers, editingId]);
+
+  const currentCount = getActiveCount(formData.placement);
+  const maxLimit = formData.placement === "top" ? 3 : formData.placement === "mid" ? 4 : null;
+  const isLimitReached = maxLimit !== null && currentCount >= maxLimit && formData.is_active;
 
   React.useEffect(() => {
     loadData();
@@ -215,6 +226,25 @@ export default function AdminOffersPage() {
 
     setIsSubmitting(true);
     try {
+      // Validate limits for active offers
+      if (formData.is_active) {
+        const activeCount = offers.filter(o => {
+          const isActive = o.is_active == null ? true : Boolean(Number(o.is_active));
+          return isActive && o.placement === formData.placement && o.id !== editingId;
+        }).length;
+
+        if (formData.placement === "top" && activeCount >= 3) {
+          toast.error("Top Banner limit exceeded: Maximum 3 active offers allowed.");
+          setIsSubmitting(false);
+          return;
+        }
+        if (formData.placement === "mid" && activeCount >= 4) {
+          toast.error("Middle Section limit exceeded: Maximum 4 active offers allowed.");
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const body = new FormData();
       body.append("title", formData.title || "");
       body.append("description", formData.description || "");
@@ -315,7 +345,7 @@ export default function AdminOffersPage() {
     if (!prodSearch) return [];
     return products.filter(p => 
       p.name?.toLowerCase().includes(prodSearch.toLowerCase())
-    ).slice(0, 10);
+    );
   }, [products, prodSearch]);
 
   const clearFilters = () => {
@@ -679,11 +709,29 @@ export default function AdminOffersPage() {
                               <SelectValue placeholder="Where should this show?" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl sm:rounded-2xl shadow-2xl border-zinc-100">
-                              {PLACEMENT_OPTIONS.map(opt => (
-                                <SelectItem key={opt.value} value={opt.value} className="py-2.5 sm:py-3 font-bold text-xs sm:text-sm">{opt.label}</SelectItem>
-                              ))}
+                              {PLACEMENT_OPTIONS.map(opt => {
+                                const count = getActiveCount(opt.value);
+                                const max = opt.value === "top" ? 3 : opt.value === "mid" ? 4 : null;
+                                return (
+                                  <SelectItem key={opt.value} value={opt.value} className="py-2.5 sm:py-3 font-bold text-xs sm:text-sm">
+                                    <div className="flex items-center justify-between w-full gap-8">
+                                      <span>{opt.label}</span>
+                                      {max && (
+                                        <span className={cn("text-[10px] px-2 py-0.5 rounded-full", count >= max ? "bg-red-50 text-red-500" : "bg-zinc-100 text-zinc-500")}>
+                                          {count}/{max}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
+                          {maxLimit && (
+                            <p className="text-[10px] font-bold text-zinc-400 mt-1 ml-1 uppercase tracking-wider">
+                              Current: <span className={cn(currentCount >= maxLimit ? "text-red-500" : "text-[#966FD6]")}>{currentCount} active</span> / {maxLimit} max
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -741,10 +789,16 @@ export default function AdminOffersPage() {
                                 <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm", formData.is_active ? "translate-x-5" : "translate-x-1")} />
                              </div>
                              <input type="checkbox" className="hidden" checked={!!formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.checked})} />
-                             <span className="text-sm font-bold text-zinc-600 transition-colors group-hover:text-black">
+                             <span className={cn("text-sm font-bold transition-colors", isLimitReached ? "text-red-500" : "text-zinc-600 group-hover:text-black")}>
                                {formData.is_active ? "Campaign is Active" : "Campaign is Paused"}
+                               {isLimitReached && " (Limit Exceeded)"}
                              </span>
                            </label>
+                           {isLimitReached && (
+                             <p className="text-[10px] text-red-500 font-bold mt-1 ml-9">
+                               Cannot activate. Please pause another {formData.placement === "top" ? "Top Banner" : "Middle Section"} offer first.
+                             </p>
+                           )}
                         </div>
                       </div>
 
@@ -764,7 +818,7 @@ export default function AdminOffersPage() {
                           />
 
                           {prodSearch && (
-                            <div className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white border border-zinc-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white border border-zinc-200 rounded-2xl shadow-2xl overflow-y-auto max-h-[320px] animate-in fade-in slide-in-from-top-2 duration-200 custom-scrollbar">
                               {filteredFormProducts.length === 0 ? (
                                 <div className="p-5 text-center text-xs font-bold text-zinc-400 italic">No products matched "{prodSearch}"</div>
                               ) : (
@@ -803,7 +857,7 @@ export default function AdminOffersPage() {
                           )}
                         </div>
 
-                         <div className="flex flex-wrap gap-2 pt-2 max-h-[120px] overflow-y-auto scrollbar-hide">
+                          <div className="flex flex-wrap gap-2 pt-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                            {formData.product_ids.map(id => {
                              const p = products.find(prod => prod.id.toString() === id);
                              return (
@@ -868,6 +922,19 @@ export default function AdminOffersPage() {
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e4e4e7;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #d4d4d8;
         }
       `}</style>
     </div>

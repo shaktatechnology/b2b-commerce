@@ -10,7 +10,7 @@ import { Input } from '@/src/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { toast } from 'sonner';
 import { Spinner } from '@/src/components/ui/spinner';
-import { Edit2, Save, X, User, Mail, Phone, Building, MapPin, Shield } from 'lucide-react';
+import { Edit2, Save, X, User, Mail, Phone, Building, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { AccountNavbar } from '@/src/components/layout-components/AccountNavbar';
 import { cn } from '@/src/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
@@ -153,6 +153,15 @@ export function AccountPageFeature() {
           <h1 className="text-4xl font-black text-black tracking-tight mb-2">My Account</h1>
           <p className="text-zinc-500 font-medium">Overview of your activity and personal data.</p>
         </div>
+        
+        <Button 
+          variant="outline"
+          onClick={() => router.push('/products')}
+          className="rounded-2xl h-12 px-6 border-zinc-200 hover:border-[#966FD6] hover:text-[#966FD6] hover:bg-[#966FD6]/5 font-black text-[10px] uppercase tracking-widest transition-all gap-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Store
+        </Button>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-12">
@@ -306,7 +315,7 @@ export function AccountPageFeature() {
                         </div>
                       </div>
                       <h4 className="text-xl font-black text-black mb-1">
-                        Rs. {Number(order.total_amount || 0).toLocaleString()}
+                        Rs. {Number(order.total || order.total_amount || 0).toLocaleString()}
                       </h4>
                       <p className="text-sm text-zinc-400 font-medium italic">
                         Placed on {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Unknown date'}

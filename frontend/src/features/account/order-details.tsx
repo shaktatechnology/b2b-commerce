@@ -8,7 +8,7 @@ import { Button } from '@/src/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { Spinner } from '@/src/components/ui/spinner';
 import { toast } from 'sonner';
-import { ChevronLeft, Package, Truck, CheckCircle2, Clock, MapPin, Receipt, Calendar } from 'lucide-react';
+import { ChevronLeft, Package, Truck, CheckCircle2, Clock, MapPin, Receipt, Calendar, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 
 export function OrderDetailsFeature() {
@@ -77,31 +77,39 @@ export function OrderDetailsFeature() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <Button 
-        variant="ghost" 
-        onClick={() => router.back()}
-        className="mb-8 font-black text-[10px] uppercase tracking-widest text-zinc-400 hover:text-black hover:bg-zinc-50 rounded-xl px-0"
-      >
-        <ChevronLeft className="w-4 h-4 mr-1" />
-        Back to Orders
-      </Button>
-
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
-        <div className="space-y-1">
-          <h1 className="text-4xl font-black text-black tracking-tight flex items-center gap-4">
-            Order #{order.id}
-          </h1>
-          <div className="flex items-center gap-3 text-zinc-400 font-medium italic">
-            <Calendar className="w-4 h-4" />
-            Placed on {order.created_at ? new Date(order.created_at).toLocaleDateString(undefined, { dateStyle: 'long' }) : '—'}
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => router.push('/account')}
+              className="rounded-full h-12 w-12 border-zinc-200 hover:border-[#966FD6] hover:text-[#966FD6] hover:bg-[#966FD6]/5 transition-all shadow-sm"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-4xl font-black text-black tracking-tight flex items-center gap-4">
+                Order #{order.id}
+              </h1>
+              <p className="text-zinc-500 font-medium mt-1">Placed on {order.created_at ? new Date(order.created_at).toLocaleDateString() : 'Unknown date'}</p>
+            </div>
           </div>
+          
+          <Button 
+            variant="outline"
+            onClick={() => router.push('/products')}
+            className="rounded-2xl h-12 px-6 border-zinc-200 hover:border-[#966FD6] hover:text-[#966FD6] hover:bg-[#966FD6]/5 font-black text-[10px] uppercase tracking-widest transition-all gap-2"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            Continue Shopping
+          </Button>
         </div>
         <div className={cn("px-6 py-2.5 rounded-2xl border font-black uppercase text-xs tracking-widest flex items-center gap-2.5 shadow-sm", getStatusColor(order.status))}>
           {getStatusIcon(order.status)}
           {order.status}
         </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Order Summary */}
@@ -114,29 +122,73 @@ export function OrderDetailsFeature() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-               {/* Note: In a real app, we'd map over order.items. Assuming simplified Order type for now. */}
                <div className="p-8 space-y-4">
-                  <div className="flex items-center justify-between p-6 rounded-3xl bg-zinc-50 border border-zinc-100">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center border border-zinc-100 overflow-hidden">
-                        <Package className="w-8 h-8 text-zinc-200" />
-                      </div>
-                      <div>
-                        <p className="font-black text-black">Bulk Commodity Order</p>
-                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">Industrial Grade</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-black text-black">Rs. {Number(order.total_amount || 0).toLocaleString()}</p>
-                      <p className="text-xs text-zinc-400 font-medium">Qty: 1 Unit</p>
-                    </div>
-                  </div>
+                  {(() => {
+                    // Normalize the items array from all possible locations
+                    const lineItems = 
+                      (order as any).order_items || 
+                      (order as any).items || 
+                      (order as any).products || 
+                      [];
+                    
+                    if (lineItems.length === 0) {
+                      return (
+                        <div className="text-center py-20 text-zinc-400">
+                          <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                          <p className="font-bold text-sm tracking-tight uppercase">No Line Items Found</p>
+                          <p className="text-xs mt-1">This order appears to have no products attached.</p>
+                        </div>
+                      );
+                    }
+                    
+                    return lineItems.map((item: any, idx: number) => {
+                      // Attempt to resolve the most accurate product name
+                      const name = 
+                        item.name || 
+                        item.product_name || 
+                        item.product?.name || 
+                        item.variant?.product?.name || 
+                        item.variant?.variant_name || 
+                        item.title || 
+                        "Unknown Product";
+
+                      const price = Number(item.price || item.unit_price || item.amount || 0);
+                      const qty = item.quantity || item.qty || 1;
+                      const image = item.image_url || item.product?.image_url || item.product?.images?.[0]?.url;
+
+                      return (
+                        <div key={item.id || idx} className="flex items-center justify-between p-6 rounded-3xl bg-zinc-50 border border-zinc-100 group hover:bg-white hover:shadow-2xl hover:shadow-[#966FD6]/5 transition-all duration-300">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center border border-zinc-100 overflow-hidden shadow-sm group-hover:scale-105 transition-transform">
+                              {image ? (
+                                <img src={image} alt={name} className="w-full h-full object-cover" />
+                              ) : (
+                                <Package className="w-8 h-8 text-zinc-200" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-black text-black group-hover:text-[#966FD6] transition-colors">{name}</p>
+                              {(item.variant_name || item.variant?.variant_name || item.variant?.name) && (
+                                <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mt-1">
+                                  {item.variant_name || item.variant?.variant_name || item.variant?.name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-black text-black text-lg">Rs. {price.toLocaleString()}</p>
+                            <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">Qty: {qty}</p>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
                </div>
 
                <div className="bg-zinc-50/50 p-8 border-t border-zinc-100 space-y-3">
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
                     <span>Subtotal</span>
-                    <span>Rs. {Number(order.total_amount || 0).toLocaleString()}</span>
+                    <span>Rs. {Number(order.total || order.total_amount || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
                     <span>Shipping</span>
@@ -144,7 +196,7 @@ export function OrderDetailsFeature() {
                   </div>
                   <div className="flex justify-between pt-4 border-t border-zinc-100">
                     <span className="text-lg font-black text-black uppercase tracking-tight">Grand Total</span>
-                    <span className="text-2xl font-black text-[#966FD6]">Rs. {Number(order.total_amount || 0).toLocaleString()}</span>
+                    <span className="text-2xl font-black text-[#966FD6]">Rs. {Number(order.total || order.total_amount || 0).toLocaleString()}</span>
                   </div>
                </div>
             </CardContent>

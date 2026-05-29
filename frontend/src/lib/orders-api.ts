@@ -68,7 +68,7 @@ export async function fetchOrderById(id: string | number): Promise<Order> {
   });
   if (!res.ok) throw new Error(`Failed to fetch order details: ${res.status}`);
   const data = await res.json();
-  return data?.data?.data ?? data?.data ?? data;
+  return data?.data?.order ?? data?.order ?? data?.data ?? data;
 }
 
 // User: Create order (checkout)
