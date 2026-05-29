@@ -23,7 +23,7 @@ interface Props {
   initialPerPage?: number;
 }
 
-export function OrdersPageClient({ 
+export function OrdersPageClient({
   initialOrders,
   initialTotal = 0,
   initialLastPage = 1,
@@ -32,15 +32,15 @@ export function OrdersPageClient({
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
   const [userTypeFilter, setUserTypeFilter] = useState<string>("");
+
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
-  
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(initialTotal);
@@ -61,10 +61,10 @@ export function OrdersPageClient({
         user_type: userTypeFilter || undefined,
         page
       });
-      setOrders(data.orders);
-      setTotal(data.total);
-      setTotalPages(data.lastPage);
-      setPerPage(data.perPage);
+      setOrders(res.orders);
+      setTotal(res.total);
+      setTotalPages(res.lastPage);
+      setPerPage(res.perPage);
     } catch (err: any) {
       toast.error(err.message || "Failed to load orders");
     } finally {
@@ -141,14 +141,14 @@ export function OrdersPageClient({
       <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
         <div className="relative flex-1 max-w-sm min-w-[240px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-          <Input 
-            placeholder="Search by name, email, or order number..." 
+          <Input
+            placeholder="Search by name, email, or order number..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           {/* Status Filter */}
           <select
@@ -181,10 +181,10 @@ export function OrdersPageClient({
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
               <div className="w-50">
-                <DatePicker 
-                  date={dateFrom} 
-                  setDate={setDateFrom} 
-                  placeholder="Start Date" 
+                <DatePicker
+                  date={dateFrom}
+                  setDate={setDateFrom}
+                  placeholder="Start Date"
                   disabled={dateTo ? { after: dateTo } : undefined}
                 />
               </div>
@@ -193,19 +193,19 @@ export function OrdersPageClient({
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
               <div className="w-50">
-                <DatePicker 
-                  date={dateTo} 
-                  setDate={setDateTo} 
-                  placeholder="End Date" 
+                <DatePicker
+                  date={dateTo}
+                  setDate={setDateTo}
+                  placeholder="End Date"
                   disabled={dateFrom ? { before: dateFrom } : undefined}
                 />
               </div>
             </div>
           </div>
-          
+
           {(searchQuery || statusFilter || userTypeFilter || dateFrom || dateTo) && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={clearFilters}
               className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
             >
@@ -221,9 +221,9 @@ export function OrdersPageClient({
         <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
           <h2 className="text-lg font-black text-black">Order Registry</h2>
         </div>
-        
-        <OrdersTable 
-          orders={orders} 
+
+        <OrdersTable
+          orders={orders}
           isLoading={loading}
           onUpdateStatus={handleUpdateStatus}
           onUpdatePayment={handleUpdatePayment}
@@ -259,7 +259,7 @@ export function OrdersPageClient({
                 Order details: {selectedOrder.order_number || `#${selectedOrder.id}`}
               </ModalTitle>
             </ModalHeader>
-            
+
             <div className="grid md:grid-cols-3 gap-6">
               {/* Order Info & Customer Info */}
               <div className="md:col-span-1 space-y-6">
@@ -275,19 +275,17 @@ export function OrdersPageClient({
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-600 font-bold">Payment:</span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        selectedOrder.payment_status === 'paid' ? 'bg-green-50 text-green-600' :
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${selectedOrder.payment_status === 'paid' ? 'bg-green-50 text-green-600' :
                         selectedOrder.payment_status === 'refunded' ? 'bg-zinc-50 text-zinc-600' :
-                        'bg-red-50 text-red-600'
-                      }`}>
+                          'bg-red-50 text-red-600'
+                        }`}>
                         {selectedOrder.payment_status || 'Unpaid'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-zinc-600 font-bold">User Type:</span>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                        selectedOrder.user_type === 'wholesale' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
-                      }`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${selectedOrder.user_type === 'wholesale' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                        }`}>
                         {selectedOrder.user_type || 'Retail'}
                       </span>
                     </div>

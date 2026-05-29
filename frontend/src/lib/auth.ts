@@ -61,6 +61,14 @@ export async function logoutApi(): Promise<void> {
   clearAuthCookie();
 }
 
+export async function fetchProfile(token: string): Promise<AuthUser> {
+  const res = await apiFetch<any>('/profile', {
+    method: 'GET',
+    token,
+  });
+  return res.data;
+}
+
 export async function updateProfile(payload: {
   name: string;
   email: string;
@@ -77,3 +85,4 @@ export async function updateProfile(payload: {
     body: JSON.stringify(payload),
   });
 }
+
