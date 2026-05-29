@@ -342,12 +342,6 @@ export default function AdminOffersPage() {
       <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden relative">
         {/* Filters Bar */}
         <div className="bg-zinc-50/30 border-b border-zinc-50 px-6 sm:px-10 py-6 sm:py-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-           <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
-             <h2 className="text-lg font-black text-black shrink-0">Offer Registry</h2>
-             <span className="text-xs font-bold text-zinc-400">
-               {totalItems} Offers Total
-             </span>
-           </div>
            <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1 justify-end">
              {/* Search Input */}
              <div className="flex flex-col gap-1.5 flex-1 max-w-sm">
