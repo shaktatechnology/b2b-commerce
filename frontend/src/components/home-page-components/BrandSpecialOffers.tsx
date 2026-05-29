@@ -160,7 +160,7 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
               {categories.slice(0, 12).map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/category/${cat.slug}`}
+                  href={`/products?category=${cat.slug}`}
                   className="group flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full hover:bg-primary/5 hover:border-primary/20 transition-all duration-300"
                 >
                   <X size={14} className="text-gray-300 group-hover:text-primary transition-colors" />

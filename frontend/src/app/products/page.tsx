@@ -32,9 +32,17 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
 
   if (offer_id) {
     const offer = offers.find((o) => o.id.toString() === offer_id);
-    if (offer && offer.product_ids) {
-      const targetIds = offer.product_ids.map(id => id.toString());
-      filtered = filtered.filter((p) => targetIds.includes(p.id.toString()));
+    if (offer) {
+      const linkedIds = (offer.product_ids || (offer as any).products || [])?.map((p: any) => 
+        (typeof p === 'object' ? p.id.toString() : p.toString())
+      );
+      
+      if (linkedIds && linkedIds.length > 0) {
+        filtered = filtered.filter((p) => linkedIds.includes(p.id.toString()));
+      } else {
+        // If an offer is selected but has no linked products, show nothing
+        filtered = [];
+      }
     }
   }
 

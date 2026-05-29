@@ -26,12 +26,12 @@ export async function fetchCategories(): Promise<StorefrontCategory[]> {
 }
 
 export async function fetchProducts(): Promise<StorefrontProduct[]> {
-  const json = await apiGet<{ data: StorefrontProduct[] }>('/products');
+  const json = await apiGet<{ data: StorefrontProduct[] }>('/products?all=1');
   return json.data ?? [];
 }
 
 export async function fetchOffers(): Promise<Offer[]> {
-  const json = await apiGet<{ data: Offer[] }>('/offers');
+  const json = await apiGet<{ data: Offer[] }>('/offers?all=1');
   return json.data ?? [];
 }
 
