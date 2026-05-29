@@ -50,19 +50,19 @@ export function PaymentsPageClient({ initialPayments }: Props) {
         customer: searchQuery || undefined,
         page
       });
-      
+
       let data: Payment[] = [];
       let total = 0;
       let lastPage = 1;
 
       if (Array.isArray(res)) {
-          data = res;
-          total = res.length;
+        data = res;
+        total = res.length;
       } else {
-          const resData = res?.data?.data || res?.data || [];
-          data = Array.isArray(resData) ? resData : [];
-          total = res?.total || res?.meta?.total || data.length;
-          lastPage = res?.last_page || res?.meta?.last_page || 1;
+        const resData = res?.data?.data || res?.data || [];
+        data = Array.isArray(resData) ? resData : [];
+        total = res?.total || res?.meta?.total || data.length;
+        lastPage = res?.last_page || res?.meta?.last_page || 1;
       }
 
       setPayments(data);
@@ -98,8 +98,8 @@ export function PaymentsPageClient({ initialPayments }: Props) {
 
   return (
     <div className="space-y-8 font-lato">
-      <PageHeader 
-        title="Payment History" 
+      <PageHeader
+        title="Payment History"
         description="Track all wholesale transactions and financial settlements."
       />
 
@@ -107,8 +107,8 @@ export function PaymentsPageClient({ initialPayments }: Props) {
       <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
         <div className="relative flex-1 max-w-sm min-w-[240px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-          <Input 
-            placeholder="Search by ID, customer or order..." 
+          <Input
+            placeholder="Search by ID, customer or order..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -117,7 +117,7 @@ export function PaymentsPageClient({ initialPayments }: Props) {
             className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <select
             value={statusFilter}
@@ -138,13 +138,13 @@ export function PaymentsPageClient({ initialPayments }: Props) {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
               <div className="w-50">
-                <DatePicker 
-                  date={dateFrom} 
+                <DatePicker
+                  date={dateFrom}
                   setDate={(date) => {
                     setDateFrom(date);
                     setPage(1);
                   }}
-                  placeholder="Start Date" 
+                  placeholder="Start Date"
                   disabled={dateTo ? { after: dateTo } : undefined}
                 />
               </div>
@@ -153,22 +153,22 @@ export function PaymentsPageClient({ initialPayments }: Props) {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
               <div className="w-50">
-                <DatePicker 
-                  date={dateTo} 
+                <DatePicker
+                  date={dateTo}
                   setDate={(date) => {
                     setDateTo(date);
                     setPage(1);
                   }}
-                  placeholder="End Date" 
+                  placeholder="End Date"
                   disabled={dateFrom ? { before: dateFrom } : undefined}
                 />
               </div>
             </div>
           </div>
-          
+
           {(searchQuery || statusFilter || dateFrom || dateTo) && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={clearFilters}
               className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
             >
@@ -261,7 +261,7 @@ export function PaymentsPageClient({ initialPayments }: Props) {
         </Table>
 
         <div className="border-t border-zinc-50 px-6 py-4">
-          <Pagination 
+          <Pagination
             currentPage={page}
             totalPages={totalPages}
             totalItems={payments.length}
@@ -270,17 +270,6 @@ export function PaymentsPageClient({ initialPayments }: Props) {
           />
         </div>
 
-        {!loading && totalPages > 1 && (
-          <div className="border-t border-zinc-50 bg-zinc-50/30">
-            <Pagination
-              currentPage={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              totalItems={totalItems}
-              itemsPerPage={10}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

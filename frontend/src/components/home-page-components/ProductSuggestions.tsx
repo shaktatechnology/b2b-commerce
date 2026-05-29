@@ -7,80 +7,34 @@ import { TrendingUp, Star, Clock, ShoppingBag, ChevronRight } from 'lucide-react
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Variant {
-  retail_price?: number | string;
-  price?: number | string;
-}
-
-interface Category {
-  id: number | string;
-  name: string;
-  slug?: string;
-}
-
-interface Product {
-  id: number | string;
-  name: string;
-  slug: string;
-  image?: string;
-  thumbnail?: string;
-  image_url?: string;
-  images?: { url?: string; image_path?: string }[];
-  variants?: Variant[];
-  price?: number | string;
-  categories?: Category[];
-}
-
-interface Tab {
-  key: string;
-  label: string;
-  icon: React.ReactNode;
-  products: Product[];
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const getImageUrl = (p: Product): string => {
-  const path =
-    p.image || p.thumbnail || p.image_url ||
-    p.images?.[0]?.url || p.images?.[0]?.image_path || '';
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-
-  const storageUrl = process.env.NEXT_PUBLIC_STORAGE_URL || 'http://localhost:8000';
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${storageUrl}${normalizedPath}`;
-};
-
-const getPrice = (p: Product): string => {
-  const raw = p.variants?.[0]?.retail_price ?? p.variants?.[0]?.price ?? p.price;
-  if (!raw) return '—';
-  return `Rs. ${Number(raw).toLocaleString()}`;
-};
-
-const getCategoryName = (p: Product): string =>
-  p.categories?.[0]?.name ?? 'Uncategorised';
+import { resolveProductImageUrl, getProductPath, productToCartLineItem } from '@/src/lib/product-utils';
+import type { StorefrontProduct } from '@/src/types/storefront';
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-function ProductCard({ product }: { product: Product }) {
-  const imgUrl = getImageUrl(product);
+function ProductCard({ product }: { product: StorefrontProduct }) {
+  const lineItem = productToCartLineItem(product as any);
+  const basePrice = lineItem?.price ?? 0;
+  const discountAmount = lineItem?.discount ?? 0;
+  const finalPrice = basePrice - discountAmount;
+  const hasDiscount = discountAmount > 0;
+
+  const imgUrl = resolveProductImageUrl(
+    lineItem?.image ?? product.images?.[0]?.url ?? product.image_url
+  );
 
   return (
     <Link
-      href={`/products/${product.slug}`}
+      href={getProductPath({ id: product.id, slug: product.slug })}
       className="group flex items-center gap-3 sm:gap-4 py-3 sm:py-4 last:border-0 hover:bg-primary/5 -mx-2 px-2 rounded-lg transition-colors duration-200"
     >
       {/* Image */}
-      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-gray-50 shrink-0 border border-gray-100 shadow-sm">
+      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-gray-50 shrink-0 border border-gray-100 shadow-sm flex items-center justify-center p-1">
         {imgUrl ? (
-          <Image
+          <img
             src={imgUrl}
             alt={product.name}
-            fill
-            unoptimized
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            sizes="(max-width: 640px) 64px, 80px"
+            className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -94,25 +48,39 @@ function ProductCard({ product }: { product: Product }) {
         <p className="text-[13px] sm:text-[14px] font-medium text-gray-900 leading-tight line-clamp-2 group-hover:text-primary transition-colors">
           {product.name}
         </p>
-        <p className="text-[14px] sm:text-[16px] font-bold text-primary mt-1">
-          {getPrice(product)}
-        </p>
-        <p className="text-[11px] sm:text-[12px] text-primary/70 mt-0.5 truncate">
-          By {getCategoryName(product)}
+        <div className="flex flex-col mt-1">
+          <p className="text-[14px] sm:text-[16px] font-bold text-primary leading-none">
+            Rs. {finalPrice.toFixed(0)}
+          </p>
+          {hasDiscount && (
+            <p className="text-[11px] text-gray-400 line-through mt-0.5">
+              Rs. {basePrice.toFixed(0)}
+            </p>
+          )}
+        </div>
+        <p className="text-[11px] sm:text-[12px] text-primary/70 mt-1 truncate">
+          By {product.categories?.[0]?.name ?? 'Uncategorised'}
         </p>
       </div>
     </Link>
   );
 }
 
+interface Tab {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  products: StorefrontProduct[];
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function ProductSuggestions({ products }: { products: Product[] }) {
+export default function ProductSuggestions({ products }: { products: StorefrontProduct[] }) {
   const [activeTab, setActiveTab] = React.useState('top_selling');
 
   // Shuffle deterministically per tab using product id as seed
-  const shuffle = (arr: Product[], seed: number) =>
-    [...arr].sort((a, b) => ((Number(a.id) * seed) % 7) - ((Number(b.id) * seed) % 7));
+  const shuffle = (arr: StorefrontProduct[], seed: number) =>
+    [...arr].sort((a, b) => ((Number(String(a.id).replace(/\D/g, '')) * seed) % 7) - ((Number(String(b.id).replace(/\D/g, '')) * seed) % 7));
 
   const display = products.slice(0, 20); // cap to 20
 

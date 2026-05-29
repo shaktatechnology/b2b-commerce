@@ -13,7 +13,9 @@ class ProductRepository implements ProductRepositoryInterface
 {
     public function all(array $filters = [])
     {
-        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
+        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts'])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews');
 
         if (isset($filters['category_slug'])) {
             $query->whereHas('categories', function ($q) use ($filters) {
@@ -48,7 +50,9 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function resolve(string $identifier, array $filters = [])
     {
-        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
+        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts'])
+            ->withAvg('reviews', 'rating')
+            ->withCount('reviews');
 
         if (isset($filters['active'])) {
             $query->where(

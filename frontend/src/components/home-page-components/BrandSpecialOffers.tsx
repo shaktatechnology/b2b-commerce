@@ -92,28 +92,39 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
   );
 
   const displayOffers = topOffers.length > 0
-    ? topOffers.slice(0, 3).map((offer, idx) => ({
+    ? topOffers.slice(0, 3).map((offer, idx) => {
+      // Try to extract brand_id from the offer's linked products
+      const offerBrandId = offer.brand_id || null;
+      const linkParams = new URLSearchParams();
+      linkParams.set("offer_id", String(offer.id));
+      if (offerBrandId) linkParams.set("brand", offerBrandId);
+      if (offer.product_ids && offer.product_ids.length === 1) {
+        linkParams.set("product_id", String(offer.product_ids[0]));
+      }
+
+      return {
         id: offer.id,
         image: resolveImage(offer.image_url || offer.image),
         title: offer.title,
         description: offer.description || "",
-        link: `/products?offer_id=${offer.id}`,
+        link: `/products?${linkParams.toString()}`,
         bgColor: idx === 0 ? "bg-[#8B1A1A]" : idx === 1 ? "bg-[#1A237E]" : "bg-[#FBC02D]",
-      }))
+      };
+    })
     : defaultOffers;
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-10 py-8 md:py-10">
       <div className="flex flex-col lg:flex-row gap-8">
-        
+
         {/* Main Content: Brand Special Offers */}
         <div className="w-full lg:w-3/4">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-primary">
               Brands Special Offer
             </h2>
-            <Link 
-              href="/offers" 
+            <Link
+              href="/offers"
               className="text-sm font-medium text-gray-500 hover:text-primary transition-colors"
             >
               View All Offers
@@ -141,7 +152,7 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
 
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors duration-300" />
                 </div>
-                
+
                 <Link href={offer.link} className="absolute inset-0 z-10">
                   <span className="sr-only">View {offer.title}</span>
                 </Link>
@@ -169,7 +180,7 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
                   </span>
                 </Link>
               ))}
-              
+
               {categories.length === 0 && ["Brown", "Coffees", "Cream", "Hodo Foods", "Meats", "Organic", "Snack", "Vegetables"].map((tag) => (
                 <div
                   key={tag}

@@ -44,4 +44,6 @@ export interface CartProductInput {
   images?: CartProductImageInput[];
   brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
   discounts?: CartDiscount[];
+  reviews_avg_rating?: string | number | null;
+  reviews_count?: number;
 }

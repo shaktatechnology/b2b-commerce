@@ -30,6 +30,7 @@ const EMPTY_FORM: OfferFormData = {
   starts_at: "",
   ends_at: "",
   product_ids: [],
+  brand_id: "",
 };
 
 const PLACEMENT_OPTIONS = [
@@ -42,9 +43,9 @@ const BACKEND_URL = "http://localhost:8000";
 
 function getOfferImageUrl(offer: Offer | string | null | undefined): string | null {
   if (!offer) return null;
-  
+
   let imagePath = typeof offer === 'string' ? offer : (offer.image_url || offer.image);
-  
+
   if (!imagePath) return null;
   if (imagePath.startsWith('http')) return imagePath;
   if (imagePath.startsWith('/')) return `${BACKEND_URL}${imagePath}`;
@@ -67,6 +68,7 @@ function parseBackendDate(dateStr: string | null | undefined): string {
 export default function AdminOffersPage() {
   const [offers, setOffers] = React.useState<Offer[]>([]);
   const [products, setProducts] = React.useState<Product[]>([]);
+  const [brands, setBrands] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -77,7 +79,7 @@ export default function AdminOffersPage() {
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  
+
   // Search for products in form
   const [prodSearch, setProdSearch] = React.useState("");
 
@@ -96,9 +98,10 @@ export default function AdminOffersPage() {
     setIsLoading(true);
     try {
       const freshToken = getAuthToken();
-      const [offerRes, prodRes] = await Promise.all([
+      const [offerRes, prodRes, brandsRes] = await Promise.all([
         apiFetch<any>(`/offers?include_inactive=1&status=all&page=${page}&per_page=10`, { token: freshToken || undefined }),
         apiFetch<any>("/products?include_inactive=1&status=all&all=1", { token: freshToken || undefined }),
+        apiFetch<any>("/brands", { token: freshToken || undefined }),
       ]);
 
       let offersData: Offer[] = [];
@@ -106,13 +109,13 @@ export default function AdminOffersPage() {
       let lastPage = 1;
 
       if (Array.isArray(offerRes)) {
-          offersData = offerRes;
-          total = offerRes.length;
+        offersData = offerRes;
+        total = offerRes.length;
       } else {
-          const resData = offerRes?.data?.data || offerRes?.data || [];
-          offersData = Array.isArray(resData) ? resData : [];
-          total = offerRes?.total || offerRes?.meta?.total || offersData.length;
-          lastPage = offerRes?.last_page || offerRes?.meta?.last_page || 1;
+        const resData = offerRes?.data?.data || offerRes?.data || [];
+        offersData = Array.isArray(resData) ? resData : [];
+        total = offerRes?.total || offerRes?.meta?.total || offersData.length;
+        lastPage = offerRes?.last_page || offerRes?.meta?.last_page || 1;
       }
 
       let productsData: Product[] = [];
@@ -137,6 +140,7 @@ export default function AdminOffersPage() {
 
       setOffers(offersData);
       setProducts(productsData);
+      setBrands(brandsRes?.data || []);
     } catch (err: any) {
       toast.error(err.message || "Failed to load offers");
     } finally {
@@ -152,9 +156,9 @@ export default function AdminOffersPage() {
     setFormMode(mode);
     if (mode === "edit" && offer) {
       setEditingId(offer.id);
-      
+
       // Get IDs from either product_ids array or products relationship objects
-      const linkedIds = (offer.product_ids || (offer as any).products)?.map((p: any) => 
+      const linkedIds = (offer.product_ids || (offer as any).products)?.map((p: any) =>
         (typeof p === 'object' ? p.id.toString() : p.toString())
       ) || [];
 
@@ -166,6 +170,7 @@ export default function AdminOffersPage() {
         starts_at: parseBackendDate(offer.starts_at),
         ends_at: parseBackendDate(offer.ends_at),
         product_ids: linkedIds,
+        brand_id: offer.brand_id || "",
       });
       setImagePreview(offer.image_url || offer.image);
     } else {
@@ -199,7 +204,7 @@ export default function AdminOffersPage() {
       const isSelected = prev.product_ids.includes(id);
       return {
         ...prev,
-        product_ids: isSelected 
+        product_ids: isSelected
           ? prev.product_ids.filter(p => p !== id)
           : [...prev.product_ids, id]
       };
@@ -220,13 +225,17 @@ export default function AdminOffersPage() {
       body.append("description", formData.description || "");
       body.append("placement", formData.placement || "top");
       body.append("is_active", formData.is_active ? "1" : "0");
-      
+
       if (formData.starts_at) {
         body.append("starts_at", formData.starts_at);
       }
-      
+
       if (formData.ends_at) {
         body.append("ends_at", formData.ends_at);
+      }
+
+      if (formData.brand_id) {
+        body.append("brand_id", formData.brand_id);
       }
 
       if (formData.product_ids && formData.product_ids.length > 0) {
@@ -246,7 +255,7 @@ export default function AdminOffersPage() {
       }
 
       const freshToken = getAuthToken();
-      
+
       if (formMode === "create") {
         await apiFetch("/admin/offers", {
           method: "POST",
@@ -313,7 +322,7 @@ export default function AdminOffersPage() {
 
   const filteredFormProducts = React.useMemo(() => {
     if (!prodSearch) return [];
-    return products.filter(p => 
+    return products.filter(p =>
       p.name?.toLowerCase().includes(prodSearch.toLowerCase())
     ).slice(0, 10);
   }, [products, prodSearch]);
@@ -333,7 +342,7 @@ export default function AdminOffersPage() {
           onClick={() => openModal("create")}
           className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white rounded-xl h-11 px-4 sm:px-6 shadow-lg shadow-[#966FD6]/20 transition-all active:scale-95 text-xs sm:text-sm"
         >
-          <Plus className="mr-1.5 sm:mr-2 h-4 w-4" /> 
+          <Plus className="mr-1.5 sm:mr-2 h-4 w-4" />
           <span className="hidden sm:inline">Add New Offer</span>
           <span className="sm:hidden">Add Offer</span>
         </Button>
@@ -342,80 +351,80 @@ export default function AdminOffersPage() {
       <div className="bg-white rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden relative">
         {/* Filters Bar */}
         <div className="bg-zinc-50/30 border-b border-zinc-50 px-6 sm:px-10 py-6 sm:py-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
-           <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
-             <h2 className="text-lg font-black text-black shrink-0">Offer Registry</h2>
-             <span className="text-xs font-bold text-zinc-400">
-               {totalItems} Offers Total
-             </span>
-           </div>
-           <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1 justify-end">
-             {/* Search Input */}
-             <div className="flex flex-col gap-1.5 flex-1 max-w-sm">
-               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Search Offers</span>
-               <div className="relative group">
-                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
-                 <Input 
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                   placeholder="Search Offers..." 
-                   className="pl-10 h-11 rounded-xl border-zinc-100 bg-white focus:ring-4 focus:ring-[#966FD6]/5 transition-all font-bold text-xs shadow-sm"
-                 />
-               </div>
-             </div>
+          <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1">
+            <h2 className="text-lg font-black text-black shrink-0">Offer Registry</h2>
+            <span className="text-xs font-bold text-zinc-400">
+              {totalItems} Offers Total
+            </span>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1 justify-end">
+            {/* Search Input */}
+            <div className="flex flex-col gap-1.5 flex-1 max-w-sm">
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Search Offers</span>
+              <div className="relative group">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search Offers..."
+                  className="pl-10 h-11 rounded-xl border-zinc-100 bg-white focus:ring-4 focus:ring-[#966FD6]/5 transition-all font-bold text-xs shadow-sm"
+                />
+              </div>
+            </div>
 
-             {/* Placement Filter */}
-             <div className="flex flex-col gap-1.5 min-w-[160px]">
-               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Location</span>
-                <Select value={placementFilter} onValueChange={setPlacementFilter}>
-                  <SelectTrigger className="h-11 w-full md:w-44 rounded-xl border-zinc-100 bg-white hover:bg-zinc-50 transition-colors font-bold text-xs shadow-sm">
-                    <SelectValue placeholder="All Positions" />
-                  </SelectTrigger>
-                 <SelectContent className="rounded-xl shadow-2xl border-zinc-100">
-                    <SelectItem value="all" className="text-xs font-bold font-lato">All Locations</SelectItem>
-                    {PLACEMENT_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value} className="text-xs font-bold font-lato">{opt.label}</SelectItem>
-                    ))}
-                 </SelectContent>
-               </Select>
-             </div>
+            {/* Placement Filter */}
+            <div className="flex flex-col gap-1.5 min-w-[160px]">
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Location</span>
+              <Select value={placementFilter} onValueChange={setPlacementFilter}>
+                <SelectTrigger className="h-11 w-full md:w-44 rounded-xl border-zinc-100 bg-white hover:bg-zinc-50 transition-colors font-bold text-xs shadow-sm">
+                  <SelectValue placeholder="All Positions" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl shadow-2xl border-zinc-100">
+                  <SelectItem value="all" className="text-xs font-bold font-lato">All Locations</SelectItem>
+                  {PLACEMENT_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs font-bold font-lato">{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-             {/* Date Filters */}
-             <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
-                   <div className="w-50">
-                     <DatePicker 
-                       date={dateFrom} 
-                       setDate={setDateFrom} 
-                       placeholder="Start Date"
-                       disabled={dateTo ? { after: dateTo } : undefined}
-                     />
-                   </div>
+            {/* Date Filters */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
+                <div className="w-50">
+                  <DatePicker
+                    date={dateFrom}
+                    setDate={setDateFrom}
+                    placeholder="Start Date"
+                    disabled={dateTo ? { after: dateTo } : undefined}
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                   <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
-                   <div className="w-50">
-                     <DatePicker 
-                       date={dateTo} 
-                       setDate={setDateTo} 
-                       placeholder="End Date"
-                       disabled={dateFrom ? { before: dateFrom } : undefined}
-                     />
-                   </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
+                <div className="w-50">
+                  <DatePicker
+                    date={dateTo}
+                    setDate={setDateTo}
+                    placeholder="End Date"
+                    disabled={dateFrom ? { before: dateFrom } : undefined}
+                  />
                 </div>
-             </div>
-           </div>
+              </div>
+            </div>
+          </div>
 
-           {(searchQuery || placementFilter !== "all" || dateFrom || dateTo) && (
-              <Button 
-                variant="ghost" 
-                onClick={clearFilters}
-                className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
-              >
-                <FilterX className="size-4" />
-                <span className="hidden sm:inline">Clear</span>
-              </Button>
-           )}
+          {(searchQuery || placementFilter !== "all" || dateFrom || dateTo) && (
+            <Button
+              variant="ghost"
+              onClick={clearFilters}
+              className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
+            >
+              <FilterX className="size-4" />
+              <span className="hidden sm:inline">Clear</span>
+            </Button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -475,8 +484,8 @@ export default function AdminOffersPage() {
                         <p className="font-black text-black text-lg">No matches found</p>
                         <p className="text-sm font-bold text-zinc-400">Try adjusting your filters to find what you're looking for.</p>
                       </div>
-                      <Button 
-                        variant="link" 
+                      <Button
+                        variant="link"
                         onClick={() => {
                           setSearchQuery("");
                           setPlacementFilter("all");
@@ -497,10 +506,10 @@ export default function AdminOffersPage() {
                       <div className="flex items-center gap-4 sm:gap-6">
                         <div className="h-14 sm:h-20 w-20 sm:w-32 rounded-xl sm:rounded-2xl bg-zinc-100 flex items-center justify-center overflow-hidden shrink-0 border border-zinc-200 shadow-sm transition-transform group-hover:scale-[1.02]">
                           {getOfferImageUrl(offer) ? (
-                            <img 
-                              src={getOfferImageUrl(offer)!} 
-                              className="w-full h-full object-cover" 
-                              alt={offer.title} 
+                            <img
+                              src={getOfferImageUrl(offer)!}
+                              className="w-full h-full object-cover"
+                              alt={offer.title}
                             />
                           ) : (
                             <ImageIcon className="size-6 sm:size-8 text-zinc-300" />
@@ -578,7 +587,7 @@ export default function AdminOffersPage() {
 
         {!isLoading && totalPages > 1 && (
           <div className="border-t border-zinc-50 bg-zinc-50/30">
-            <Pagination 
+            <Pagination
               currentPage={page}
               totalPages={totalPages}
               onPageChange={setPage}
@@ -609,15 +618,15 @@ export default function AdminOffersPage() {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto scrollbar-hide">
               <div className="px-6 sm:px-10 py-6 sm:py-10 space-y-8 sm:space-y-12">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12">
-                  
+
                   {/* Left Column: Visuals */}
                   <div className="lg:col-span-5 space-y-6 sm:space-y-8">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Creative Asset</label>
-                         {selectedImage && (
-                           <button type="button" onClick={() => {setSelectedImage(null); setImagePreview(null);}} className="text-[10px] font-black uppercase text-red-500 hover:underline">Remove</button>
-                         )}
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Creative Asset</label>
+                        {selectedImage && (
+                          <button type="button" onClick={() => { setSelectedImage(null); setImagePreview(null); }} className="text-[10px] font-black uppercase text-red-500 hover:underline">Remove</button>
+                        )}
                       </div>
                       <div className="relative group">
                         <label className={cn(
@@ -648,37 +657,37 @@ export default function AdminOffersPage() {
                     </div>
 
                     <div className="space-y-4 pt-4">
-                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Live Preview</label>
-                       <div className="p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] bg-gradient-to-br from-[#966FD6]/5 to-transparent border border-[#966FD6]/10 space-y-2 sm:space-y-3">
-                          <div className="flex items-center gap-2">
-                             <span className="size-1.5 sm:size-2 rounded-full bg-[#966FD6]" />
-                             <span className="text-[10px] font-black text-[#966FD6] uppercase tracking-widest">Mock Display</span>
-                          </div>
-                          <h4 className="font-black text-lg sm:text-xl text-black truncate">{formData.title || "Offer Title"}</h4>
-                          <p className="text-[10px] sm:text-xs text-zinc-500 line-clamp-2 font-medium leading-relaxed">{formData.description || "Campaign description will appear here..."}</p>
-                       </div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Live Preview</label>
+                      <div className="p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] bg-gradient-to-br from-[#966FD6]/5 to-transparent border border-[#966FD6]/10 space-y-2 sm:space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="size-1.5 sm:size-2 rounded-full bg-[#966FD6]" />
+                          <span className="text-[10px] font-black text-[#966FD6] uppercase tracking-widest">Mock Display</span>
+                        </div>
+                        <h4 className="font-black text-lg sm:text-xl text-black truncate">{formData.title || "Offer Title"}</h4>
+                        <p className="text-[10px] sm:text-xs text-zinc-500 line-clamp-2 font-medium leading-relaxed">{formData.description || "Campaign description will appear here..."}</p>
+                      </div>
                     </div>
                   </div>
 
                   {/* Right Column: Configuration */}
                   <div className="lg:col-span-7 space-y-8 sm:space-y-10">
-                    
+
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <div className="space-y-2">
                           <label className="text-xs font-black text-black uppercase tracking-wider ml-1">Offer Title <span className="text-red-500">*</span></label>
-                          <Input 
-                            value={formData.title} 
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })} 
-                            className="h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-zinc-50/50 border-zinc-100 focus:bg-white focus:ring-2 focus:ring-[#966FD6]/10 font-bold text-base sm:text-lg" 
+                          <Input
+                            value={formData.title}
+                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                            className="h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-zinc-50/50 border-zinc-100 focus:bg-white focus:ring-2 focus:ring-[#966FD6]/10 font-bold text-base sm:text-lg"
                             placeholder="e.g. MEGA SUMMER FESTIVAL"
-                            required 
+                            required
                           />
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-black text-black uppercase tracking-wider ml-1">Placement Location</label>
-                          <Select 
-                            value={formData.placement} 
+                          <Select
+                            value={formData.placement}
                             onValueChange={(val) => setFormData({ ...formData, placement: val })}
                           >
                             <SelectTrigger className="h-12 sm:h-14 rounded-xl sm:rounded-2xl border-zinc-100 bg-zinc-50/50 font-black">
@@ -709,7 +718,7 @@ export default function AdminOffersPage() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1.5">
                               <span className="text-[10px] font-black text-zinc-500 uppercase ml-1">Start Date/Time</span>
-                              <DateTimePicker 
+                              <DateTimePicker
                                 date={(() => {
                                   const d = formData.starts_at ? new Date(formData.starts_at) : undefined;
                                   return d instanceof Date && !isNaN(d.getTime()) ? d : undefined;
@@ -724,7 +733,7 @@ export default function AdminOffersPage() {
                             </div>
                             <div className="flex flex-col gap-1.5">
                               <span className="text-[10px] font-black text-zinc-500 uppercase ml-1">End Date/Time</span>
-                              <DateTimePicker 
+                              <DateTimePicker
                                 date={(() => {
                                   const d = formData.ends_at ? new Date(formData.ends_at) : undefined;
                                   return d instanceof Date && !isNaN(d.getTime()) ? d : undefined;
@@ -741,141 +750,179 @@ export default function AdminOffersPage() {
                         </div>
 
                         <div className="space-y-3 bg-zinc-50/50 p-4 sm:p-5 rounded-[24px] border border-zinc-100">
-                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 block">Launch Status</label>
-                           <label className="flex items-center gap-3 cursor-pointer group w-fit">
-                             <div className={cn("w-10 h-6 rounded-full transition-colors relative", formData.is_active ? "bg-green-500" : "bg-zinc-200")}>
-                                <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm", formData.is_active ? "translate-x-5" : "translate-x-1")} />
-                             </div>
-                             <input type="checkbox" className="hidden" checked={!!formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.checked})} />
-                             <span className="text-sm font-bold text-zinc-600 transition-colors group-hover:text-black">
-                               {formData.is_active ? "Campaign is Active" : "Campaign is Paused"}
-                             </span>
-                           </label>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4 pt-6">
-                        <div className="flex items-center justify-between">
-                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Targeted Inventory</label>
-                           <span className="text-[10px] font-black text-[#966FD6] bg-[#966FD6]/5 px-3 py-1 rounded-full">{formData.product_ids.length} Selected</span>
-                        </div>
-                        
-                        <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-                          <Input 
-                            placeholder="Link specific products to this offer..." 
-                            value={prodSearch}
-                            onChange={(e) => setProdSearch(e.target.value)}
-                            className="h-14 pl-12 rounded-2xl border-zinc-300 bg-white shadow-sm focus:border-[#966FD6] focus:ring-4 focus:ring-[#966FD6]/5 font-bold text-sm text-black placeholder:text-zinc-400 transition-all"
-                          />
-
-                          {prodSearch && (
-                            <div className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white border border-zinc-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                              {filteredFormProducts.length === 0 ? (
-                                <div className="p-5 text-center text-xs font-bold text-zinc-400 italic">No products matched "{prodSearch}"</div>
-                              ) : (
-                                filteredFormProducts.map(p => (
-                                  <button
-                                    key={`search-prod-${p.id}`}
-                                    type="button"
-                                    onClick={() => {
-                                      toggleProductSelection(p.id.toString());
-                                      setProdSearch("");
-                                    }}
-                                    className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 border-b border-zinc-50 last:border-0 transition-colors"
-                                  >
-                                    <div className="flex items-center gap-4">
-                                      <div className="h-12 w-12 rounded-xl bg-zinc-100 flex items-center justify-center overflow-hidden border border-zinc-200">
-                                         {p.thumbnail || p.image_url ? (
-                                           <img src={(p.thumbnail || p.image_url)?.startsWith('http') ? (p.thumbnail || p.image_url) : `http://localhost:8000${p.thumbnail || p.image_url}`} className="w-full h-full object-cover" alt="" />
-                                         ) : <ImageIcon className="size-5 text-zinc-300" />}
-                                      </div>
-                                      <div className="text-left">
-                                        <p className="text-sm font-black text-black">{p.name || "Unnamed Product"}</p>
-                                        <p className="text-xs font-bold text-zinc-400">
-                                          {p.variants?.[0]?.retail_price ? `$${p.variants[0].retail_price}` : "No price set"}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    {formData.product_ids.includes(p.id.toString()) && (
-                                      <div className="h-7 w-7 rounded-full bg-[#966FD6] flex items-center justify-center shadow-md">
-                                        <Check className="size-4 text-white" />
-                                      </div>
-                                    )}
-                                  </button>
-                                ))
-                              )}
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 block">Launch Status</label>
+                          <label className="flex items-center gap-3 cursor-pointer group w-fit">
+                            <div className={cn("w-10 h-6 rounded-full transition-colors relative", formData.is_active ? "bg-green-500" : "bg-zinc-200")}>
+                              <div className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm", formData.is_active ? "translate-x-5" : "translate-x-1")} />
                             </div>
-                          )}
-                        </div>
-
-                         <div className="flex flex-wrap gap-2 pt-2 max-h-[120px] overflow-y-auto scrollbar-hide">
-                           {formData.product_ids.map(id => {
-                             const p = products.find(prod => prod.id.toString() === id);
-                             return (
-                               <div key={id} className="flex items-center gap-2 bg-zinc-100/50 border border-zinc-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full group hover:bg-red-50 hover:border-red-100 transition-all">
-                                  <span className="text-[9px] sm:text-[10px] font-extrabold text-zinc-600 group-hover:text-red-600 truncate max-w-[100px] sm:max-w-[120px]">
-                                    {p ? p.name : `Product #${id}`}
-                                  </span>
-                                  <button type="button" onClick={() => toggleProductSelection(id)} className="text-zinc-400 hover:text-red-600">
-                                    <X className="size-2.5 sm:size-3" />
-                                  </button>
-                               </div>
-                             );
-                           })}
+                            <input type="checkbox" className="hidden" checked={!!formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
+                            <span className="text-sm font-bold text-zinc-600 transition-colors group-hover:text-black">
+                              {formData.is_active ? "Campaign is Active" : "Campaign is Paused"}
+                            </span>
+                          </label>
                         </div>
                       </div>
 
+                      <div className="space-y-2">
+                        <label className="text-xs font-black text-black uppercase tracking-wider ml-1">Target Brand</label>
+                        <Select
+                          value={formData.brand_id || "none"}
+                          onValueChange={(val) => {
+                            const newBrandId = val === "none" ? "" : val;
+                            // Automatically select all products of this brand if selected
+                            let newProdIds = [...formData.product_ids];
+                            if (newBrandId) {
+                              const brandProds = products
+                                .filter(p => p.brand_id?.toString() === newBrandId)
+                                .map(p => p.id.toString());
+
+                              // Add brand products to selection (avoid duplicates)
+                              newProdIds = Array.from(new Set([...newProdIds, ...brandProds]));
+                            }
+
+                            setFormData({
+                              ...formData,
+                              brand_id: newBrandId,
+                              product_ids: newProdIds
+                            });
+                          }}
+                        >
+                          <SelectTrigger className="h-12 sm:h-14 rounded-xl sm:rounded-2xl border-zinc-100 bg-zinc-50/50 font-black">
+                            <SelectValue placeholder="Filter by Brand" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl sm:rounded-2xl shadow-2xl border-zinc-100">
+                            <SelectItem value="none" className="py-2.5 sm:py-3 font-bold text-xs sm:text-sm text-zinc-400">No Specific Brand</SelectItem>
+                            {brands.map(brand => (
+                              <SelectItem key={brand.id} value={brand.id.toString()} className="py-2.5 sm:py-3 font-bold text-xs sm:text-sm">{brand.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 sm:pt-10 border-t border-zinc-50">
-                   <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 shrink-0">
-                        <Target className="size-4 sm:size-5 text-amber-500" />
+                    <div className="space-y-4 pt-6">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Targeted Inventory</label>
+                        <span className="text-[10px] font-black text-[#966FD6] bg-[#966FD6]/5 px-3 py-1 rounded-full">
+                          {formData.brand_id ? `${brands.find(b => b.id.toString() === formData.brand_id)?.name} Products Selected` : `${formData.product_ids.length} Selected`}
+                        </span>
                       </div>
-                      <p className="text-[10px] sm:text-xs font-bold text-zinc-400 max-w-xs leading-tight">
-                        Offers appear on the storefront based on their placement and active status.
-                      </p>
-                   </div>
-                   <div className="flex w-full sm:w-auto gap-3 sm:gap-4">
-                      <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 sm:flex-none font-bold text-zinc-400 rounded-xl sm:rounded-2xl h-12 sm:h-14 px-6 sm:px-8 hover:bg-zinc-50 transition-colors text-xs sm:text-sm">
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1 sm:flex-none bg-blue-500 hover:bg-blue-600 text-white px-6 sm:px-12 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black shadow-2xl transition-all active:scale-[0.98] relative overflow-hidden text-xs sm:text-sm"
-                      >
-                        {isSubmitting && <div className="absolute inset-x-0 bottom-0 h-1 bg-[#966FD6] animate-[shimmer_2s_infinite]" />}
-                        {isSubmitting ? (
-                          <div className="flex items-center gap-2">
-                             <Spinner size="sm" className="border-white" />
-                             <span className="hidden sm:inline">Syncing...</span>
-                             <span className="sm:hidden">Syncing</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 ">
-                             <Layout className="size-4" />
-                             <span>{formMode === "create" ? "Launch Campaign" : "Sync Changes"}</span>
+
+                      <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                        <Input
+                          placeholder="Link specific products to this offer..."
+                          value={prodSearch}
+                          onChange={(e) => setProdSearch(e.target.value)}
+                          className="h-14 pl-12 rounded-2xl border-zinc-300 bg-white shadow-sm focus:border-[#966FD6] focus:ring-4 focus:ring-[#966FD6]/5 font-bold text-sm text-black placeholder:text-zinc-400 transition-all"
+                        />
+
+                        {prodSearch && (
+                          <div className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white border border-zinc-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            {filteredFormProducts.length === 0 ? (
+                              <div className="p-5 text-center text-xs font-bold text-zinc-400 italic">No products matched "{prodSearch}"</div>
+                            ) : (
+                              filteredFormProducts.map(p => (
+                                <button
+                                  key={`search-prod-${p.id}`}
+                                  type="button"
+                                  onClick={() => {
+                                    toggleProductSelection(p.id.toString());
+                                    setProdSearch("");
+                                  }}
+                                  className="w-full flex items-center justify-between p-4 hover:bg-zinc-50 border-b border-zinc-50 last:border-0 transition-colors"
+                                >
+                                  <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-xl bg-zinc-100 flex items-center justify-center overflow-hidden border border-zinc-200">
+                                      {p.thumbnail || p.image_url ? (
+                                        <img src={(p.thumbnail || p.image_url)?.startsWith('http') ? (p.thumbnail || p.image_url) : `http://localhost:8000${p.thumbnail || p.image_url}`} className="w-full h-full object-cover" alt="" />
+                                      ) : <ImageIcon className="size-5 text-zinc-300" />}
+                                    </div>
+                                    <div className="text-left">
+                                      <p className="text-sm font-black text-black">{p.name || "Unnamed Product"}</p>
+                                      <p className="text-xs font-bold text-zinc-400">
+                                        {p.variants?.[0]?.retail_price ? `$${p.variants[0].retail_price}` : "No price set"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {formData.product_ids.includes(p.id.toString()) && (
+                                    <div className="h-7 w-7 rounded-full bg-[#966FD6] flex items-center justify-center shadow-md">
+                                      <Check className="size-4 text-white" />
+                                    </div>
+                                  )}
+                                </button>
+                              ))
+                            )}
                           </div>
                         )}
-                      </Button>
-                   </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-2 max-h-[120px] overflow-y-auto scrollbar-hide">
+                        {formData.product_ids.map(id => {
+                          const p = products.find(prod => prod.id.toString() === id);
+                          return (
+                            <div key={id} className="flex items-center gap-2 bg-zinc-100/50 border border-zinc-200 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full group hover:bg-red-50 hover:border-red-100 transition-all">
+                              <span className="text-[9px] sm:text-[10px] font-extrabold text-zinc-600 group-hover:text-red-600 truncate max-w-[100px] sm:max-w-[120px]">
+                                {p ? p.name : `Product #${id}`}
+                              </span>
+                              <button type="button" onClick={() => toggleProductSelection(id)} className="text-zinc-400 hover:text-red-600">
+                                <X className="size-2.5 sm:size-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-8 sm:pt-10 border-t border-zinc-50">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 shrink-0">
+                    <Target className="size-4 sm:size-5 text-amber-500" />
+                  </div>
+                  <p className="text-[10px] sm:text-xs font-bold text-zinc-400 max-w-xs leading-tight">
+                    Offers appear on the storefront based on their placement and active status.
+                  </p>
+                </div>
+                <div className="flex w-full sm:w-auto gap-3 sm:gap-4">
+                  <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 sm:flex-none font-bold text-zinc-400 rounded-xl sm:rounded-2xl h-12 sm:h-14 px-6 sm:px-8 hover:bg-zinc-50 transition-colors text-xs sm:text-sm">
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 sm:flex-none bg-blue-500 hover:bg-blue-600 text-white px-6 sm:px-12 h-12 sm:h-14 rounded-xl sm:rounded-2xl font-black shadow-2xl transition-all active:scale-[0.98] relative overflow-hidden text-xs sm:text-sm"
+                  >
+                    {isSubmitting && <div className="absolute inset-x-0 bottom-0 h-1 bg-[#966FD6] animate-[shimmer_2s_infinite]" />}
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <Spinner size="sm" className="border-white" />
+                        <span className="hidden sm:inline">Syncing...</span>
+                        <span className="sm:hidden">Syncing</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 ">
+                        <Layout className="size-4" />
+                        <span>{formMode === "create" ? "Launch Campaign" : "Sync Changes"}</span>
+                      </div>
+                    )}
+                  </Button>
                 </div>
               </div>
             </form>
           </div>
         </div>
       )}
-      
+
       <style jsx global>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
         }
       `}</style>
-    </div>
+    </div >
   );
 }

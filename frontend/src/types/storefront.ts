@@ -46,6 +46,8 @@ export interface StorefrontProduct {
   long_description?: string | null;
   additional_info?: string | null;
   brand?: { id: string; name: string; slug: string; long_description?: string | null } | null;
+  reviews_avg_rating?: string | number | null;
+  reviews_count?: number;
 }
 
 export interface StorefrontSettings {

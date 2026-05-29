@@ -49,6 +49,8 @@ export interface Product {
   images?: Array<{ id: string | number; image_path: string; url?: string }>;
   variants: ProductVariant[];
   discounts?: Discount[];
+  reviews_avg_rating?: number | null;
+  reviews_count?: number;
   created_at: string;
   updated_at: string;
 }

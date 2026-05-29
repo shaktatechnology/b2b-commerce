@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { StorefrontCategory, StorefrontProduct } from "@/src/types/storefront";
-import { resolveProductImageUrl, getProductPath } from "@/src/lib/product-utils";
+import { resolveProductImageUrl, getProductPath, productToCartLineItem } from "@/src/lib/product-utils";
 import CategorySidebar from "../home-page-components/CategorySidebar";
 
 interface CategoryWithCount {
@@ -17,58 +17,64 @@ export default function ProductDetailSidebar({
   categoriesWithCounts,
   similarProducts,
 }: ProductDetailSidebarProps) {
+  // Price range from similar products
+  let minPrice = Infinity, maxPrice = 0;
+  similarProducts.forEach((p) => {
+    p.variants?.forEach((v) => {
+      const price = parseFloat(String(v.retail_price ?? 0));
+      if (price > 0 && price < minPrice) minPrice = price;
+      if (price > maxPrice) maxPrice = price;
+    });
+  });
+  if (minPrice === Infinity) minPrice = 0;
+
   return (
-    <aside className="space-y-6 w-full lg:w-72 shrink-0">
-      <CategorySidebar 
+    <aside className="space-y-5 w-full lg:w-72 shrink-0">
+      <CategorySidebar
         categories={categoriesWithCounts.map((c) => ({
           id: c.category.id.toString(),
           name: c.category.name,
           slug: c.category.slug,
           products_count: c.count,
-        }))} 
+        }))}
       />
 
-      {/* <div className="border border-gray-200 rounded-lg p-4 bg-white">
-        <h3 className="text-primary font-semibold text-base mb-3">
-          Fill by Price
-        </h3>
-        <div className="space-y-2 text-sm text-gray-600">
-          <div className="flex justify-between">
-            <span>From:</span>
-            <span className="font-medium">Rs.500</span>
+      {/* Price Range Display */}
+      {maxPrice > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <h3 className="text-base font-bold text-primary mb-3">
+            Price Range
+          </h3>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">From:</span>
+              <span className="font-semibold text-primary">Rs.{Math.floor(minPrice)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-gray-500">To:</span>
+              <span className="font-semibold text-primary">Rs.{Math.ceil(maxPrice)}</span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span>To:</span>
-            <span className="font-medium">Rs.5000</span>
+          <div className="w-full h-1.5 bg-gray-100 rounded-full mt-3 overflow-hidden">
+            <div className="h-full bg-primary/40 rounded-full" style={{ width: "100%" }} />
           </div>
         </div>
-        <input
-          type="range"
-          min={500}
-          max={5000}
-          defaultValue={2500}
-          className="w-full mt-3 accent-primary"
-          readOnly
-          aria-hidden
-        />
-        <button
-          type="button"
-          className="w-full mt-3 bg-primary text-white text-sm py-2 rounded hover:opacity-90"
-        >
-          Filter
-        </button>
-      </div> */}
+      )}
 
-      <div className="border border-gray-200 rounded-lg p-4 bg-white">
-        <h3 className="text-primary font-semibold text-base mb-3">
-          Similar Product
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <h3 className="text-base font-bold text-primary mb-3">
+          Similar Products
         </h3>
         <ul className="space-y-3">
           {similarProducts.slice(0, 4).map((item) => {
-            const variant = item.variants?.[0];
-            const price = parseFloat(String(variant?.retail_price ?? 0));
+            const lineItem = productToCartLineItem(item);
+            const basePrice = lineItem?.price ?? 0;
+            const discountAmount = lineItem?.discount ?? 0;
+            const finalPrice = basePrice - discountAmount;
+            const hasDiscount = discountAmount > 0;
+
             const image = resolveProductImageUrl(
-              item.images?.[0]?.url ?? item.image_url ?? variant?.image_url
+              lineItem?.image ?? item.images?.[0]?.url ?? item.image_url
             );
 
             return (
@@ -77,23 +83,32 @@ export default function ProductDetailSidebar({
                   href={getProductPath({ id: item.id, slug: item.slug })}
                   className="flex gap-3 group"
                 >
-                  <div className="w-14 h-14 border border-gray-200 rounded bg-gray-50 shrink-0 overflow-hidden">
+                  <div className="w-16 h-16 border border-gray-100 rounded-lg bg-gray-50 shrink-0 overflow-hidden flex items-center justify-center p-1">
                     {image ? (
                       <img
                         src={image}
                         alt=""
-                        className="h-full w-full object-contain"
+                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
                       />
                     ) : null}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-800 line-clamp-2 group-hover:text-primary">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">
                       {item.name}
                     </p>
-                    <p className="text-sm font-bold text-primary mt-0.5">
-                      Rs.{price.toFixed(0)}
+                    <div className="flex flex-col">
+                      <p className="text-sm font-bold text-primary">
+                        Rs.{finalPrice.toFixed(0)}
+                      </p>
+                      {hasDiscount && (
+                        <p className="text-[10px] text-gray-400 line-through">
+                          Rs.{basePrice.toFixed(0)}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      By <span className="text-primary">{item.brand?.name || "Store"}</span>
                     </p>
-                    <p className="text-[10px] text-primary">By {item.brand?.name || "Store"}</p>
                   </div>
                 </Link>
               </li>
