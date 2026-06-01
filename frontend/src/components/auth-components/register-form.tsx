@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Spinner } from '@/src/components/ui/spinner';
-import { AlertCircle, User, Building2 } from 'lucide-react';
+import { AlertCircle, User, Building2, Eye, EyeOff } from 'lucide-react';
 import { apiFetch } from '@/src/lib/api';
 import { setAuthCookie } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
@@ -77,6 +77,8 @@ export function RegisterForm() {
   const [role, setRole] = React.useState<'customer' | 'wholesaler'>('customer');
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -260,7 +262,7 @@ export function RegisterForm() {
               <div className="space-y-1">
                 <Input
                   id="phone"
-                  placeholder="Phone Number (Optional)"
+                  placeholder="Phone Number"
                   type="tel"
                   autoComplete="tel"
                   disabled={isLoading}
@@ -274,7 +276,7 @@ export function RegisterForm() {
               <div className="space-y-1">
                 <Input
                   id="company_name"
-                  placeholder="Company Name (Optional)"
+                  placeholder="Company Name"
                   type="text"
                   disabled={isLoading}
                   className={fieldClass}
@@ -289,7 +291,7 @@ export function RegisterForm() {
               <div className="space-y-1">
                 <Input
                   id="address"
-                  placeholder="Business Address (Optional)"
+                  placeholder="Business Address"
                   type="text"
                   disabled={isLoading}
                   className={fieldClass}
@@ -304,29 +306,47 @@ export function RegisterForm() {
 
           {/* Password */}
           <div className="space-y-1">
-            <Input
-              id="password"
-              placeholder="Password"
-              type="password"
-              autoComplete="new-password"
-              disabled={isLoading}
-              className={fieldClass}
-              {...reg('password')}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                placeholder="Password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                disabled={isLoading}
+                className={`${fieldClass} pr-10`}
+                {...reg('password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {err.password && <p className="text-xs text-destructive">{err.password.message}</p>}
           </div>
 
           {/* Confirm Password */}
           <div className="space-y-1">
-            <Input
-              id="password_confirmation"
-              placeholder="Confirm Password"
-              type="password"
-              autoComplete="new-password"
-              disabled={isLoading}
-              className={fieldClass}
-              {...reg('password_confirmation')}
-            />
+            <div className="relative">
+              <Input
+                id="password_confirmation"
+                placeholder="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                disabled={isLoading}
+                className={`${fieldClass} pr-10`}
+                {...reg('password_confirmation')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {err.password_confirmation && (
               <p className="text-xs text-destructive">{err.password_confirmation.message}</p>
             )}

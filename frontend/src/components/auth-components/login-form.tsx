@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Spinner } from '@/src/components/ui/spinner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { loginApi } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
 
@@ -23,6 +23,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 export function LoginForm() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -97,15 +98,24 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <Input
-              id="password"
-              placeholder="Password"
-              type="password"
-              autoComplete="current-password"
-              disabled={isLoading}
-              className="h-12 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none px-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none"
-              {...register('password')}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                placeholder="Password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                disabled={isLoading}
+                className="h-12 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none px-0 pr-10 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none"
+                {...register('password')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
             )}
