@@ -148,20 +148,19 @@ export function AccountPageFeature() {
       <AccountNavbar />
       <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
 
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
-        <div>
-          <h1 className="text-4xl font-black text-black tracking-tight mb-2">My Account</h1>
-          <p className="text-zinc-500 font-medium">Overview of your activity and personal data.</p>
-        </div>
-        
+      <div className="flex flex-col items-start gap-4 mb-12">
         <Button 
           variant="outline"
           onClick={() => router.push('/products')}
-          className="rounded-2xl h-12 px-6 border-zinc-200 hover:border-[#966FD6] hover:text-[#966FD6] hover:bg-[#966FD6]/5 font-black text-[10px] uppercase tracking-widest transition-all gap-2"
+          className="h-10 px-6 border-zinc-200 hover:border-[#966FD6] hover:text-[#966FD6] hover:bg-[#966FD6]/5 font-black text-[10px] uppercase tracking-widest transition-all gap-2"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Store
         </Button>
+        <div>
+          <h1 className="text-4xl font-black text-black tracking-tight mb-2">My Account</h1>
+          <p className="text-zinc-500 font-medium">Overview of your activity and personal data.</p>
+        </div>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-12">
