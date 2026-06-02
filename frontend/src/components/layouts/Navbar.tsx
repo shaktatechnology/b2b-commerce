@@ -12,6 +12,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parent_id?: string | number | null;
 }
 
 interface NavbarProps {
@@ -268,7 +269,9 @@ export default function Navbar({
               ref={categoryRef}
               className="flex items-center gap-6 text-[13px] text-gray-700 overflow-x-auto scrollbar-hide flex-1 scroll-smooth"
             >
-              {categories.map((cat) => (
+              {categories
+                .filter((cat) => !cat.parent_id)
+                .map((cat) => (
                 <a
                   key={cat.id}
                   href={`/products?category=${cat.slug}`}
@@ -418,10 +421,12 @@ export default function Navbar({
         {/* scrollable category list */}
         <div className="flex-1 overflow-y-auto">
           <nav className="flex flex-col">
-            {categories.map((cat) => (
+            {categories
+              .filter((cat) => !cat.parent_id)
+              .map((cat) => (
               <a
                 key={cat.id}
-                href={`/category/${cat.slug}`}
+                href={`/products?category=${cat.slug}`}
                 className="px-4 py-3 border-b text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => setMenuOpen(false)}
               >
