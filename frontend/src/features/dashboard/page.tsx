@@ -74,9 +74,9 @@ export function DashboardOverview() {
         title="Admin Dashboard" 
         description="Welcome to Exclusive. Here's your platform overview today."
       >
-        <Button className="h-11 px-6 rounded-xl bg-[#966FD6] hover:bg-[#7d5bbf] text-white transition-all shadow-md">
+        {/*<Button className="h-11 px-6 rounded-xl bg-[#966FD6] hover:bg-[#7d5bbf] text-white transition-all shadow-md">
           Download Monthly Report
-        </Button>
+        </Button>*/}
       </PageHeader>
 
       {/* KPI Cards section */}
