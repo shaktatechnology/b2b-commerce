@@ -73,7 +73,7 @@ export function productToCartLineItem(
 }
 
 export function getProductDisplayImages(product: CartProductInput): string[] {
-  const topLevel = resolveProductImageFromInput(product);
+  const topLevel = resolveProductImageUrl(product.images?.[0]?.url ?? product.images?.[0]?.image_path);
   const fromProduct = (product.images ?? [])
     .map((img) => resolveProductImageUrl(img.url ?? img.image_path))
     .filter((url): url is string => Boolean(url));
