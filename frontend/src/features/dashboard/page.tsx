@@ -222,9 +222,9 @@ export function DashboardOverview() {
         <Card className="lg:col-span-2 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden rounded-2xl border border-zinc-100 bg-white">
           <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-zinc-50 px-6 py-5">
             <CardTitle className="text-xl font-black tracking-tight text-black">Wholesaler Approvals</CardTitle>
-            <Link href="/admin/users">
+            <Link href="/admin/wholesalers">
               <Button variant="ghost" size="sm" className="gap-1 text-[#966FD6] hover:bg-[#966FD6]/10 font-bold">
-                View Directory <ArrowRight className="size-4" />
+                View All <ArrowRight className="size-4" />
               </Button>
             </Link>
           </CardHeader>
@@ -274,7 +274,7 @@ export function DashboardOverview() {
                 <span>Categories</span>
                 <ArrowRight className="h-5 w-5" />
               </Link>
-              <Link href="/admin/users" className="flex items-center justify-between bg-black/20 text-white hover:bg-black/30 font-bold h-14 px-6 rounded-xl border-0 shadow-none transition-all">
+              <Link href="/admin/wholesalers" className="flex items-center justify-between bg-black/20 text-white hover:bg-black/30 font-bold h-14 px-6 rounded-xl border-0 shadow-none transition-all">
                 <span>Wholesale Queue</span>
                 <ArrowRight className="h-5 w-5" />
               </Link>

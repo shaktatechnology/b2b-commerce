@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/src/lib/utils';
 import {
   BarChart3,
+  Briefcase,
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -44,6 +45,7 @@ const navItems = [
   { name: 'Offers', icon: Tag, href: '/admin/offers' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },
+  { name: 'Wholesalers', icon: Briefcase, href: '/admin/wholesalers' },
   { name: 'Settings', icon: Settings, href: '/admin/settings' },
 ];
 
