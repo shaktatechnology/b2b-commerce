@@ -18,6 +18,7 @@ import {
   Bell,
   Globe,
   CreditCard,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { logoutApi } from '@/src/lib/auth';
@@ -44,6 +45,7 @@ const navItems = [
   { name: 'Offers', icon: Tag, href: '/admin/offers' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },
+  { name: 'Wholesalers', icon: Building2, href: '/admin/wholesellers' },
   { name: 'Settings', icon: Settings, href: '/admin/settings' },
 ];
 
