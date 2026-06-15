@@ -44,6 +44,15 @@ class AuthService implements AuthServiceInterface
             return null;
         }
 
+        if ($user->role === 'wholesaler' && $user->wholeseller_status !== 'approved') {
+            return [
+                'blocked' => true,
+                'message' => $user->wholeseller_status === 'rejected'
+                    ? 'Your wholesaler account has been rejected.'
+                    : 'Your wholesaler account is pending approval.',
+            ];
+        }
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return [

@@ -111,6 +111,77 @@ class AuthTest extends TestCase
     }
 
     /** @test */
+    public function a_pending_wholesaler_cannot_login()
+    {
+        User::create([
+            'name' => 'Pending Wholesaler',
+            'email' => 'pending@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'wholesaler',
+            'wholeseller_status' => 'pending',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'pending@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'Your wholesaler account is pending approval.',
+            ]);
+    }
+
+    /** @test */
+    public function a_rejected_wholesaler_cannot_login()
+    {
+        User::create([
+            'name' => 'Rejected Wholesaler',
+            'email' => 'rejected@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'wholesaler',
+            'wholeseller_status' => 'rejected',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'rejected@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'Your wholesaler account has been rejected.',
+            ]);
+    }
+
+    /** @test */
+    public function an_approved_wholesaler_can_login()
+    {
+        User::create([
+            'name' => 'Approved Wholesaler',
+            'email' => 'approved@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'wholesaler',
+            'wholeseller_status' => 'approved',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'approved@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    'user' => ['id', 'name', 'email', 'role', 'wholeseller_status'],
+                    'access_token',
+                    'token_type'
+                ]
+            ]);
+    }
+
+    /** @test */
     public function a_user_cannot_login_with_invalid_credentials()
     {
         User::create([
