@@ -23,6 +23,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(201)
+            ->assertJsonPath('data.user.wholeseller_status', null)
             ->assertJsonStructure([
                 'message',
                 'data' => [
@@ -35,6 +36,7 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
             'role' => 'customer',
+            'wholeseller_status' => null,
         ]);
     }
 
@@ -54,11 +56,13 @@ class AuthTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('data.user.role', 'wholesaler')
+            ->assertJsonPath('data.user.wholeseller_status', 'pending')
             ->assertJsonPath('data.user.company_name', 'Wholesale Logistics LLC');
 
         $this->assertDatabaseHas('users', [
             'email' => 'b2b@example.com',
             'role' => 'wholesaler',
+            'wholeseller_status' => 'pending',
             'phone' => '+1234567890',
             'company_name' => 'Wholesale Logistics LLC',
             'address' => '123 Wholesale Blvd, City, Country',
@@ -100,6 +104,77 @@ class AuthTest extends TestCase
                 'message',
                 'data' => [
                     'user' => ['id', 'name', 'email', 'role'],
+                    'access_token',
+                    'token_type'
+                ]
+            ]);
+    }
+
+    /** @test */
+    public function a_pending_wholesaler_cannot_login()
+    {
+        User::create([
+            'name' => 'Pending Wholesaler',
+            'email' => 'pending@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'wholesaler',
+            'wholeseller_status' => 'pending',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'pending@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'Your wholesaler account is pending approval.',
+            ]);
+    }
+
+    /** @test */
+    public function a_rejected_wholesaler_cannot_login()
+    {
+        User::create([
+            'name' => 'Rejected Wholesaler',
+            'email' => 'rejected@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'wholesaler',
+            'wholeseller_status' => 'rejected',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'rejected@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'message' => 'Your wholesaler account has been rejected.',
+            ]);
+    }
+
+    /** @test */
+    public function an_approved_wholesaler_can_login()
+    {
+        User::create([
+            'name' => 'Approved Wholesaler',
+            'email' => 'approved@example.com',
+            'password' => Hash::make('password123'),
+            'role' => 'wholesaler',
+            'wholeseller_status' => 'approved',
+        ]);
+
+        $response = $this->postJson('/api/login', [
+            'email' => 'approved@example.com',
+            'password' => 'password123',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    'user' => ['id', 'name', 'email', 'role', 'wholeseller_status'],
                     'access_token',
                     'token_type'
                 ]

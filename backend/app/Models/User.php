@@ -31,6 +31,7 @@ class User extends Authenticatable
         'company_name',
         'address',
         'is_verified',
+        'wholeseller_status',
     ];
 
     /**
