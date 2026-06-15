@@ -15,7 +15,7 @@ class InitiatePaymentRequest extends FormRequest
     {
         return [
             'order_id' => 'required|uuid|exists:orders,id',
-            'gateway' => 'required|string|in:esewa,paypal',
+            'gateway' => 'required|string|in:esewa,paypal,cod',
         ];
     }
 }
