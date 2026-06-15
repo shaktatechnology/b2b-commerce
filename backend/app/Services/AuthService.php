@@ -20,6 +20,10 @@ class AuthService implements AuthServiceInterface
 
     public function register(array $data)
     {
+        if (($data['role'] ?? null) === 'wholesaler') {
+            $data['wholeseller_status'] = 'pending';
+        }
+
         $data['password'] = Hash::make($data['password']);
         $user = $this->userRepository->create($data);
         $user->refresh();

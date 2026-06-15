@@ -23,6 +23,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(201)
+            ->assertJsonPath('data.user.wholeseller_status', null)
             ->assertJsonStructure([
                 'message',
                 'data' => [
@@ -35,6 +36,7 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
             'role' => 'customer',
+            'wholeseller_status' => null,
         ]);
     }
 
@@ -54,11 +56,13 @@ class AuthTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('data.user.role', 'wholesaler')
+            ->assertJsonPath('data.user.wholeseller_status', 'pending')
             ->assertJsonPath('data.user.company_name', 'Wholesale Logistics LLC');
 
         $this->assertDatabaseHas('users', [
             'email' => 'b2b@example.com',
             'role' => 'wholesaler',
+            'wholeseller_status' => 'pending',
             'phone' => '+1234567890',
             'company_name' => 'Wholesale Logistics LLC',
             'address' => '123 Wholesale Blvd, City, Country',
