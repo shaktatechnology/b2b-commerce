@@ -23,7 +23,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('data.user.wholeseller_status', null)
+            ->assertJsonPath('data.user.is_verified', false)
             ->assertJsonStructure([
                 'message',
                 'data' => [
@@ -36,36 +36,29 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
             'role' => 'customer',
-            'wholeseller_status' => null,
+            'is_verified' => false,
         ]);
     }
 
     /** @test */
-    public function a_user_can_register_as_a_wholesaler_with_additional_fields()
+    public function a_user_can_register_as_a_wholesaler_with_minimal_fields()
     {
         $response = $this->postJson('/api/register', [
-            'name' => 'Wholesale Corp',
-            'email' => 'b2b@example.com',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'name' => 'Test Wholesaler',
+            'email' => 'testwholesaler@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
             'role' => 'wholesaler',
-            'phone' => '+1234567890',
-            'company_name' => 'Wholesale Logistics LLC',
-            'address' => '123 Wholesale Blvd, City, Country',
         ]);
 
         $response->assertStatus(201)
             ->assertJsonPath('data.user.role', 'wholesaler')
-            ->assertJsonPath('data.user.wholeseller_status', 'pending')
-            ->assertJsonPath('data.user.company_name', 'Wholesale Logistics LLC');
+            ->assertJsonPath('data.user.is_verified', false);
 
         $this->assertDatabaseHas('users', [
-            'email' => 'b2b@example.com',
+            'email' => 'testwholesaler@example.com',
             'role' => 'wholesaler',
-            'wholeseller_status' => 'pending',
-            'phone' => '+1234567890',
-            'company_name' => 'Wholesale Logistics LLC',
-            'address' => '123 Wholesale Blvd, City, Country',
+            'is_verified' => false,
         ]);
     }
 
@@ -118,7 +111,7 @@ class AuthTest extends TestCase
             'email' => 'pending@example.com',
             'password' => Hash::make('password123'),
             'role' => 'wholesaler',
-            'wholeseller_status' => 'pending',
+            'is_verified' => false,
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -133,24 +126,29 @@ class AuthTest extends TestCase
     }
 
     /** @test */
-    public function a_rejected_wholesaler_cannot_login()
+    public function customer_users_can_login_even_when_not_verified()
     {
         User::create([
-            'name' => 'Rejected Wholesaler',
-            'email' => 'rejected@example.com',
+            'name' => 'Unverified Customer',
+            'email' => 'unverified.customer@example.com',
             'password' => Hash::make('password123'),
-            'role' => 'wholesaler',
-            'wholeseller_status' => 'rejected',
+            'role' => 'customer',
+            'is_verified' => false,
         ]);
 
         $response = $this->postJson('/api/login', [
-            'email' => 'rejected@example.com',
+            'email' => 'unverified.customer@example.com',
             'password' => 'password123',
         ]);
 
-        $response->assertStatus(403)
-            ->assertJson([
-                'message' => 'Your wholesaler account has been rejected.',
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'message',
+                'data' => [
+                    'user' => ['id', 'name', 'email', 'role', 'is_verified'],
+                    'access_token',
+                    'token_type'
+                ]
             ]);
     }
 
@@ -162,7 +160,7 @@ class AuthTest extends TestCase
             'email' => 'approved@example.com',
             'password' => Hash::make('password123'),
             'role' => 'wholesaler',
-            'wholeseller_status' => 'approved',
+            'is_verified' => true,
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -174,7 +172,7 @@ class AuthTest extends TestCase
             ->assertJsonStructure([
                 'message',
                 'data' => [
-                    'user' => ['id', 'name', 'email', 'role', 'wholeseller_status'],
+                    'user' => ['id', 'name', 'email', 'role', 'is_verified'],
                     'access_token',
                     'token_type'
                 ]
