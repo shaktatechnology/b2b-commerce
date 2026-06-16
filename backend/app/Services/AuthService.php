@@ -21,7 +21,7 @@ class AuthService implements AuthServiceInterface
     public function register(array $data)
     {
         if (($data['role'] ?? null) === 'wholesaler') {
-            $data['is_verified'] = false;
+            $data['wholeseller_status'] = 'pending';
         }
 
         $data['password'] = Hash::make($data['password']);
@@ -44,7 +44,7 @@ class AuthService implements AuthServiceInterface
             return null;
         }
 
-        if ($user->role === 'wholesaler' && !$user->is_verified) {
+        if ($user->role === 'wholesaler' && $user->wholeseller_status !== 'approved') {
             return [
                 'blocked' => true,
                 'message' => 'Your wholesaler account is pending approval.',
