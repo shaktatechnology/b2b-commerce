@@ -53,12 +53,12 @@ class AuthTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('data.user.role', 'wholesaler')
-            ->assertJsonPath('data.user.wholeseller_status', 'pending');
+            ->assertJsonPath('data.user.is_verified', false);
 
         $this->assertDatabaseHas('users', [
             'email' => 'testwholesaler@example.com',
             'role' => 'wholesaler',
-            'wholeseller_status' => 'pending',
+            'is_verified' => false,
         ]);
     }
 
@@ -111,35 +111,11 @@ class AuthTest extends TestCase
             'email' => 'pending@example.com',
             'password' => Hash::make('password123'),
             'role' => 'wholesaler',
-            'is_verified' => true,
-            'wholeseller_status' => 'pending',
+            'is_verified' => false,
         ]);
 
         $response = $this->postJson('/api/login', [
             'email' => 'pending@example.com',
-            'password' => 'password123',
-        ]);
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'message' => 'Your wholesaler account is pending approval.',
-            ]);
-    }
-
-    /** @test */
-    public function a_rejected_wholesaler_cannot_login()
-    {
-        User::create([
-            'name' => 'Rejected Wholesaler',
-            'email' => 'rejected@example.com',
-            'password' => Hash::make('password123'),
-            'role' => 'wholesaler',
-            'is_verified' => true,
-            'wholeseller_status' => 'rejected',
-        ]);
-
-        $response = $this->postJson('/api/login', [
-            'email' => 'rejected@example.com',
             'password' => 'password123',
         ]);
 
@@ -158,7 +134,6 @@ class AuthTest extends TestCase
             'password' => Hash::make('password123'),
             'role' => 'customer',
             'is_verified' => false,
-            'wholeseller_status' => 'rejected',
         ]);
 
         $response = $this->postJson('/api/login', [
@@ -185,8 +160,7 @@ class AuthTest extends TestCase
             'email' => 'approved@example.com',
             'password' => Hash::make('password123'),
             'role' => 'wholesaler',
-            'is_verified' => false,
-            'wholeseller_status' => 'approved',
+            'is_verified' => true,
         ]);
 
         $response = $this->postJson('/api/login', [

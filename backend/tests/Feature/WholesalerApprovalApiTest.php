@@ -35,7 +35,7 @@ class WholesalerApprovalApiTest extends TestCase
     /** @test */
     public function guest_users_cannot_access_wholesaler_approval_endpoints()
     {
-        $wholesaler = $this->createWholesaler();
+        $wholesaler = $this->createWholesaler(false);
 
         $this->getJson('/api/admin/wholesalers/pending')->assertStatus(401);
         $this->patchJson("/api/admin/wholesalers/{$wholesaler->id}/approve")->assertStatus(401);
@@ -45,7 +45,7 @@ class WholesalerApprovalApiTest extends TestCase
     /** @test */
     public function customer_users_cannot_access_wholesaler_approval_endpoints()
     {
-        $wholesaler = $this->createWholesaler();
+        $wholesaler = $this->createWholesaler(false);
 
         $this->actingAs($this->customer, 'sanctum')
             ->getJson('/api/admin/wholesalers/pending')
@@ -63,10 +63,9 @@ class WholesalerApprovalApiTest extends TestCase
     /** @test */
     public function admin_can_list_only_unapproved_wholesalers()
     {
-        $pendingWholesaler = $this->createWholesaler('pending', 'pending@example.com');
-        $this->createWholesaler('approved', 'approved@example.com');
-        $this->createWholesaler('rejected', 'rejected@example.com');
-        $this->customer->update(['wholeseller_status' => 'pending']);
+        $pendingWholesaler = $this->createWholesaler(false, 'pending@example.com');
+        $this->createWholesaler(true, 'approved@example.com');
+        $this->customer->update(['is_verified' => false]);
 
         $response = $this->actingAs($this->admin, 'sanctum')
             ->getJson('/api/admin/wholesalers/pending');
@@ -76,13 +75,13 @@ class WholesalerApprovalApiTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.id', $pendingWholesaler->id)
             ->assertJsonPath('data.0.role', 'wholesaler')
-            ->assertJsonPath('data.0.wholeseller_status', 'pending');
+            ->assertJsonPath('data.0.is_verified', false);
     }
 
     /** @test */
     public function admin_can_approve_a_wholesaler()
     {
-        $wholesaler = $this->createWholesaler('pending');
+        $wholesaler = $this->createWholesaler(false);
 
         $response = $this->actingAs($this->admin, 'sanctum')
             ->patchJson("/api/admin/wholesalers/{$wholesaler->id}/approve");
@@ -90,19 +89,19 @@ class WholesalerApprovalApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('message', 'Wholesaler approved successfully')
             ->assertJsonPath('data.id', $wholesaler->id)
-            ->assertJsonPath('data.wholeseller_status', 'approved');
+            ->assertJsonPath('data.is_verified', true);
 
         $this->assertDatabaseHas('users', [
             'id' => $wholesaler->id,
             'role' => 'wholesaler',
-            'wholeseller_status' => 'approved',
+            'is_verified' => true,
         ]);
     }
 
     /** @test */
-    public function admin_can_reject_a_wholesaler()
+    public function admin_can_reject_a_wholesaler_by_marking_them_unverified()
     {
-        $wholesaler = $this->createWholesaler('approved');
+        $wholesaler = $this->createWholesaler(true);
 
         $response = $this->actingAs($this->admin, 'sanctum')
             ->patchJson("/api/admin/wholesalers/{$wholesaler->id}/reject");
@@ -110,12 +109,12 @@ class WholesalerApprovalApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('message', 'Wholesaler rejected successfully')
             ->assertJsonPath('data.id', $wholesaler->id)
-            ->assertJsonPath('data.wholeseller_status', 'rejected');
+            ->assertJsonPath('data.is_verified', false);
 
         $this->assertDatabaseHas('users', [
             'id' => $wholesaler->id,
             'role' => 'wholesaler',
-            'wholeseller_status' => 'rejected',
+            'is_verified' => false,
         ]);
     }
 
@@ -135,18 +134,18 @@ class WholesalerApprovalApiTest extends TestCase
         $this->assertDatabaseHas('users', [
             'id' => $this->customer->id,
             'role' => 'customer',
-            'wholeseller_status' => null,
+            'is_verified' => false,
         ]);
     }
 
-    private function createWholesaler(string $status = 'pending', string $email = 'wholesaler@example.com'): User
+    private function createWholesaler(bool $isVerified, string $email = 'wholesaler@example.com'): User
     {
         return User::create([
             'name' => 'Wholesale Partner',
             'email' => $email,
             'password' => bcrypt('password123'),
             'role' => 'wholesaler',
-            'wholeseller_status' => $status,
+            'is_verified' => $isVerified,
         ]);
     }
 }
