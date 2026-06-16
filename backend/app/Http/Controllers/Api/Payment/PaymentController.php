@@ -49,11 +49,10 @@ class PaymentController extends Controller
     public function verify(Request $request): JsonResponse
     {
         try {
-            $gateway = $request->input('gateway');
             $status = $request->input('status');
             $paymentId = $request->input('payment_id');
 
-            if (!$paymentId || !$gateway || !$status) {
+            if (!$paymentId || !$status) {
                 return response()->json([
                     'message' => 'Missing required verification parameters',
                 ], 422);
@@ -69,34 +68,18 @@ class PaymentController extends Controller
                 ], 403);
             }
 
-            if ($gateway === 'esewa') {
-                // Handle eSewa verification
-                $validated = $request->validate([
-                    'payment_id' => 'required|string',
-                    'gateway' => 'required|string',
-                    'status' => 'required|string',
-                ]);
-
-                if ($status === 'completed') {
-                    $payment->update([
-                        'status' => 'completed',
-                        'paid_at' => now(),
-                    ]);
-
-                    $payment->order->update([
-                        'payment_status' => 'paid',
-                        'status' => 'confirmed',
-                    ]);
-                } else {
-                    $payment->update([
-                        'status' => 'failed',
-                    ]);
-                }
-            } else {
+            if (strtolower($payment->gateway) === 'cod') {
                 return response()->json([
-                    'message' => 'Unsupported gateway for verification',
+                    'message' => 'Cash on Delivery payments do not require external verification.',
                 ], 422);
             }
+
+            $payment = $this->paymentService->verifyPayment(
+                $paymentId,
+                $status,
+                $request->input('transaction_id'),
+                $request->input('gateway_response')
+            );
 
             return response()->json([
                 'message' => 'Payment verified successfully',
@@ -153,6 +136,11 @@ class PaymentController extends Controller
                 $data['paypal'] = [
                     'client_id' => \App\Models\Setting::get('paypal_client_id', ''),
                     'mode' => \App\Models\Setting::get('paypal_mode', 'sandbox'),
+                ];
+            } elseif ($gateway === 'cod') {
+                $data['cod'] = [
+                    'message' => 'Cash on Delivery selected. Payment will be collected when the order is delivered.',
+                    'payment_status' => 'pending',
                 ];
             }
         }
