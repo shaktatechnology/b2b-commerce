@@ -11,7 +11,7 @@ class WholesalerApprovalController extends Controller
     public function pending(): JsonResponse
     {
         $wholesalers = User::where('role', 'wholesaler')
-            ->where('is_verified', false)
+            ->where('wholeseller_status', 'pending')
             ->get();
 
         return response()->json([
@@ -29,7 +29,7 @@ class WholesalerApprovalController extends Controller
         }
 
         $user->update([
-            'is_verified' => true,
+            'wholeseller_status' => 'approved',
         ]);
 
         return response()->json([
@@ -47,7 +47,7 @@ class WholesalerApprovalController extends Controller
         }
 
         $user->update([
-            'is_verified' => false,
+            'wholeseller_status' => 'rejected',
         ]);
 
         return response()->json([
