@@ -16,21 +16,14 @@ export default async function Page() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/offers`, { cache: "no-store" }),
   ]);
 
-  const categoryData = await categoryRes.json();
-  const settingsData = await settingsRes.json();
-  const productData = await productRes.json();
-  const offersData = await offersRes.json();
+  const categoryData = (await categoryRes.json()) || { data: [] };
+  const settingsData = (await settingsRes.json()) || { data: { general: {}, social: {} } };
+  const productData = (await productRes.json()) || { data: [] };
+  const offersData = (await offersRes.json()) || { data: [] };
 
-  // ── DEBUG: log offer shape so you can confirm placement values & image paths ──
-  // Remove this once everything is working
   const rawOffers = offersData?.data || [];
-  console.log("[Offers API] total:", rawOffers.length);
-  if (rawOffers.length > 0) {
-    console.log("[Offers API] first offer:", JSON.stringify(rawOffers[0], null, 2));
-    console.log("[Offers API] placements:", rawOffers.map((o: any) => o.placement));
-  }
 
-  const rawLogo = settingsData.data.general.site_logo;
+  const rawLogo = settingsData?.data?.general?.site_logo;
   const logo =
     typeof rawLogo === "string" &&
     (rawLogo.startsWith("data:image") || rawLogo.startsWith("http"))
@@ -40,7 +33,6 @@ export default async function Page() {
   const slides = [
     "/banner/image.png",
     "/banner/image-1.png",
-    "/banner/image-2.png",
     "/banner/image-3.png",
     "/banner/image-4.png",
     "/banner/image-3.png",
@@ -89,8 +81,8 @@ export default async function Page() {
   return (
     <div>
       <Navbar
-        categories={categoryData.data}
-        contactPhone={settingsData.data.general.contact_phone}
+        categories={categoryData?.data || []}
+        contactPhone={settingsData?.data?.general?.contact_phone || ""}
         logo={logo}
       />
       <HeroSlider slides={slides} />
@@ -98,14 +90,14 @@ export default async function Page() {
       <div className="flex gap-6 px-4 md:px-10 mt-6 max-w-7xl mx-auto">
         <main className="w-full md:w-3/4">
           <PopularProducts
-            products={productData.data}
-            categories={categoryData.data}
+            products={productData?.data || []}
+            categories={categoryData?.data || []}
           />
         </main>
         <aside className="w-1/4 hidden md:block">
           <CategorySidebar
-            categories={categoryData.data}
-            products={productData.data}
+            categories={categoryData?.data || []}
+            products={productData?.data || []}
           />
         </aside>
       </div>
@@ -121,13 +113,13 @@ export default async function Page() {
       {/* Middle Section offers — below Deal of the Day */}
       <MiddleSectionOffers offers={rawOffers} />
 
-      <ProductSuggestions products={productData.data} />
+      <ProductSuggestions products={productData?.data || []} />
 
       <Footer
         logo={logo}
-        metaDescription={settingsData.data.general.meta_description}
-        socialLinks={settingsData.data.social}
-        categories={categoryData.data}
+        metaDescription={settingsData?.data?.general?.meta_description || ""}
+        socialLinks={settingsData?.data?.social || []}
+        categories={categoryData?.data || []}
       />
     </div>
   );

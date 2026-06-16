@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { ChevronLeft, Package, Truck, CheckCircle2, Clock, MapPin, Receipt, Calendar } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 
+import { resolveProductImageUrl } from '@/src/lib/product-utils';
+
 export function OrderDetailsFeature() {
   const router = useRouter();
   const { id } = useParams();
@@ -81,7 +83,7 @@ export function OrderDetailsFeature() {
       <Button 
         variant="ghost" 
         onClick={() => router.back()}
-        className="mb-8 font-black text-[10px] uppercase tracking-widest text-zinc-400 hover:text-black hover:bg-zinc-50 rounded-xl px-0"
+        className="mb-8 font-black text-[10px] uppercase tracking-widest text-zinc-500 hover:text-black hover:bg-zinc-50 rounded-xl px-0"
       >
         <ChevronLeft className="w-4 h-4 mr-1" />
         Back to Orders
@@ -90,7 +92,7 @@ export function OrderDetailsFeature() {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
         <div className="space-y-1">
           <h1 className="text-4xl font-black text-black tracking-tight flex items-center gap-4">
-            Order #{order.id}
+            Order #{order.order_number || order.id}
           </h1>
           <div className="flex items-center gap-3 text-zinc-400 font-medium italic">
             <Calendar className="w-4 h-4" />
@@ -114,37 +116,61 @@ export function OrderDetailsFeature() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
-               {/* Note: In a real app, we'd map over order.items. Assuming simplified Order type for now. */}
                <div className="p-8 space-y-4">
-                  <div className="flex items-center justify-between p-6 rounded-3xl bg-zinc-50 border border-zinc-100">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center border border-zinc-100 overflow-hidden">
-                        <Package className="w-8 h-8 text-zinc-200" />
-                      </div>
-                      <div>
-                        <p className="font-black text-black">Bulk Commodity Order</p>
-                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">Industrial Grade</p>
-                      </div>
+                  {order.items && order.items.length > 0 ? (
+                    order.items.map((item) => {
+                      const productImage = resolveProductImageUrl(item.variant?.image_url || item.variant?.product?.image_url);
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-6 rounded-3xl bg-zinc-50 border border-zinc-100">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center border border-zinc-100 overflow-hidden shrink-0">
+                              {productImage ? (
+                                <img src={productImage} alt={item.variant?.product?.name || 'Product'} className="w-full h-full object-cover" />
+                              ) : (
+                                <Package className="w-8 h-8 text-zinc-200" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-black text-black">
+                                {item.variant?.product?.name || item.variant?.variant_name || 'Product Item'}
+                              </p>
+                              <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">
+                                {item.variant?.sku || 'SKU-000'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-black text-black">Rs. {Number(item.line_total || 0).toLocaleString()}</p>
+                            <p className="text-xs text-zinc-400 font-medium">Qty: {item.quantity} Unit</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="p-8 text-center text-zinc-400 font-medium italic">
+                      No line items found.
                     </div>
-                    <div className="text-right">
-                      <p className="font-black text-black">Rs. {Number(order.total_amount || 0).toLocaleString()}</p>
-                      <p className="text-xs text-zinc-400 font-medium">Qty: 1 Unit</p>
-                    </div>
-                  </div>
+                  )}
                </div>
 
                <div className="bg-zinc-50/50 p-8 border-t border-zinc-100 space-y-3">
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
                     <span>Subtotal</span>
-                    <span>Rs. {Number(order.total_amount || 0).toLocaleString()}</span>
+                    <span>Rs. {Number(order.subtotal || 0).toLocaleString()}</span>
                   </div>
+                  {Number(order.discount_amount || 0) > 0 && (
+                    <div className="flex justify-between text-sm font-medium text-emerald-600">
+                      <span>Discount</span>
+                      <span>- Rs. {Number(order.discount_amount).toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
                     <span>Shipping</span>
                     <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-widest">Calculated at dispatch</span>
                   </div>
                   <div className="flex justify-between pt-4 border-t border-zinc-100">
                     <span className="text-lg font-black text-black uppercase tracking-tight">Grand Total</span>
-                    <span className="text-2xl font-black text-[#966FD6]">Rs. {Number(order.total_amount || 0).toLocaleString()}</span>
+                    <span className="text-2xl font-black text-[#966FD6]">Rs. {Number(order.total_amount || order.total || 0).toLocaleString()}</span>
                   </div>
                </div>
             </CardContent>

@@ -20,11 +20,13 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
+  SelectLabel,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
-import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
 import { RichTextEditor } from '@/src/components/ui/rich-text-editor';
@@ -101,6 +103,7 @@ export default function AdminProductsPage() {
   // Filters
   const [searchQuery, setSearchQuery] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('all');
+  const [subCategoryFilter, setSubCategoryFilter] = React.useState('all');
   const [dateFrom, setDateFrom] = React.useState<Date | undefined>();
   const [dateTo, setDateTo] = React.useState<Date | undefined>();
   const [page, setPage] = React.useState(1);
@@ -178,8 +181,13 @@ export default function AdminProductsPage() {
       product.slug.toLowerCase().includes(searchQuery.toLowerCase());
     
     // Check if any category matches
-    const matchesCategory = categoryFilter === 'all' || 
-      (product.categories?.some(cat => cat.id.toString() === categoryFilter) ?? false);
+    const matchesCategory = (categoryFilter === 'all') || 
+      (subCategoryFilter !== 'all' 
+        ? (product.categories?.some(cat => cat.id.toString() === subCategoryFilter) ?? false)
+        : (product.categories?.some(cat => 
+            cat.id.toString() === categoryFilter || 
+            cat.parent_id?.toString() === categoryFilter
+          ) ?? false));
 
     let matchesDate = true;
     if (product.created_at) {
@@ -204,6 +212,7 @@ export default function AdminProductsPage() {
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('all');
+    setSubCategoryFilter('all');
     setDateFrom(undefined);
     setDateTo(undefined);
   };
@@ -511,22 +520,50 @@ export default function AdminProductsPage() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select 
+            value={categoryFilter} 
+            onValueChange={(val) => {
+              setCategoryFilter(val);
+              setSubCategoryFilter('all'); // Reset sub when parent changes
+            }}
+          >
             <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-zinc-200 bg-white">
               <div className="flex items-center gap-2">
                 <Tag className="h-4 w-4 text-zinc-400" />
-                <SelectValue placeholder="Category" />
+                <SelectValue placeholder="Root Category" />
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-xl">
+            <SelectContent className="rounded-xl max-h-[400px]">
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((c) => (
-                <SelectItem key={c.id} value={c.id.toString()}>
-                  {c.name}
+              {categories.filter(c => !c.parent_id).map((root) => (
+                <SelectItem key={root.id} value={root.id.toString()}>
+                  {root.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          {categoryFilter !== 'all' && (
+            <Select value={subCategoryFilter} onValueChange={setSubCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] h-11 rounded-xl border-zinc-200 bg-white animate-in slide-in-from-left-2 duration-200">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-zinc-400" />
+                  <SelectValue placeholder="Sub Category" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl max-h-[400px]">
+                <SelectItem value="all">Sub-Categories</SelectItem>
+                {categories
+                  .filter(c => c.parent_id?.toString() === categoryFilter)
+                  .map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id.toString()}>
+                      {sub.name}
+                    </SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          )}
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -553,7 +590,7 @@ export default function AdminProductsPage() {
             </div>
           </div>
 
-          {(searchQuery || categoryFilter !== 'all' || dateFrom || dateTo) && (
+          {(searchQuery || categoryFilter !== 'all' || subCategoryFilter !== 'all' || dateFrom || dateTo) && (
             <Button 
               variant="ghost" 
               onClick={clearFilters}
@@ -863,22 +900,48 @@ export default function AdminProductsPage() {
                           />
                         </SelectTrigger>
 
-                        <SelectContent className="rounded-xl">
-                          {categories.map((c) => {
-                            const selected = formData.category_ids.includes(c.id.toString());
-
+                        <SelectContent className="rounded-xl max-h-[400px] overflow-y-auto">
+                          {categories.filter(c => !c.parent_id).map((root) => {
+                            const subCats = categories.filter(sub => sub.parent_id?.toString() === root.id.toString());
+                            const rootSelected = formData.category_ids.includes(root.id.toString());
+                            
                             return (
-                              <div
-                                key={c.id}
-                                onClick={() => toggleCategory(c.id.toString())}
-                                className={cn(
-                                  "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md",
-                                  selected && "bg-[#966FD6]/10 text-[#966FD6] font-bold"
-                                )}
-                              >
-                                <span>{c.name}</span>
-                                {selected && <Check className="h-4 w-4" />}
-                              </div>
+                              <React.Fragment key={root.id}>
+                                <div
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleCategory(root.id.toString());
+                                  }}
+                                  className={cn(
+                                    "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md mb-1",
+                                    rootSelected ? "bg-[#966FD6]/10 text-[#966FD6] font-bold" : "hover:bg-zinc-100"
+                                  )}
+                                >
+                                  <span className="font-bold">{root.name}</span>
+                                  {rootSelected && <Check className="h-4 w-4" />}
+                                </div>
+                                {subCats.map(sub => {
+                                  const subSelected = formData.category_ids.includes(sub.id.toString());
+                                  return (
+                                    <div
+                                      key={sub.id}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        toggleCategory(sub.id.toString());
+                                      }}
+                                      className={cn(
+                                        "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md ml-4 mb-1",
+                                        subSelected ? "bg-[#966FD6]/10 text-[#966FD6] font-bold" : "hover:bg-zinc-100"
+                                      )}
+                                    >
+                                      <span>— {sub.name}</span>
+                                      {subSelected && <Check className="h-4 w-4" />}
+                                    </div>
+                                  );
+                                })}
+                              </React.Fragment>
                             );
                           })}
                         </SelectContent>

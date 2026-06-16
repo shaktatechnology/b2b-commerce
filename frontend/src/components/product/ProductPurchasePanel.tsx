@@ -362,7 +362,7 @@ export default function ProductPurchasePanel({
           type="button"
           onClick={handleAddToCart}
           disabled={isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)}
-          className="flex items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium disabled:opacity-50 cursor-pointer"
         >
           <ShoppingCart size={16} />
           Add to cart
@@ -370,7 +370,7 @@ export default function ProductPurchasePanel({
         {role !== "wholesaler" && (
           <Link
             href="/wholeseller_login"
-            className="flex items-center justify-center border border-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-50 text-sm font-medium"
+            className="flex items-center justify-center border border-gray-300 text-gray-700 px-5 py-2 rounded hover:bg-gray-50 text-sm font-medium cursor-pointer"
           >
             Become Wholesaler
           </Link>
