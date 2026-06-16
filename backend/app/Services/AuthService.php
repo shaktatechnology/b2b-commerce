@@ -20,6 +20,10 @@ class AuthService implements AuthServiceInterface
 
     public function register(array $data)
     {
+        if (($data['role'] ?? null) === 'wholesaler') {
+            $data['is_verified'] = false;
+        }
+
         $data['password'] = Hash::make($data['password']);
         $user = $this->userRepository->create($data);
         $user->refresh();
@@ -38,6 +42,13 @@ class AuthService implements AuthServiceInterface
 
         if (!$user || !Hash::check($credentials['password'], $user->password)) {
             return null;
+        }
+
+        if ($user->role === 'wholesaler' && !$user->is_verified) {
+            return [
+                'blocked' => true,
+                'message' => 'Your wholesaler account is pending approval.',
+            ];
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

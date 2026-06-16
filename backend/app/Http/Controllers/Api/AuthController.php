@@ -40,6 +40,12 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if (($data['blocked'] ?? false) === true) {
+            return response()->json([
+                'message' => $data['message']
+            ], 403);
+        }
+
         return response()->json([
             'message' => 'Login successful',
             'data' => $data
