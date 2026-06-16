@@ -20,6 +20,7 @@ import { getAuthToken } from '@/src/lib/auth';
 import { Pagination } from '@/src/components/ui/pagination';
 import { cn } from '@/src/lib/utils';
 import { Spinner } from '@/src/components/ui/spinner';
+import { fetchAllPaymentsAdmin } from '@/src/lib/payments-api';
 
 interface CODRequest {
   id: string | number;
@@ -29,6 +30,7 @@ interface CODRequest {
   created_at: string;
   status: 'pending' | 'approved' | 'rejected';
   user_type: 'retail' | 'wholesale';
+  order_id: string | number;
   notes?: string;
 }
 
@@ -44,26 +46,27 @@ export function CODApprovalsPage() {
   const loadRequests = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      // Assuming a specific endpoint for COD approvals or filtering orders
-      const res = await apiFetch<any>(`/admin/cod-approvals?page=${page}&per_page=10`, { 
-        token: token || undefined 
+      const res = await fetchAllPaymentsAdmin({ 
+        method: 'cod',
+        status: 'pending',
+        page: page,
       });
       
-      let items: CODRequest[] = [];
-      let total = 0;
-      let lastPage = 1;
+      const items = res?.data?.data || res?.data || [];
+      const total = res?.total || items.length;
+      const lastPage = res?.last_page || 1;
 
-      if (Array.isArray(res)) {
-        items = res;
-        total = res.length;
-      } else {
-        const resData = res?.data?.data || res?.data || [];
-        items = Array.isArray(resData) ? resData : [];
-        total = res?.total || res?.meta?.total || items.length;
-        lastPage = res?.last_page || res?.meta?.last_page || 1;
-      }
-
-      setRequests(items);
+      setRequests(items.map((p: any) => ({
+        id: p.id,
+        order_number: p.order_number || String(p.order_id),
+        customer_name: p.customer_name || 'Guest',
+        amount: p.amount,
+        created_at: p.created_at,
+        status: p.status,
+        user_type: p.user_type || 'retail',
+        order_id: p.order_id,
+        notes: p.notes
+      })));
       setTotalItems(total);
       setTotalPages(lastPage);
     } catch (err: any) {
@@ -78,6 +81,7 @@ export function CODApprovalsPage() {
           created_at: new Date().toISOString(), 
           status: 'pending',
           user_type: 'wholesale',
+          order_id: '123',
           notes: 'Regular wholesaler requesting COD for bulk order.'
         },
         { 
@@ -88,6 +92,7 @@ export function CODApprovalsPage() {
           created_at: new Date().toISOString(), 
           status: 'pending',
           user_type: 'retail',
+          order_id: '124',
           notes: 'First time COD request.'
         },
       ]);
@@ -104,12 +109,21 @@ export function CODApprovalsPage() {
 
   const handleAction = async (id: string | number, action: 'approve' | 'reject') => {
     setIsActionLoading(id);
+    const request = requests.find(r => r.id === id);
+    if (!request) return;
+
     try {
-      await apiFetch(`/admin/cod-approvals/${id}/${action}`, {
-        method: 'POST',
+      // Since /admin/payments is read-only, we update the Order's payment status
+      await apiFetch(`/admin/orders/${request.order_id}`, {
+        method: 'PUT',
         token: token || undefined,
+        body: JSON.stringify({ 
+          payment_status: action === 'approve' ? 'paid' : 'unpaid',
+          // Optionally update order status too if approving payment
+          status: action === 'approve' ? 'confirmed' : 'pending'
+        })
       });
-      toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
+      toast.success(`Order ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       loadRequests();
     } catch (err: any) {
       toast.error(err.message || `Failed to ${action} request`);
@@ -229,7 +243,7 @@ export function CODApprovalsPage() {
                               onClick={() => handleAction(item.id, 'approve')}
                               disabled={isActionLoading === item.id}
                             >
-                              {isActionLoading === item.id ? <Spinner size="xs" /> : <Check className="size-3.5 mr-1" />}
+                              {isActionLoading === item.id ? <Spinner size="sm" /> : <Check className="size-3.5 mr-1" />}
                               Approve
                             </Button>
                             <Button 
@@ -239,7 +253,7 @@ export function CODApprovalsPage() {
                               onClick={() => handleAction(item.id, 'reject')}
                               disabled={isActionLoading === item.id}
                             >
-                              {isActionLoading === item.id ? <Spinner size="xs" /> : <X className="size-3.5 mr-1" />}
+                              {isActionLoading === item.id ? <Spinner size="sm" /> : <X className="size-3.5 mr-1" />}
                               Reject
                             </Button>
                           </>
@@ -257,7 +271,7 @@ export function CODApprovalsPage() {
                            onClick={() => handleAction(item.id, 'approve')}
                            disabled={isActionLoading === item.id}
                          >
-                           {isActionLoading === item.id ? <Spinner size="xs" /> : <Check className="size-3.5" />}
+                           {isActionLoading === item.id ? <Spinner size="sm" /> : <Check className="size-3.5" />}
                          </Button>
                         )}
                       </div>

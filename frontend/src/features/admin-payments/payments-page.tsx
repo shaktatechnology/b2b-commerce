@@ -65,8 +65,11 @@ export function PaymentsPageClient({ initialPayments }: Props) {
         lastPage = res?.last_page || res?.meta?.last_page || 1;
       }
 
-      setPayments(data);
-      const calculatedPages = Math.ceil(data.length / ITEMS_PER_PAGE);
+      // Filter out pending COD payments as they should only show in History after approval
+      const displayableData = data.filter(p => !(p.method === 'cod' && p.status === 'pending'));
+      
+      setPayments(displayableData);
+      const calculatedPages = Math.ceil(displayableData.length / ITEMS_PER_PAGE);
       setTotalPages(calculatedPages > 0 ? calculatedPages : 1);
     } catch (err: any) {
       toast.error(err.message || "Failed to load payments");
@@ -203,6 +206,9 @@ export function PaymentsPageClient({ initialPayments }: Props) {
                 Status
               </TableHead>
               <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
+                Payment Method
+              </TableHead>
+              <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">
                 Date
               </TableHead>
             </TableRow>
@@ -222,7 +228,7 @@ export function PaymentsPageClient({ initialPayments }: Props) {
               ))
             ) : paginatedPayments.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-20 text-center">
+                <TableCell colSpan={8} className="py-20 text-center">
                   <p className="text-sm font-semibold text-zinc-500">No payments found</p>
                 </TableCell>
               </TableRow>
@@ -246,6 +252,11 @@ export function PaymentsPageClient({ initialPayments }: Props) {
                   </TableCell>
                   <TableCell className="px-6 py-5">
                     <PaymentBadge status={p.status} />
+                  </TableCell>
+                  <TableCell className="px-6 py-5">
+                    <span className="capitalize text-[10px] font-black bg-zinc-100 text-zinc-600 px-2 py-1 rounded">
+                      {p.method || '—'}
+                    </span>
                   </TableCell>
                   <TableCell className="px-6 py-5 text-xs text-zinc-400 font-bold">
                     {new Date(p.created_at).toLocaleDateString('en-US', {

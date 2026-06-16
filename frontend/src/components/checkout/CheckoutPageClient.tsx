@@ -242,6 +242,14 @@ export default function CheckoutPageClient({
         return;
       }
 
+      if (selectedGateway === "cod") {
+        toast.success("Order placed successfully with Cash on Delivery!");
+        setTimeout(() => {
+          router.push(`/order-confirmation?order_id=${orderId}`);
+        }, 1500);
+        return;
+      }
+
       toast.error("Payment gateway configuration is incomplete.");
     } catch (err) {
       const message =

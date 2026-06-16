@@ -17,5 +17,6 @@ export interface PaymentFilters {
   from?: string;
   to?: string;
   customer?: string;
+  method?: string;
   page?: number;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppStore } from '@/src/store/use-app-store';
 import { fetchProfile, updateProfile, getAuthToken } from '@/src/lib/auth';
 import { AuthUser } from '@/src/types';
@@ -22,6 +22,8 @@ import { OrdersTab } from './orders-tab';
 
 export function AccountPageFeature() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'profile';
   const { user, setUser } = useAppStore();
   const [isLoading, setIsLoading] = React.useState(true);
   
@@ -92,7 +94,7 @@ export function AccountPageFeature() {
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-12">
+      <Tabs defaultValue={activeTab} className="space-y-12">
         <TabsList className="bg-zinc-100/50 p-1 rounded-2xl border border-zinc-100 h-auto self-start">
           <TabsTrigger 
             value="profile" 
