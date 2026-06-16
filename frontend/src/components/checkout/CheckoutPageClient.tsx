@@ -222,7 +222,17 @@ export default function CheckoutPageClient({
 
     setIsSubmitting(true);
     try {
+      // For COD, we call the same initiate endpoint — the backend records the payment as COD
       const payment = await initiatePayment(token, orderId, selectedGateway);
+
+      if (selectedGateway === "cod") {
+        toast.success("Order confirmed! You will pay upon delivery.");
+        clearCart();
+        router.push(
+          `/payment-verify?gateway=cod&order_id=${orderId}&status=success`
+        );
+        return;
+      }
 
       if (selectedGateway === "esewa" && payment.esewa) {
         setEsewaConfig({
@@ -239,14 +249,6 @@ export default function CheckoutPageClient({
         router.push(
           `/payment?order_id=${orderId}&payment_id=${payment.payment_id}&gateway=paypal`
         );
-        return;
-      }
-
-      if (selectedGateway === "cod") {
-        toast.success("Order placed successfully with Cash on Delivery!");
-        setTimeout(() => {
-          router.push(`/order-confirmation?order_id=${orderId}`);
-        }, 1500);
         return;
       }
 
@@ -481,9 +483,11 @@ export default function CheckoutPageClient({
                         <p className="text-sm text-gray-500">
                           {gateway.description}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Mode: {gateway.mode}
-                        </p>
+                        {gateway.id !== 'cod' && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            Mode: {gateway.mode}
+                          </p>
+                        )}
                       </div>
                     </label>
                   ))}
@@ -495,7 +499,11 @@ export default function CheckoutPageClient({
                 disabled={isSubmitting || !selectedGateway}
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
-                {isSubmitting ? "Processing…" : "Pay now"}
+                {isSubmitting
+                  ? "Processing…"
+                  : selectedGateway === "cod"
+                  ? "Confirm Order (Cash on Delivery)"
+                  : "Pay now"}
               </button>
               <button
                 type="button"

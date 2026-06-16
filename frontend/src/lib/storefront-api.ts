@@ -69,13 +69,6 @@ export async function fetchAllSettings(): Promise<{
       ? rawLogo
       : null;
 
-  // Flatten all settings into a single object to ensure we find keys like cod_active 
-  // even if they are assigned to different groups in the backend
-  const flatSettings: Record<string, string | null> = {};
-  Object.keys(grouped).forEach(groupName => {
-    Object.assign(flatSettings, grouped[groupName]);
-  });
-
   return {
     grouped,
     storefront: {
@@ -84,7 +77,7 @@ export async function fetchAllSettings(): Promise<{
       metaDescription: general.meta_description ?? '',
       socialLinks: grouped.social ?? {},
     },
-    payment: parsePaymentSettings(flatSettings),
+    payment: parsePaymentSettings(grouped.payment ?? {}),
   };
 }
 

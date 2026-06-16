@@ -20,7 +20,6 @@ import {
   Globe,
   CreditCard,
   Building2,
-  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { logoutApi } from '@/src/lib/auth';
@@ -44,7 +43,6 @@ const navItems = [
   { name: 'Products', icon: Globe, href: '/admin/products' },
   { name: 'Orders', icon: ShoppingCart, href: '/admin/orders' },
   { name: 'Payments', icon: CreditCard, href: '/admin/payments' },
-  { name: 'COD Approvals', icon: CheckCircle2, href: '/admin/cod-approvals' },
   { name: 'Offers', icon: Tag, href: '/admin/offers' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },

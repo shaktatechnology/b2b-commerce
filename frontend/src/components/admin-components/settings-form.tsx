@@ -49,7 +49,7 @@ import {
   EyeOff,
   Upload,
   X,
-  HandCoins
+  Banknote
 } from 'lucide-react';
 
 export function SettingsForm() {
@@ -164,7 +164,8 @@ export function SettingsForm() {
 
   const paymentKeys = [
     'payment_gateway', 'esewa_active', 'esewa_merchant_code', 'esewa_secret_key', 'esewa_mode',
-    'paypal_active', 'paypal_client_id', 'paypal_client_secret', 'paypal_mode', 'cod_active'
+    'paypal_active', 'paypal_client_id', 'paypal_client_secret', 'paypal_mode',
+    'cod_active'
   ];
 
   const socialKeys = [
@@ -602,7 +603,7 @@ export function SettingsForm() {
                     <SelectContent>
                       <SelectItem value="esewa">eSewa Mobile Wallet (Nepal)</SelectItem>
                       <SelectItem value="paypal">PayPal Merchant Checkout (International)</SelectItem>
-                      <SelectItem value="cod">Cash on Delivery (Pay on Arrival)</SelectItem>
+                      <SelectItem value="cod">Cash on Delivery</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -762,25 +763,29 @@ export function SettingsForm() {
                        ? 'border-amber-500/50 bg-amber-500/[0.02] shadow-none' 
                        : 'border-gray-200/80 bg-white opacity-60 hover:opacity-100 shadow-none'
                   }`}>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center text-white font-extrabold text-xs shadow-sm">
-                          <HandCoins className="size-4" />
+                        <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center text-white">
+                          <Banknote className="size-4" />
                         </div>
                         <div>
                           <h4 className="text-xs font-bold text-gray-800">Cash on Delivery</h4>
-                          <p className="text-[10px] text-gray-650 font-medium">Allow pay on delivery</p>
+                          <p className="text-[10px] text-gray-650 font-medium">Collect payment upon delivery</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2.5">
                         <span className="text-[11px] font-semibold text-gray-500">
-                          {settings.cod_active === '1' ? 'Allowed' : 'Disallowed'}
+                          {settings.cod_active === '1' ? 'Active' : 'Inactive'}
                         </span>
                         <Switch
                           checked={settings.cod_active === '1'}
                           onCheckedChange={(checked) => handleChange('cod_active', checked ? '1' : '0')}
                         />
                       </div>
+                    </div>
+
+                    <div className="text-xs text-gray-500 leading-relaxed">
+                      <p>When enabled, customers can choose to pay in cash when their order is delivered. No API keys or credentials are required for this payment method.</p>
                     </div>
                   </div>
                 </div>

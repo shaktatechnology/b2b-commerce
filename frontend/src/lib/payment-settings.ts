@@ -5,8 +5,7 @@ export function parsePaymentSettings(
 ): PaymentSettings {
   const gateways: PaymentSettings['gateways'] = [];
 
-  const isEsewaActive = String(paymentGroup.esewa_active) === '1' || paymentGroup.esewa_active === 'true' || (paymentGroup.esewa_active as any) === true;
-  if (isEsewaActive) {
+  if (paymentGroup.esewa_active === '1') {
     gateways.push({
       id: 'esewa',
       label: 'eSewa',
@@ -15,8 +14,7 @@ export function parsePaymentSettings(
     });
   }
 
-  const isPaypalActive = String(paymentGroup.paypal_active) === '1' || paymentGroup.paypal_active === 'true' || (paymentGroup.paypal_active as any) === true;
-  if (isPaypalActive) {
+  if (paymentGroup.paypal_active === '1') {
     gateways.push({
       id: 'paypal',
       label: 'PayPal',
@@ -25,12 +23,11 @@ export function parsePaymentSettings(
     });
   }
 
-  const isCodActive = String(paymentGroup.cod_active) === '1' || paymentGroup.cod_active === 'true' || (paymentGroup.cod_active as any) === true || paymentGroup.payment_gateway === 'cod';
-  if (isCodActive) {
+  if (paymentGroup.cod_active === '1') {
     gateways.push({
       id: 'cod',
       label: 'Cash on Delivery',
-      description: 'Pay when you receive your order',
+      description: 'Pay with cash when your order is delivered',
       mode: 'live',
     });
   }
