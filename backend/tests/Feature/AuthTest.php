@@ -39,7 +39,7 @@ class AuthTest extends TestCase
     }
 
     /** @test */
-    public function a_user_can_register_as_a_wholesaler_with_additional_fields_and_pending_approval()
+    public function a_user_can_register_as_a_wholesaler_with_and_pending_approval()
     {
         $response = $this->postJson('/api/register', [
             'name' => 'Wholesale Corp',
