@@ -39,7 +39,7 @@ class AuthTest extends TestCase
     }
 
     /** @test */
-    public function a_user_can_register_as_a_wholesaler_with_additional_fields()
+    public function a_user_can_register_as_a_wholesaler_with_pending_approval()
     {
         $response = $this->postJson('/api/register', [
             'name' => 'Wholesale Corp',
@@ -47,21 +47,16 @@ class AuthTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'role' => 'wholesaler',
-            'phone' => '+1234567890',
-            'company_name' => 'Wholesale Logistics LLC',
-            'address' => '123 Wholesale Blvd, City, Country',
         ]);
 
         $response->assertStatus(201)
             ->assertJsonPath('data.user.role', 'wholesaler')
-            ->assertJsonPath('data.user.company_name', 'Wholesale Logistics LLC');
+            ->assertJsonPath('data.user.approval_state', 'pending');
 
         $this->assertDatabaseHas('users', [
             'email' => 'b2b@example.com',
             'role' => 'wholesaler',
-            'phone' => '+1234567890',
-            'company_name' => 'Wholesale Logistics LLC',
-            'address' => '123 Wholesale Blvd, City, Country',
+            'approval_state' => 'pending',
         ]);
     }
 

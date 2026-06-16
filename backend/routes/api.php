@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Review\ReviewController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\SizeController;
+use App\Http\Controllers\Api\WholesalerApprovalController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -157,6 +158,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders',                 [OrderController::class, 'adminIndex']);
         Route::get('/orders/{id}',            [OrderController::class, 'adminShow']);
         Route::put('/orders/{id}',            [OrderController::class, 'adminUpdate']);
+
+        // Wholesaler approvals
+        Route::get('/wholesalers/pending',     [WholesalerApprovalController::class, 'pending']);
+        Route::put('/wholesalers/{user}/approve', [WholesalerApprovalController::class, 'approve']);
+        Route::put('/wholesalers/{user}/reject',  [WholesalerApprovalController::class, 'reject']);
 
         // Payments
         Route::get('/payments',               [PaymentController::class, 'adminIndex']);
