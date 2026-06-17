@@ -291,7 +291,7 @@ export default function CategoriesPage() {
                   <SelectContent className="rounded-xl">
                     <SelectItem value="none">None (Root Category)</SelectItem>
                     {categories
-                      .filter(c => c.id.toString() !== editingId?.toString())
+                      .filter(c => !c.parent_id && c.id.toString() !== editingId?.toString())
                       .map(c => (
                         <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
                       ))

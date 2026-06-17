@@ -106,13 +106,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
             <div className="flex flex-wrap items-center gap-3 mt-4">
               <button
                 onClick={handleAdd}
-                className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm"
+                className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
               >
                 <ShoppingCart size={16} /> Add to Cart
               </button>
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                className="px-5 py-2 border border-primary text-primary rounded-lg text-sm font-bold hover:bg-primary/5 transition-all"
+                className="px-5 py-2 border border-primary text-primary rounded-lg text-sm font-bold hover:bg-primary/5 transition-all cursor-pointer"
               >
                 Become Whole Seller
               </button>
@@ -191,7 +191,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
             <button
               type="button"
               onClick={handleAdd}
-              className="flex items-center gap-1.5 text-[10px] font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all shadow-sm"
+              className="flex items-center gap-1.5 text-[10px] font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
             >
               <ShoppingCart size={14} />
               Add

@@ -47,9 +47,7 @@ class AuthService implements AuthServiceInterface
         if ($user->role === 'wholesaler' && $user->wholeseller_status !== 'approved') {
             return [
                 'blocked' => true,
-                'message' => $user->wholeseller_status === 'rejected'
-                    ? 'Your wholesaler account has been rejected.'
-                    : 'Your wholesaler account is pending approval.',
+                'message' => 'Your wholesaler account is pending approval.',
             ];
         }
 

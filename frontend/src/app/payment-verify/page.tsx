@@ -44,6 +44,16 @@ function PaymentVerifyContent() {
 
   const verifyPayment = async () => {
     try {
+      // COD orders don't need payment gateway verification
+      if (gateway === "cod" && orderId) {
+        clearCart();
+        toast.success("Order confirmed! You will pay on delivery.");
+        setTimeout(() => {
+          router.push(`/order-confirmation?order_id=${orderId}`);
+        }, 1500);
+        return;
+      }
+
       if (!paymentId || !gateway || !status) {
         setError("Invalid payment verification parameters");
         setVerifying(false);

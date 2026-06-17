@@ -37,18 +37,21 @@ class PaymentService implements PaymentServiceInterface
 
         // Validate gateway settings
         $gateway = strtolower($gateway);
+
         if ($gateway === 'esewa') {
             $esewaActive = Setting::get('esewa_active', '0');
-            if ($esewaActive !== '1') {
-                throw new \Exception("eSewa payment gateway is currently disabled.");
-            }
-        } elseif ($gateway === 'paypal') {
-            $paypalActive = Setting::get('paypal_active', '0');
-            if ($paypalActive !== '1') {
-                throw new \Exception("PayPal payment gateway is currently disabled.");
-            }
+       if ($esewaActive !== '1') {
+            throw new \Exception("eSewa payment gateway is currently disabled.");
+         }
+            } elseif ($gateway === 'paypal') {
+           $paypalActive = Setting::get('paypal_active', '0');
+          if ($paypalActive !== '1') {
+             throw new \Exception("PayPal payment gateway is currently disabled.");
+          }
+        } elseif ($gateway === 'cod') {
+    // Cash on Delivery does not need external gateway settings.
         } else {
-            throw new \Exception("Unsupported payment gateway: {$gateway}");
+         throw new \Exception("Unsupported payment gateway: {$gateway}");
         }
 
         // Create pending payment record

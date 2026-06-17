@@ -1,4 +1,4 @@
-export type PaymentGatewayId = 'esewa' | 'paypal';
+export type PaymentGatewayId = 'esewa' | 'paypal' | 'cod';
 
 export interface PaymentGatewayOption {
   id: PaymentGatewayId;

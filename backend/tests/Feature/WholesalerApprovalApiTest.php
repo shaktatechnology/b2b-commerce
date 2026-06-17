@@ -35,7 +35,7 @@ class WholesalerApprovalApiTest extends TestCase
     /** @test */
     public function guest_users_cannot_access_wholesaler_approval_endpoints()
     {
-        $wholesaler = $this->createWholesaler('pending');
+        $wholesaler = $this->createWholesaler();
 
         $this->getJson('/api/admin/wholesalers/pending')->assertStatus(401);
         $this->patchJson("/api/admin/wholesalers/{$wholesaler->id}/approve")->assertStatus(401);
@@ -45,7 +45,7 @@ class WholesalerApprovalApiTest extends TestCase
     /** @test */
     public function customer_users_cannot_access_wholesaler_approval_endpoints()
     {
-        $wholesaler = $this->createWholesaler('pending');
+        $wholesaler = $this->createWholesaler();
 
         $this->actingAs($this->customer, 'sanctum')
             ->getJson('/api/admin/wholesalers/pending')
@@ -61,7 +61,7 @@ class WholesalerApprovalApiTest extends TestCase
     }
 
     /** @test */
-    public function admin_can_list_only_pending_wholesalers()
+    public function admin_can_list_only_unapproved_wholesalers()
     {
         $pendingWholesaler = $this->createWholesaler('pending', 'pending@example.com');
         $this->createWholesaler('approved', 'approved@example.com');
@@ -102,7 +102,7 @@ class WholesalerApprovalApiTest extends TestCase
     /** @test */
     public function admin_can_reject_a_wholesaler()
     {
-        $wholesaler = $this->createWholesaler('pending');
+        $wholesaler = $this->createWholesaler('approved');
 
         $response = $this->actingAs($this->admin, 'sanctum')
             ->patchJson("/api/admin/wholesalers/{$wholesaler->id}/reject");
@@ -139,7 +139,7 @@ class WholesalerApprovalApiTest extends TestCase
         ]);
     }
 
-    private function createWholesaler(string $status, string $email = 'wholesaler@example.com'): User
+    private function createWholesaler(string $status = 'pending', string $email = 'wholesaler@example.com'): User
     {
         return User::create([
             'name' => 'Wholesale Partner',

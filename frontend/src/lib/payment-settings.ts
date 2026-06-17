@@ -23,6 +23,15 @@ export function parsePaymentSettings(
     });
   }
 
+  if (paymentGroup.cod_active === '1') {
+    gateways.push({
+      id: 'cod',
+      label: 'Cash on Delivery',
+      description: 'Pay with cash when your order is delivered',
+      mode: 'live',
+    });
+  }
+
   const preferred = (paymentGroup.payment_gateway ?? 'esewa') as PaymentGatewayId;
   const defaultGateway =
     gateways.find((g) => g.id === preferred)?.id ?? gateways[0]?.id ?? null;
