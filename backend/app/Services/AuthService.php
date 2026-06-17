@@ -20,9 +20,7 @@ class AuthService implements AuthServiceInterface
 
     public function register(array $data)
     {
-        if (($data['role'] ?? null) === 'wholesaler') {
-            $data['wholeseller_status'] = 'pending';
-        }
+        $data['wholeseller_status'] = ($data['role'] ?? null) === 'wholesaler' ? 'pending' : 'approved';
 
         $data['password'] = Hash::make($data['password']);
         $user = $this->userRepository->create($data);
@@ -44,11 +42,20 @@ class AuthService implements AuthServiceInterface
             return null;
         }
 
-        if ($user->role === 'wholesaler' && $user->wholeseller_status !== 'approved') {
-            return [
-                'blocked' => true,
-                'message' => 'Your wholesaler account is pending approval.',
-            ];
+        if ($user->role === 'wholesaler') {
+            if ($user->wholeseller_status === 'pending') {
+                return [
+                    'blocked' => true,
+                    'message' => 'Your wholesaler account is pending approval.',
+                ];
+            }
+
+            if ($user->wholeseller_status === 'rejected') {
+                return [
+                    'blocked' => true,
+                    'message' => 'Your wholesaler account has been rejected.',
+                ];
+            }
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;

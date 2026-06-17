@@ -13,7 +13,7 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('users', 'wholeseller_status')) {
             Schema::table('users', function (Blueprint $table) {
-                $table->string('wholeseller_status')->nullable();
+                $table->string('wholeseller_status')->default('pending');
             });
         }
     }
