@@ -28,4 +28,11 @@ class UserRepository implements UserRepositoryInterface
         $user->update($data);
         return $user;
     }
+
+    public function getPendingWholesalers()
+    {
+        return User::where('role', 'wholesaler')
+            ->where('wholeseller_status', 'pending')
+            ->get();
+    }
 }

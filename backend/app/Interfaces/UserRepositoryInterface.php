@@ -8,4 +8,5 @@ interface UserRepositoryInterface
     public function findByEmail(string $email);
     public function findById(string $id);
     public function update(string $id, array $data);
+    public function getPendingWholesalers();
 }
