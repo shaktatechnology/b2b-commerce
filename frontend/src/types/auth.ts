@@ -1,14 +1,17 @@
 export interface AuthUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   email_verified_at: string | null;
-  created_at: string;
-  updated_at: string;
-  role?: string; // e.g. 'admin' | 'wholeseller' | 'user'
+  created_at?: string;
+  updated_at?: string;
+  role: string;
+  google_id?: string | null;
   phone?: string | null;
   company_name?: string | null;
   address?: string | null;
+  is_verified?: boolean;
+  wholeseller_status?: string | null;
 }
 
 export interface LoginResponse {

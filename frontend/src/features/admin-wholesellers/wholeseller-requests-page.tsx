@@ -25,7 +25,7 @@ import { Pagination } from '@/src/components/ui/pagination';
 export function WholesellerRequestsPage() {
   const [data, setData] = React.useState<AuthUser[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isActionLoading, setIsActionLoading] = React.useState<number | null>(null);
+  const [isActionLoading, setIsActionLoading] = React.useState<string | null>(null);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
@@ -34,50 +34,35 @@ export function WholesellerRequestsPage() {
   const loadRequests = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      // Assuming endpoint for wholesaler requests/users
-      const res = await apiFetch<any>(`/admin/wholesellers?page=${page}&per_page=10`, { token: token || undefined });
+      const res = await apiFetch<{ message: string; data: AuthUser[] }>('/admin/wholesalers/pending', { token: token || undefined });
       
-      let items: AuthUser[] = [];
-      let total = 0;
-      let lastPage = 1;
-
-      if (Array.isArray(res)) {
-        items = res;
-        total = res.length;
-      } else {
-        const resData = res?.data?.data || res?.data || [];
-        items = Array.isArray(resData) ? resData : [];
-        total = res?.total || res?.meta?.total || items.length;
-        lastPage = res?.last_page || res?.meta?.last_page || 1;
-      }
-
+      const items = Array.isArray(res.data) ? res.data : [];
       setData(items);
-      setTotalItems(total);
-      setTotalPages(lastPage);
+      setTotalItems(items.length);
+      setTotalPages(Math.ceil(items.length / 10) || 1);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load wholesaler requests');
-      // Set some dummy data if API fails to show design
       setData([]);
     } finally {
       setIsLoading(false);
     }
-  }, [token, page]);
+  }, [token]);
 
   React.useEffect(() => {
     loadRequests();
   }, [loadRequests]);
 
-  const handleAction = async (id: number, action: 'approve' | 'disapprove') => {
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setIsActionLoading(id);
     try {
-      await apiFetch(`/admin/wholesellers/${id}/${action}`, {
-        method: 'POST',
+      await apiFetch(`/admin/wholesalers/${id}/${action}`, {
+        method: 'PATCH',
         token: token || undefined,
       });
-      toast.success(`Wholeseller ${action === 'approve' ? 'approved' : 'disapproved'} successfully`);
+      toast.success(`Wholesaler ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       loadRequests();
     } catch (err: any) {
-      toast.error(err.message || `Failed to ${action} wholeseller`);
+      toast.error(err.message || `Failed to ${action} wholesaler`);
     } finally {
       setIsActionLoading(null);
     }
@@ -163,14 +148,18 @@ export function WholesellerRequestsPage() {
                     <TableCell className="py-5 px-6">
                       <Badge className={cn(
                         "rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-wider border-none shadow-none",
-                        item.role === 'wholesaler' ? "bg-green-50 text-green-600" : "bg-amber-50 text-amber-600"
+                        item.wholeseller_status === 'approved' ? "bg-green-50 text-green-600" 
+                          : item.wholeseller_status === 'rejected' ? "bg-red-50 text-red-600"
+                          : "bg-amber-50 text-amber-600"
                       )}>
-                        {item.role === 'wholesaler' ? 'Active Wholesaler' : 'Pending Request'}
+                        {item.wholeseller_status === 'approved' ? 'Approved' 
+                          : item.wholeseller_status === 'rejected' ? 'Rejected' 
+                          : 'Pending'}
                       </Badge>
                     </TableCell>
                     <TableCell className="py-5 px-6 text-right">
                       <div className="flex justify-end gap-2">
-                        {item.role !== 'wholesaler' ? (
+                        {item.wholeseller_status !== 'approved' && (
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -178,19 +167,20 @@ export function WholesellerRequestsPage() {
                             onClick={() => handleAction(item.id, 'approve')}
                             disabled={isActionLoading === item.id}
                           >
-                            {isActionLoading === item.id ? <Spinner size="xs" /> : <Check className="size-3.5 mr-1" />}
+                            {isActionLoading === item.id ? <Spinner size="sm" /> : <Check className="size-3.5 mr-1" />}
                             Approve
                           </Button>
-                        ) : (
+                        )}
+                        {item.wholeseller_status !== 'rejected' && (
                           <Button 
                             variant="outline" 
                             size="sm" 
                             className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 hover:text-red-700 font-bold text-xs h-9"
-                            onClick={() => handleAction(item.id, 'disapprove')}
+                            onClick={() => handleAction(item.id, 'reject')}
                             disabled={isActionLoading === item.id}
                           >
-                            {isActionLoading === item.id ? <Spinner size="xs" /> : <X className="size-3.5 mr-1" />}
-                            Disapprove
+                            {isActionLoading === item.id ? <Spinner size="sm" /> : <X className="size-3.5 mr-1" />}
+                            Reject
                           </Button>
                         )}
                       </div>

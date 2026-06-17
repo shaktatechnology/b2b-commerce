@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { apiFetch } from '@/src/lib/api';
 import { getAuthToken } from '@/src/lib/auth';
-import { WholesalerRequest } from '@/src/types/wholeseller';
+import { AuthUser } from '@/src/types';
 import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Spinner } from '@/src/components/ui/spinner';
@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/src/components/ui/badge';
 import { cn } from '@/src/lib/utils';
 import { toast } from 'sonner';
-import { Check, X, Eye, Building2, User, Mail, Calendar, Package } from 'lucide-react';
+import { Check, X, Eye, Building2, User, Mail, Calendar, Phone, MapPin } from 'lucide-react';
 import { Pagination } from '@/src/components/ui/pagination';
 import {
   Dialog,
@@ -30,74 +30,82 @@ import {
 } from "@/src/components/ui/dialog";
 
 export function WholesalerRequestsPage() {
-  const [requests, setRequests] = React.useState<WholesalerRequest[]>([]);
+  const [requests, setRequests] = React.useState<AuthUser[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalItems, setTotalItems] = React.useState(0);
-  const [selectedRequest, setSelectedRequest] = React.useState<WholesalerRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = React.useState<AuthUser | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
-  const [isProcessing, setIsProcessing] = React.useState<number | null>(null);
+  const [isProcessing, setIsProcessing] = React.useState<string | null>(null);
 
   const token = getAuthToken();
+  const perPage = 10;
 
   const loadRequests = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      // Note: Assuming endpoint convention /admin/wholeseller-requests
-      const res = await apiFetch<any>(`/admin/wholeseller/applications?page=${page}&per_page=10`, { token: token || undefined });
+      const res = await apiFetch<{ message: string; data: AuthUser[] }>('/admin/wholesalers/pending', { 
+        token: token || undefined 
+      });
       
-      let data: WholesalerRequest[] = [];
-      let total = 0;
-      let lastPage = 1;
-
-      if (Array.isArray(res)) {
-        data = res;
-        total = res.length;
-      } else {
-        const resData = res?.data?.data || res?.data || [];
-        data = Array.isArray(resData) ? resData : [];
-        total = res?.total || res?.meta?.total || data.length;
-        lastPage = res?.last_page || res?.meta?.last_page || 1;
-      }
-
-      setRequests(data);
-      setTotalItems(total);
-      setTotalPages(lastPage);
+      const items = Array.isArray(res.data) ? res.data : [];
+      setRequests(items);
+      setTotalItems(items.length);
+      setTotalPages(Math.ceil(items.length / perPage) || 1);
     } catch (err: any) {
-      // If endpoint doesn't exist yet, we'll show empty state but keep the UI
       console.error('Failed to load requests:', err);
-      // toast.error(err.message || 'Failed to load wholesaler requests');
+      toast.error(err.message || 'Failed to load wholesaler requests');
       setRequests([]); 
     } finally {
       setIsLoading(false);
     }
-  }, [token, page]);
+  }, [token]);
 
   React.useEffect(() => {
     loadRequests();
   }, [loadRequests]);
 
-  const handleAction = async (id: number, status: 'approved' | 'rejected') => {
+  const handleAction = async (id: string, action: 'approve' | 'reject') => {
     setIsProcessing(id);
     try {
-      await apiFetch(`/admin/wholeseller/applications/${id}/${status}`, {
-        method: 'POST',
+      await apiFetch(`/admin/wholesalers/${id}/${action}`, {
+        method: 'PATCH',
         token: token || undefined
       });
-      toast.success(`Application ${status} successfully`);
+      toast.success(`Wholesaler ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       loadRequests();
       if (selectedRequest?.id === id) setIsDetailsOpen(false);
     } catch (err: any) {
-      toast.error(err.message || `Failed to ${status} application`);
+      toast.error(err.message || `Failed to ${action} wholesaler`);
     } finally {
       setIsProcessing(null);
     }
   };
 
-  const openDetails = (request: WholesalerRequest) => {
+  const openDetails = (request: AuthUser) => {
     setSelectedRequest(request);
     setIsDetailsOpen(true);
+  };
+
+  // Client-side pagination of the full list
+  const paginatedRequests = React.useMemo(() => {
+    const start = (page - 1) * perPage;
+    return requests.slice(start, start + perPage);
+  }, [requests, page]);
+
+  const getStatusBadge = (user: AuthUser) => {
+    const status = user.wholeseller_status || 'pending';
+    return (
+      <Badge className={cn(
+        "rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-wider border-none shadow-none",
+        status === 'approved' ? "bg-green-50 text-green-600" : 
+        status === 'rejected' ? "bg-red-50 text-red-600" : 
+        "bg-amber-50 text-amber-600"
+      )}>
+        {status}
+      </Badge>
+    );
   };
 
   return (
@@ -114,9 +122,8 @@ export function WholesalerRequestsPage() {
               <TableRow className="hover:bg-transparent border-zinc-100">
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Business Info</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Contact</TableHead>
-                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Category</TableHead>
+                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Address</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Status</TableHead>
-                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Date</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -136,6 +143,12 @@ export function WholesalerRequestsPage() {
                     <TableCell className="py-5 px-6">
                       <Skeleton className="h-4 w-24" />
                     </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                    </TableCell>
                     <TableCell className="py-5 px-6 text-right">
                       <div className="flex justify-end gap-2">
                         <Skeleton className="h-8 w-8 rounded-full" />
@@ -144,14 +157,14 @@ export function WholesalerRequestsPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : requests.length === 0 ? (
+              ) : paginatedRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center p-20 text-zinc-500 font-medium italic">
+                  <TableCell colSpan={5} className="text-center p-20 text-zinc-500 font-medium italic">
                     No pending wholesaler applications found.
                   </TableCell>
                 </TableRow>
               ) : (
-                requests.map((req) => (
+                paginatedRequests.map((req) => (
                   <TableRow key={req.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
@@ -159,41 +172,31 @@ export function WholesalerRequestsPage() {
                           <Building2 className="size-5" />
                         </div>
                         <div>
-                          <p className="font-bold text-black/90">{req.business_name}</p>
-                          <p className="text-zinc-400 text-xs font-medium">{req.address}</p>
+                          <p className="font-bold text-black/90">{req.company_name || req.name}</p>
+                          <p className="text-zinc-400 text-xs font-medium flex items-center gap-1">
+                            <Mail className="size-3" /> {req.email}
+                          </p>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="space-y-1">
                         <p className="font-bold text-black/90 text-sm flex items-center gap-1.5">
-                          <User className="size-3 text-zinc-400" /> {req.contact_person}
+                          <User className="size-3 text-zinc-400" /> {req.name}
                         </p>
                         <p className="text-zinc-400 text-xs font-medium flex items-center gap-1.5">
-                          <Mail className="size-3" /> {req.email}
+                          <Phone className="size-3" /> {req.phone || 'N/A'}
                         </p>
                       </div>
                     </TableCell>
                     <TableCell className="py-5 px-6">
-                      <Badge variant="outline" className="rounded-full border-zinc-200 text-zinc-600 font-bold text-[10px] uppercase tracking-wider">
-                        <Package className="size-3 mr-1" /> {req.product_category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-5 px-6">
-                      <Badge className={cn(
-                        "rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-wider border-none shadow-none",
-                        req.status === 'approved' ? "bg-green-50 text-green-600" : 
-                        req.status === 'rejected' ? "bg-red-50 text-red-600" : 
-                        "bg-amber-50 text-amber-600"
-                      )}>
-                        {req.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="py-5 px-6">
-                      <div className="flex items-center gap-2 text-zinc-500 font-medium text-sm">
-                        <Calendar className="size-3.5" />
-                        {new Date(req.created_at).toLocaleDateString()}
+                      <div className="flex items-start gap-1 text-zinc-500 text-sm max-w-[200px]">
+                        <MapPin className="size-3.5 mt-0.5 shrink-0" />
+                        <span className="line-clamp-2 leading-tight">{req.address || 'No address provided'}</span>
                       </div>
+                    </TableCell>
+                    <TableCell className="py-5 px-6">
+                      {getStatusBadge(req)}
                     </TableCell>
                     <TableCell className="py-5 px-6 text-right">
                       <div className="flex justify-end gap-2">
@@ -205,28 +208,24 @@ export function WholesalerRequestsPage() {
                         >
                           <Eye className="size-5" />
                         </Button>
-                        {req.status === 'pending' && (
-                          <>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="rounded-full text-zinc-400 hover:text-green-600 hover:bg-green-50 transition-all"
-                              onClick={() => handleAction(req.id, 'approved')}
-                              disabled={isProcessing === req.id}
-                            >
-                              {isProcessing === req.id ? <Spinner size="sm" /> : <Check className="size-5" />}
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                              onClick={() => handleAction(req.id, 'rejected')}
-                              disabled={isProcessing === req.id}
-                            >
-                              {isProcessing === req.id ? <Spinner size="sm" /> : <X className="size-5" />}
-                            </Button>
-                          </>
-                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-full text-zinc-400 hover:text-green-600 hover:bg-green-50 transition-all"
+                          onClick={() => handleAction(req.id, 'approve')}
+                          disabled={isProcessing === req.id}
+                        >
+                          {isProcessing === req.id ? <Spinner size="sm" /> : <Check className="size-5" />}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                          onClick={() => handleAction(req.id, 'reject')}
+                          disabled={isProcessing === req.id}
+                        >
+                          {isProcessing === req.id ? <Spinner size="sm" /> : <X className="size-5" />}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -243,7 +242,7 @@ export function WholesalerRequestsPage() {
               totalPages={totalPages}
               onPageChange={setPage}
               totalItems={totalItems}
-              itemsPerPage={10}
+              itemsPerPage={perPage}
             />
           </div>
         )}
@@ -264,17 +263,17 @@ export function WholesalerRequestsPage() {
               <div className="grid grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Business Name</h4>
-                    <p className="font-bold text-black/90 text-lg">{selectedRequest.business_name}</p>
+                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Business / Company</h4>
+                    <p className="font-bold text-black/90 text-lg">{selectedRequest.company_name || 'N/A'}</p>
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Business Address</h4>
-                    <p className="font-medium text-zinc-600">{selectedRequest.address}</p>
+                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Address</h4>
+                    <p className="font-medium text-zinc-600">{selectedRequest.address || 'No address provided'}</p>
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Product Category</h4>
-                    <p className="font-medium text-zinc-600 flex items-center gap-2">
-                       <Package className="size-4 text-[#966FD6]" /> {selectedRequest.product_category}
+                    <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Verified</h4>
+                    <p className="font-medium text-zinc-600">
+                      {selectedRequest.is_verified ? 'Yes' : 'No'}
                     </p>
                   </div>
                 </div>
@@ -282,7 +281,7 @@ export function WholesalerRequestsPage() {
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Contact Person</h4>
-                    <p className="font-bold text-black/90">{selectedRequest.contact_person}</p>
+                    <p className="font-bold text-black/90">{selectedRequest.name}</p>
                   </div>
                   <div>
                     <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Email Address</h4>
@@ -290,52 +289,36 @@ export function WholesalerRequestsPage() {
                   </div>
                   <div>
                     <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">Phone Number</h4>
-                    <p className="font-medium text-zinc-600">{selectedRequest.phone}</p>
+                    <p className="font-medium text-zinc-600">{selectedRequest.phone || 'N/A'}</p>
                   </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-zinc-100">
-                <h4 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-2">Message / Additional Info</h4>
-                <div className="bg-zinc-50 rounded-xl p-4 text-sm text-zinc-600 leading-relaxed font-medium min-h-[100px]">
-                  {selectedRequest.message || "No message provided."}
                 </div>
               </div>
 
               <div className="flex justify-between items-center pt-6 border-t border-zinc-100">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-zinc-400">STATUS:</span>
-                  <Badge className={cn(
-                    "rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-wider border-none shadow-none",
-                    selectedRequest.status === 'approved' ? "bg-green-50 text-green-600" : 
-                    selectedRequest.status === 'rejected' ? "bg-red-50 text-red-600" : 
-                    "bg-amber-50 text-amber-600"
-                  )}>
-                    {selectedRequest.status}
-                  </Badge>
+                  {getStatusBadge(selectedRequest)}
                 </div>
                 
-                {selectedRequest.status === 'pending' && (
-                  <div className="flex gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="border-red-200 text-red-600 hover:bg-red-50 font-black px-6"
-                      onClick={() => handleAction(selectedRequest.id, 'rejected')}
-                      disabled={isProcessing !== null}
-                    >
-                      {isProcessing === selectedRequest.id ? <Spinner size="sm" className="mr-2" /> : <X className="size-4 mr-2" />}
-                      Reject
-                    </Button>
-                    <Button 
-                      className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white font-black px-6 shadow-lg shadow-[#966FD6]/20"
-                      onClick={() => handleAction(selectedRequest.id, 'approved')}
-                      disabled={isProcessing !== null}
-                    >
-                      {isProcessing === selectedRequest.id ? <Spinner size="sm" className="mr-2 border-white" /> : <Check className="size-4 mr-2" />}
-                      Approve Business
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="border-red-200 text-red-600 hover:bg-red-50 font-black px-6"
+                    onClick={() => handleAction(selectedRequest.id, 'reject')}
+                    disabled={isProcessing !== null}
+                  >
+                    {isProcessing === selectedRequest.id ? <Spinner size="sm" className="mr-2" /> : <X className="size-4 mr-2" />}
+                    Reject
+                  </Button>
+                  <Button 
+                    className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white font-black px-6 shadow-lg shadow-[#966FD6]/20"
+                    onClick={() => handleAction(selectedRequest.id, 'approve')}
+                    disabled={isProcessing !== null}
+                  >
+                    {isProcessing === selectedRequest.id ? <Spinner size="sm" className="mr-2 border-white" /> : <Check className="size-4 mr-2" />}
+                    Approve Business
+                  </Button>
+                </div>
               </div>
             </div>
           )}
