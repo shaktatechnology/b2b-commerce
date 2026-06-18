@@ -19,6 +19,7 @@ import {
   Bell,
   Globe,
   CreditCard,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { logoutApi } from '@/src/lib/auth';

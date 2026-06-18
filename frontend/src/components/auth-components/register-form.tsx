@@ -69,7 +69,7 @@ interface RegisterResponse {
 }
 
 const fieldClass =
-  'h-11 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none px-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none';
+  'h-11 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none px-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none disabled:opacity-50';
 
 /* ─────────────────── Pending Approval Modal ─────────────────── */
 
@@ -228,8 +228,7 @@ export function RegisterForm() {
         router.push('/');
       }
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Registration failed. Please try again.';
+      const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
