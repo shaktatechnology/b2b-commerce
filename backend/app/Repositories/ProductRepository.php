@@ -35,6 +35,12 @@ class ProductRepository implements ProductRepositoryInterface
             $query->where('is_active', filter_var($filters['active'], FILTER_VALIDATE_BOOLEAN));
         }
 
+        if (isset($filters['offer_id'])) {
+            $query->whereHas('offers', function ($q) use ($filters) {
+                $q->where('offers.id', $filters['offer_id']);
+            });
+        }
+
         return $query->get();
     }
 

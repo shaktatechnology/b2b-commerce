@@ -22,7 +22,7 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
   const [{ storefront }, categories, products, offers] = await Promise.all([
     fetchAllSettings(),
     fetchCategories(),
-    fetchProducts(),
+    fetchProducts(offer_id ? { offer_id } : undefined),
     fetchOffers(),
   ]);
 
