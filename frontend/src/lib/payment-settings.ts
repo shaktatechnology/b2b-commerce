@@ -1,11 +1,14 @@
 import type { PaymentGatewayId, PaymentSettings } from '@/src/types/payment-settings';
 
 export function parsePaymentSettings(
-  paymentGroup: Record<string, string | null>
+  paymentGroup: Record<string, any>
 ): PaymentSettings {
   const gateways: PaymentSettings['gateways'] = [];
 
-  if (paymentGroup.esewa_active === '1') {
+  const isActive = (val: any) => 
+    val === '1' || val === 1 || val === 'true' || val === true || val === 'on' || val === 'active';
+
+  if (isActive(paymentGroup.esewa_active)) {
     gateways.push({
       id: 'esewa',
       label: 'eSewa',
@@ -14,7 +17,7 @@ export function parsePaymentSettings(
     });
   }
 
-  if (paymentGroup.paypal_active === '1') {
+  if (isActive(paymentGroup.paypal_active)) {
     gateways.push({
       id: 'paypal',
       label: 'PayPal',
@@ -23,7 +26,7 @@ export function parsePaymentSettings(
     });
   }
 
-  if (paymentGroup.cod_active === '1') {
+  if (isActive(paymentGroup.cod_active)) {
     gateways.push({
       id: 'cod',
       label: 'Cash on Delivery',

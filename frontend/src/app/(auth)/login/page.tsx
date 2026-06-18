@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { LoginForm } from '@/src/components/auth-components/login-form';
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 interface LoginPageProps {
   searchParams: Promise<{ redirect?: string }>;
@@ -26,6 +27,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       {/* Login Card (Popup) */}
       <div className="relative z-20 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500">
         <div className="bg-white rounded-[10px] shadow-2xl flex flex-col justify-center w-[calc(100vw-2rem)] sm:w-[460px] h-auto max-h-[calc(100vh-2rem)] sm:h-[420px] max-w-[100vw] px-6 sm:px-10 py-6 sm:py-8 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 text-zinc-400 hover:text-primary text-xs font-medium transition-colors mb-6 group w-fit"
+          >
+            <ArrowLeft className="size-3 group-hover:-translate-x-0.5 transition-transform" />
+            Back to store
+          </Link>
+
           <div className="flex flex-col gap-2 mb-8 text-left">
             <h1 
               className="text-black m-0 tracking-[0.04em]" 
@@ -60,4 +69,4 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </div>
     </div>
   );
-}
+}
