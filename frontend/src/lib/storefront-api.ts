@@ -74,6 +74,13 @@ export async function fetchAllSettings(): Promise<{
       ? rawLogo
       : null;
 
+  const allSettingsFlat: Record<string, string | null> = {};
+  Object.keys(grouped).forEach((group) => {
+    Object.keys(grouped[group]).forEach((key) => {
+      allSettingsFlat[key] = grouped[group][key];
+    });
+  });
+
   return {
     grouped,
     storefront: {
@@ -82,7 +89,7 @@ export async function fetchAllSettings(): Promise<{
       metaDescription: general.meta_description ?? '',
       socialLinks: grouped.social ?? {},
     },
-    payment: parsePaymentSettings(grouped.payment ?? {}),
+    payment: parsePaymentSettings(allSettingsFlat),
   };
 }
 
