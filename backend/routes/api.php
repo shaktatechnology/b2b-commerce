@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\SizeController;
 use App\Http\Controllers\Admin\WholesalerController;
+use App\Http\Controllers\Admin\UserController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -163,9 +164,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments',               [PaymentController::class, 'adminIndex']);
         Route::get('/payments/{id}',          [PaymentController::class, 'adminShow']);
 
+        // Users
+        Route::get('/users',                   [UserController::class, 'index']);
+        Route::get('/users/{id}',              [UserController::class, 'show']);
+        Route::get('/users/{id}/history',      [UserController::class, 'purchaseHistory']);
+        Route::delete('/users/{id}',           [UserController::class, 'destroy']);
+
         // Wholesalers
+        Route::get('/wholesalers',             [WholesalerController::class, 'index']);
         Route::get('/wholesalers/pending',     [WholesalerController::class, 'pending']);
-        Route::post('/wholesalers/{id}/approve', [WholesalerController::class, 'approve']);
-        Route::post('/wholesalers/{id}/reject',  [WholesalerController::class, 'reject']);
+        Route::patch('/wholesalers/{id}/approve', [WholesalerController::class, 'approve']);
+        Route::patch('/wholesalers/{id}/reject',  [WholesalerController::class, 'reject']);
     });
 });

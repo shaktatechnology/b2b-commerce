@@ -9,7 +9,7 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
           <div className="space-y-6">
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Shakta Kit
+              B2B Ecommerce
             </span>
             <p className="text-muted-foreground leading-relaxed">
               Empowering developers to build premium web applications with speed and precision.

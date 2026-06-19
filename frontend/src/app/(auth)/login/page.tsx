@@ -26,7 +26,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
       {/* Login Card (Popup) */}
       <div className="relative z-20 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500">
-        <div className="bg-white rounded-[10px] shadow-2xl flex flex-col justify-center w-[calc(100vw-2rem)] sm:w-[460px] h-auto max-h-[calc(100vh-2rem)] sm:h-[420px] max-w-[100vw] px-6 sm:px-10 py-6 sm:py-8 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="bg-white rounded-sm shadow-none flex flex-col justify-center w-[calc(100vw-2rem)] sm:w-[460px] h-auto max-h-[calc(100vh-2rem)] sm:h-[420px] max-w-[100vw] px-6 sm:px-10 py-6 sm:py-8">
           <Link 
             href="/" 
             className="flex items-center gap-2 text-zinc-400 hover:text-primary text-xs font-medium transition-colors mb-6 group w-fit"
@@ -69,4 +69,4 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </div>
     </div>
   );
-}
+}

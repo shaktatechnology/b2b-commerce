@@ -88,7 +88,7 @@ export function Sidebar({ className, isMobileOpen, setIsMobileOpen }: SidebarPro
         <div className="flex items-center justify-between h-20 px-6 border-b border-zinc-50">
           {(!isCollapsed || isMobileOpen) && (
             <span className="text-2xl font-black tracking-tighter text-black">
-              SHAKTA<span className="text-blue-500">.</span>
+              Admin<span className="text-blue-500"> Dashboard</span>
             </span>
           )}
           <Button

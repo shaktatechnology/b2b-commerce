@@ -19,6 +19,11 @@ class WholesalerService implements WholesalerServiceInterface
         return $this->userRepository->getPendingWholesalers();
     }
 
+    public function getAllWholesalers(array $filters = [])
+    {
+        return $this->userRepository->getAllWholesalers($filters);
+    }
+
     public function approveWholesaler(string $id)
     {
         return $this->userRepository->update($id, ['wholeseller_status' => 'approved']);

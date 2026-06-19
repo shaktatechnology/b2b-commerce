@@ -20,7 +20,7 @@ export const useAppStore = create<AppState>()(
       logout: () => set({ user: null }),
     }),
     {
-      name: 'shakta-app-storage',
+      name: 'app-storage',
     }
   )
 );

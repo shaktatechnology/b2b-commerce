@@ -177,7 +177,7 @@ export function SettingsForm() {
     <div className="w-full max-w-6xl mx-auto space-y-6">
       <Tabs defaultValue="general" className="w-full">
         {/* Flat Tab list with white and light gray borders, absolutely NO shadow */}
-        <TabsList className="grid grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-gray-50 border border-gray-200/80 rounded-xl mb-6 shadow-none gap-1">
+        <TabsList className="grid grid-cols-2 lg:grid-cols-4 h-auto p-1 l mb-6 shadow-none gap-1">
           <TabsTrigger 
             value="general"
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg capitalize border border-transparent data-[state=active]:bg-white data-[state=active]:border-gray-200 data-[state=active]:text-primary transition-all font-semibold text-xs shadow-none"
@@ -225,7 +225,7 @@ export function SettingsForm() {
                       <Input
                         value={settings.site_name || ''}
                         onChange={(e) => handleChange('site_name', e.target.value)}
-                        placeholder="e.g. Shakta B2B Commerce"
+                        placeholder="e.g.B2B Commerce"
                         className="h-10 rounded-lg bg-white border-gray-200 focus:border-primary/50 focus:ring-0 shadow-none text-sm text-gray-900 placeholder-gray-400"
                       />
                     </div>
@@ -345,7 +345,7 @@ export function SettingsForm() {
                         type="email"
                         value={settings.contact_email || ''}
                         onChange={(e) => handleChange('contact_email', e.target.value)}
-                        placeholder="support@shaktatech.com"
+                        placeholder="support@gmail.com"
                         className="h-10 rounded-lg bg-white border-gray-200 text-sm shadow-none text-gray-900 placeholder-gray-400"
                       />
                     </div>

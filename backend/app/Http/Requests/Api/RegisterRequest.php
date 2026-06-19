@@ -18,6 +18,9 @@ class RegisterRequest extends FormRequest
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'nullable|string|in:wholesaler,customer',
+            'phone' => 'required|string|max:25',
+            'company_name' => 'required_if:role,wholesaler|nullable|string|max:255',
+            'address' => 'required_if:role,wholesaler|nullable|string|max:1000',
         ];
     }
 }

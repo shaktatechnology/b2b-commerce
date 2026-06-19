@@ -63,6 +63,6 @@ export const useCartStore = create<CartState>()(
       discountTotal: () =>
         get().items.reduce((sum, item) => sum + (item.discount ?? 0) * item.quantity, 0),
     }),
-    { name: 'shakta-cart-storage' }
+    { name: 'cart-storage' }
   )
 );

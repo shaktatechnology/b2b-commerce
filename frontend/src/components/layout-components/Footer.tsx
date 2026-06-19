@@ -13,14 +13,14 @@ export function Footer() {
       .catch((err) => console.error('Failed to fetch footer settings:', err));
   }, []);
 
-  const footerText = footerSettings.footer_text || `© ${new Date().getFullYear()} Shakta Starter Kit. All rights reserved.`;
+  const footerText = footerSettings.footer_text || `© ${new Date().getFullYear()} B2B Starter Kit. All rights reserved.`;
 
   return (
     <footer className="bg-background border-t py-12 px-8 font-poppins">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="text-center md:text-left">
           <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-            Shakta Starter Kit
+            B2B Ecommerce
           </span>
           <p className="mt-2 text-sm text-muted-foreground max-w-xs">
             A modern, performant, and premium full-stack starter kit designed for rapid application development.

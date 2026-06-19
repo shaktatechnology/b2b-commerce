@@ -22,6 +22,7 @@ import { apiFetch } from '@/src/lib/api';
 import { setAuthCookie } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
 import { cn } from '@/src/lib/utils';
+import { AuthUser } from '@/src/types';
 
 /* ─────────────────── Schemas ─────────────────── */
 
@@ -30,7 +31,7 @@ const baseSchema = z.object({
   email: z.string().email('Please enter a valid email address').max(255),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   password_confirmation: z.string().min(1, 'Please confirm your password'),
-  phone: z.string().max(25).optional().or(z.literal('')),
+  phone: z.string().min(1, 'Phone number is required').max(25),
   company_name: z.string().max(255).optional().or(z.literal('')),
   address: z.string().max(1000).optional().or(z.literal('')),
 });
@@ -44,9 +45,6 @@ const customerSchema = baseSchema.superRefine((data, ctx) => {
 const wholesalerSchema = baseSchema.superRefine((data, ctx) => {
   if (data.password !== data.password_confirmation) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Passwords don't match", path: ['password_confirmation'] });
-  }
-  if (!data.phone?.trim()) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Phone number is required for wholesaler accounts', path: ['phone'] });
   }
   if (!data.company_name?.trim()) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Company name is required for wholesaler accounts', path: ['company_name'] });
@@ -62,7 +60,7 @@ type Role = 'customer' | 'wholesaler';
 interface RegisterResponse {
   message: string;
   data: {
-    user: { id: number; name: string; email: string; email_verified_at: string | null; created_at: string; updated_at: string; role?: string };
+    user: AuthUser;
     access_token: string;
     token_type: string;
   };
@@ -336,14 +334,20 @@ export function RegisterForm() {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           {/* Name */}
           <div className="space-y-1">
-            <Input id="name" placeholder="Full Name" type="text" autoComplete="name" disabled={isLoading} className={fieldClass} {...register('name')} />
+            <Input id="name" placeholder="Full Name *" type="text" autoComplete="name" disabled={isLoading} className={fieldClass} {...register('name')} />
             {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
 
           {/* Email */}
           <div className="space-y-1">
-            <Input id="email" placeholder="Email Address" type="email" autoComplete="email" disabled={isLoading} className={fieldClass} {...register('email')} />
+            <Input id="email" placeholder="Email Address *" type="email" autoComplete="email" disabled={isLoading} className={fieldClass} {...register('email')} />
             {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+          </div>
+
+          {/* Phone (now for both roles) */}
+          <div className="space-y-1">
+            <Input id="phone" placeholder="Phone Number *" type="tel" autoComplete="tel" disabled={isLoading} className={fieldClass} {...register('phone')} />
+            {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
           </div>
 
           {/* Wholesaler extra fields */}
@@ -359,15 +363,11 @@ export function RegisterForm() {
               >
                 <div className="space-y-5 pt-1">
                   <div className="space-y-1">
-                    <Input id="phone" placeholder="Phone Number" type="tel" autoComplete="tel" disabled={isLoading} className={fieldClass} {...register('phone')} />
-                    {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-                  </div>
-                  <div className="space-y-1">
-                    <Input id="company_name" placeholder="Company / Business Name" type="text" disabled={isLoading} className={fieldClass} {...register('company_name')} />
+                    <Input id="company_name" placeholder="Company / Business Name *" type="text" disabled={isLoading} className={fieldClass} {...register('company_name')} />
                     {errors.company_name && <p className="text-xs text-destructive">{errors.company_name.message}</p>}
                   </div>
                   <div className="space-y-1">
-                    <Input id="address" placeholder="Business Address" type="text" disabled={isLoading} className={fieldClass} {...register('address')} />
+                    <Input id="address" placeholder="Business Address *" type="text" disabled={isLoading} className={fieldClass} {...register('address')} />
                     {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
                   </div>
                 </div>
@@ -378,7 +378,7 @@ export function RegisterForm() {
           {/* Password */}
           <div className="space-y-1">
             <div className="relative">
-              <Input id="password" placeholder="Password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" disabled={isLoading} className={cn(fieldClass, 'pr-10')} {...register('password')} />
+              <Input id="password" placeholder="Password *" type={showPassword ? 'text' : 'password'} autoComplete="new-password" disabled={isLoading} className={cn(fieldClass, 'pr-10')} {...register('password')} />
               <button type="button" tabIndex={-1} className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 transition-colors" onClick={() => setShowPassword(v => !v)}>
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -389,7 +389,7 @@ export function RegisterForm() {
           {/* Confirm Password */}
           <div className="space-y-1">
             <div className="relative">
-              <Input id="password_confirmation" placeholder="Confirm Password" type={showConfirm ? 'text' : 'password'} autoComplete="new-password" disabled={isLoading} className={cn(fieldClass, 'pr-10')} {...register('password_confirmation')} />
+              <Input id="password_confirmation" placeholder="Confirm Password *" type={showConfirm ? 'text' : 'password'} autoComplete="new-password" disabled={isLoading} className={cn(fieldClass, 'pr-10')} {...register('password_confirmation')} />
               <button type="button" tabIndex={-1} className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 transition-colors" onClick={() => setShowConfirm(v => !v)}>
                 {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>

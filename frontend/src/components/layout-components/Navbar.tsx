@@ -80,7 +80,7 @@ export function Navbar() {
     }
   };
 
-  const siteName = settings.site_name || 'Shakta Starter Kit';
+  const siteName = settings.site_name || 'B2B Starter Kit';
   const isLoggedIn = !!profileUser;
 
   // Get user initials for avatar

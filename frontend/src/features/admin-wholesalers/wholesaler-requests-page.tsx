@@ -21,6 +21,16 @@ import { cn } from '@/src/lib/utils';
 import { toast } from 'sonner';
 import { Check, X, Eye, Building2, User, Mail, Calendar, Phone, MapPin } from 'lucide-react';
 import { Pagination } from '@/src/components/ui/pagination';
+import { Input } from '@/src/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/src/components/ui/select";
+import { Search, Filter, RotateCcw } from 'lucide-react';
+import { useDebounce } from '@/src/hooks/use-debounce';
 import {
   Dialog,
   DialogContent,
@@ -28,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/src/components/ui/dialog";
+import { ConfirmDialog } from '@/src/components/modals/confirm-dialog';
 
 export function WholesalerRequestsPage() {
   const [requests, setRequests] = React.useState<AuthUser[]>([]);
@@ -38,6 +49,22 @@ export function WholesalerRequestsPage() {
   const [selectedRequest, setSelectedRequest] = React.useState<AuthUser | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
   const [isProcessing, setIsProcessing] = React.useState<string | null>(null);
+  
+  // Confirmation Dialog State
+  const [confirmState, setConfirmState] = React.useState<{
+    isOpen: boolean;
+    id: string;
+    action: 'approve' | 'reject';
+  }>({
+    isOpen: false,
+    id: '',
+    action: 'approve'
+  });
+  
+  // Filters
+  const [status, setStatus] = React.useState<string>('all');
+  const [search, setSearch] = React.useState('');
+  const debouncedSearch = useDebounce(search, 500);
 
   const token = getAuthToken();
   const perPage = 10;
@@ -45,22 +72,28 @@ export function WholesalerRequestsPage() {
   const loadRequests = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch<{ message: string; data: AuthUser[] }>('/admin/wholesalers/pending', { 
-        token: token || undefined 
-      });
+      const queryParams = new URLSearchParams();
+      if (status !== 'all') queryParams.append('status', status);
+      if (debouncedSearch) queryParams.append('search', debouncedSearch);
+
+      const res = await apiFetch<{ message: string; data: AuthUser[] }>(
+        `/admin/wholesalers?${queryParams.toString()}`, 
+        { token: token || undefined }
+      );
       
       const items = Array.isArray(res.data) ? res.data : [];
       setRequests(items);
       setTotalItems(items.length);
       setTotalPages(Math.ceil(items.length / perPage) || 1);
+      setPage(1); // Reset to first page on filter change
     } catch (err: any) {
-      console.error('Failed to load requests:', err);
-      toast.error(err.message || 'Failed to load wholesaler requests');
+      console.error('Failed to load wholesalers:', err);
+      toast.error(err.message || 'Failed to load wholesalers');
       setRequests([]); 
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [token, status, debouncedSearch]);
 
   React.useEffect(() => {
     loadRequests();
@@ -76,6 +109,7 @@ export function WholesalerRequestsPage() {
       toast.success(`Wholesaler ${action === 'approve' ? 'approved' : 'rejected'} successfully`);
       loadRequests();
       if (selectedRequest?.id === id) setIsDetailsOpen(false);
+      setConfirmState(prev => ({ ...prev, isOpen: false }));
     } catch (err: any) {
       toast.error(err.message || `Failed to ${action} wholesaler`);
     } finally {
@@ -111,15 +145,58 @@ export function WholesalerRequestsPage() {
   return (
     <div className="space-y-8 font-lato">
       <PageHeader 
-        title="Wholesaler Approvals" 
-        description="Review and manage applications for wholesale business accounts."
+        title="Wholesaler Management" 
+        description="View and manage all wholesale business accounts, applications, and status."
       />
+
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white p-6 rounded-2xl border border-zinc-100 shadow-sm">
+        <div className="md:col-span-2 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+          <Input 
+            placeholder="Search by company, name or email..." 
+            className="pl-10 h-11 bg-zinc-50 border-zinc-100 focus:bg-white transition-all rounded-xl"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className="h-11 bg-zinc-50 border-zinc-100 rounded-xl">
+              <div className="flex items-center gap-2">
+                <Filter className="size-4 text-zinc-400" />
+                <SelectValue placeholder="Status" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            className="h-11 px-4 border-zinc-200 text-zinc-500 hover:text-black rounded-xl w-full flex items-center gap-2"
+            onClick={() => {
+              setSearch('');
+              setStatus('all');
+            }}
+          >
+            <RotateCcw className="size-4" />
+            Clear
+          </Button>
+        </div>
+      </div>
 
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-100 overflow-hidden">
         <div className="overflow-x-auto scrollbar-hide">
           <Table>
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="hover:bg-transparent border-zinc-100">
+                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest w-[80px]">S.N.</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Business Info</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Contact</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Address</TableHead>
@@ -131,6 +208,9 @@ export function WholesalerRequestsPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="border-zinc-50">
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-4 w-8" />
+                    </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
                         <Skeleton className="h-10 w-10 rounded-xl" />
@@ -159,13 +239,16 @@ export function WholesalerRequestsPage() {
                 ))
               ) : paginatedRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center p-20 text-zinc-500 font-medium italic">
-                    No pending wholesaler applications found.
+                  <TableCell colSpan={6} className="text-center p-20 text-zinc-500 font-medium italic">
+                    No wholesalers found matching your filters.
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedRequests.map((req) => (
+                paginatedRequests.map((req, index) => (
                   <TableRow key={req.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                    <TableCell className="py-5 px-6 font-bold text-zinc-400 text-sm">
+                      {(page - 1) * perPage + index + 1}.
+                    </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
                         <div className="h-10 w-10 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6]">
@@ -211,18 +294,20 @@ export function WholesalerRequestsPage() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="rounded-full text-zinc-400 hover:text-green-600 hover:bg-green-50 transition-all"
-                          onClick={() => handleAction(req.id, 'approve')}
-                          disabled={isProcessing === req.id}
+                          className="rounded-full text-zinc-400 hover:text-green-600 hover:bg-green-50 transition-all disabled:opacity-30"
+                          onClick={() => setConfirmState({ isOpen: true, id: req.id, action: 'approve' })}
+                          disabled={isProcessing === req.id || req.wholeseller_status === 'approved'}
+                          title="Approve"
                         >
                           {isProcessing === req.id ? <Spinner size="sm" /> : <Check className="size-5" />}
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                          onClick={() => handleAction(req.id, 'reject')}
-                          disabled={isProcessing === req.id}
+                          className="rounded-full text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-30"
+                          onClick={() => setConfirmState({ isOpen: true, id: req.id, action: 'reject' })}
+                          disabled={isProcessing === req.id || req.wholeseller_status === 'rejected'}
+                          title="Reject"
                         >
                           {isProcessing === req.id ? <Spinner size="sm" /> : <X className="size-5" />}
                         </Button>
@@ -304,16 +389,16 @@ export function WholesalerRequestsPage() {
                   <Button 
                     variant="outline" 
                     className="border-red-200 text-red-600 hover:bg-red-50 font-black px-6"
-                    onClick={() => handleAction(selectedRequest.id, 'reject')}
-                    disabled={isProcessing !== null}
+                    onClick={() => setConfirmState({ isOpen: true, id: selectedRequest.id, action: 'reject' })}
+                    disabled={isProcessing !== null || selectedRequest.wholeseller_status === 'rejected'}
                   >
                     {isProcessing === selectedRequest.id ? <Spinner size="sm" className="mr-2" /> : <X className="size-4 mr-2" />}
                     Reject
                   </Button>
                   <Button 
                     className="bg-[#966FD6] hover:bg-[#7d5bbf] text-white font-black px-6 shadow-lg shadow-[#966FD6]/20"
-                    onClick={() => handleAction(selectedRequest.id, 'approve')}
-                    disabled={isProcessing !== null}
+                    onClick={() => setConfirmState({ isOpen: true, id: selectedRequest.id, action: 'approve' })}
+                    disabled={isProcessing !== null || selectedRequest.wholeseller_status === 'approved'}
                   >
                     {isProcessing === selectedRequest.id ? <Spinner size="sm" className="mr-2 border-white" /> : <Check className="size-4 mr-2" />}
                     Approve Business
@@ -324,6 +409,17 @@ export function WholesalerRequestsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog 
+        isOpen={confirmState.isOpen}
+        onClose={() => setConfirmState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={() => handleAction(confirmState.id, confirmState.action)}
+        title={`Confirm ${confirmState.action === 'approve' ? 'Approval' : 'Rejection'}`}
+        description={`Are you sure you want to ${confirmState.action} this wholesaler application?`}
+        variant={confirmState.action === 'reject' ? 'destructive' : 'default'}
+        isLoading={isProcessing !== null}
+        confirmLabel={confirmState.action === 'approve' ? 'Approve' : 'Reject'}
+      />
     </div>
   );
 }

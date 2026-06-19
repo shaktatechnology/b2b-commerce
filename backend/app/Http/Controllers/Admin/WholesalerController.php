@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Interfaces\WholesalerServiceInterface;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class WholesalerController extends Controller
 {
@@ -13,6 +14,24 @@ class WholesalerController extends Controller
     public function __construct(WholesalerServiceInterface $wholesalerService)
     {
         $this->wholesalerService = $wholesalerService;
+    }
+
+    /**
+     * Get all wholesalers with filters.
+     */
+    public function index(Request $request): JsonResponse
+    {
+        $filters = [
+            'status' => $request->query('status', 'all'),
+            'search' => $request->query('search', ''),
+        ];
+
+        $wholesalers = $this->wholesalerService->getAllWholesalers($filters);
+
+        return response()->json([
+            'success' => true,
+            'data' => $wholesalers,
+        ]);
     }
 
     /**
