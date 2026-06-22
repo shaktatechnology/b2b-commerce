@@ -6,6 +6,7 @@ use App\Interfaces\ProductRepositoryInterface;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Models\Tag;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -13,7 +14,7 @@ class ProductRepository implements ProductRepositoryInterface
 {
     public function all(array $filters = [])
     {
-        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts'])
+        $query = Product::with(['categories', 'tags', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts'])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews');
 
@@ -56,7 +57,7 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function resolve(string $identifier, array $filters = [])
     {
-        $query = Product::with(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts'])
+        $query = Product::with(['categories', 'tags', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts'])
             ->withAvg('reviews', 'rating')
             ->withCount('reviews');
 
@@ -106,9 +107,14 @@ class ProductRepository implements ProductRepositoryInterface
                 'additional_info' => $data['additional_info'] ?? null,
             ]);
 
-            // Sync categories (Many-to-Many)
+            // Sync categories
             if (isset($data['category_ids'])) {
                 $product->categories()->sync($data['category_ids']);
+            }
+
+            // Sync tags
+            if (isset($data['tag_ids'])) {
+                $product->tags()->sync($data['tag_ids']);
             }
 
             // Create product discount
@@ -158,7 +164,7 @@ class ProductRepository implements ProductRepositoryInterface
                 }
             }
 
-            return $product->load(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
+            return $product->load(['categories', 'tags', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
         });
     }
 
@@ -187,6 +193,10 @@ class ProductRepository implements ProductRepositoryInterface
                 $product->categories()->sync($data['category_ids']);
             }
 
+            if (isset($data['tag_ids'])) {
+                $product->tags()->sync($data['tag_ids']);
+            }
+
             // Update product discount
             if (array_key_exists('discount', $data)) {
                 $product->discounts()->whereNull('variant_id')->delete();
@@ -201,7 +211,7 @@ class ProductRepository implements ProductRepositoryInterface
                 }
             }
 
-            // Sync variants (create new ones, update existing, or delete omitted)
+            // Sync variants
             if (isset($data['variants']) && is_array($data['variants'])) {
                 $incomingVariantIds = [];
 
@@ -268,7 +278,7 @@ class ProductRepository implements ProductRepositoryInterface
                 }
             }
 
-            return $product->load(['categories', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
+            return $product->load(['categories', 'tags', 'variants.color', 'variants.size', 'variants.discounts', 'images', 'brand', 'color', 'size', 'discounts']);
         });
     }
 

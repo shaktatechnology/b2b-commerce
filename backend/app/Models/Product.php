@@ -21,6 +21,9 @@ class Product extends Model
         'is_popular',
         'is_top_selling',
         'is_trending',
+        'is_featured',
+        'sales_count',
+        'discount_percentage',
         'brand_id',
         'color_id',
         'size_id',
@@ -34,6 +37,9 @@ class Product extends Model
         'is_popular' => 'boolean',
         'is_top_selling' => 'boolean',
         'is_trending' => 'boolean',
+        'is_featured' => 'boolean',
+        'sales_count' => 'integer',
+        'discount_percentage' => 'float',
     ];
 
     protected $appends = ['image_url'];
@@ -115,8 +121,14 @@ class Product extends Model
         return $this->belongsTo(Color::class);
     }
 
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'product_tag');
+    }
+
     /**
      * Get default size of this product.
+
      */
     public function size(): BelongsTo
     {

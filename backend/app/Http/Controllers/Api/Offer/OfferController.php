@@ -7,7 +7,6 @@ use App\Interfaces\Offer\OfferServiceInterface;
 use App\Http\Requests\Api\Offer\CreateOfferRequest;
 use App\Http\Requests\Api\Offer\UpdateOfferRequest;
 use Illuminate\Http\Request;
-
 class OfferController extends Controller
 {
     protected $offerService;

@@ -37,6 +37,18 @@ class ProductController extends Controller
     }
 
     /**
+     * Get cached daily deals.
+     */
+    public function dailyDeals()
+    {
+        $deals = \Illuminate\Support\Facades\Cache::get('daily_deals', []);
+
+        return response()->json([
+            'data' => $deals
+        ]);
+    }
+
+    /**
      * Display the specified product by slug.
      */
     public function show(Request $request, string $slug)

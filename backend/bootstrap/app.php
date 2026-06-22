@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
     })
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
+        $schedule->command('app:refresh-daily-deals')->daily();
+    })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();

@@ -17,7 +17,7 @@ class CreateOfferRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'image' => 'required|image|max:5120', // 5MB limit
-            'placement' => 'required|in:top,mid,page',
+            'placement' => 'required|in:top,mid,page,deal',
             'is_active' => 'nullable|boolean',
             'starts_at' => 'nullable|date',
             'ends_at' => 'nullable|date|after_or_equal:starts_at',

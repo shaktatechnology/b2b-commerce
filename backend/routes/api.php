@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Review\ReviewController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\SizeController;
+use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Admin\WholesalerController;
 use App\Http\Controllers\Admin\UserController;
 
@@ -46,9 +47,11 @@ Route::get('/categories/{slug}',     [CategoryController::class, 'show']);
 Route::get('/brands',               [BrandController::class, 'index']);
 Route::get('/colors',               [ColorController::class, 'index']);
 Route::get('/sizes',                [SizeController::class, 'index']);
+Route::get('/tags',                 [TagController::class, 'index']);
 
 // Products
 Route::get('/products',             [ProductController::class, 'index']);
+Route::get('/products/daily-deals', [ProductController::class, 'dailyDeals']);
 Route::get('/products/{slug}/reviews', [ReviewController::class, 'index']);
 Route::get('/products/{slug}',       [ProductController::class, 'show']);
 
@@ -175,5 +178,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wholesalers/pending',     [WholesalerController::class, 'pending']);
         Route::patch('/wholesalers/{id}/approve', [WholesalerController::class, 'approve']);
         Route::patch('/wholesalers/{id}/reject',  [WholesalerController::class, 'reject']);
+
+        // Tags
+        Route::apiResource('tags', TagController::class);
     });
 });
