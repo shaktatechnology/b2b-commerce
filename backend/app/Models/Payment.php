@@ -27,6 +27,16 @@ class Payment extends Model
         'paid_at' => 'datetime',
     ];
 
+    protected $appends = ['customer_name'];
+
+    /**
+     * Virtual attribute for customer name.
+     */
+    public function getCustomerNameAttribute()
+    {
+        return $this->order?->user?->name;
+    }
+
     /**
      * Get the order associated with this payment.
      */

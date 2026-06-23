@@ -156,7 +156,7 @@ class PaymentController extends Controller
      */
     public function adminIndex(Request $request): JsonResponse
     {
-        $filters = $request->only(['order_id', 'gateway', 'status', 'per_page']);
+        $filters = $request->only(['order_id', 'gateway', 'status', 'per_page', 'customer', 'from', 'to']);
         $payments = $this->paymentService->getAllPayments($filters);
 
         return response()->json([

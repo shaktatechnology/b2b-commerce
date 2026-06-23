@@ -52,6 +52,7 @@ Route::get('/tags',                 [TagController::class, 'index']);
 // Products
 Route::get('/products',             [ProductController::class, 'index']);
 Route::get('/products/daily-deals', [ProductController::class, 'dailyDeals']);
+Route::get('/products/all-deals',   [ProductController::class, 'dailyDealsAll']);
 Route::get('/products/{slug}/reviews', [ReviewController::class, 'index']);
 Route::get('/products/{slug}',       [ProductController::class, 'show']);
 

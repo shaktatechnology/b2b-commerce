@@ -26,6 +26,25 @@ class PaymentRepository implements PaymentRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
+        if (!empty($filters['customer'])) {
+            $search = $filters['customer'];
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('order.user', function ($qu) use ($search) {
+                    $qu->where('name', 'like', "%{$search}%")
+                       ->orWhere('email', 'like', "%{$search}%");
+                })->orWhere('transaction_id', 'like', "%{$search}%")
+                  ->orWhere('id', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($filters['from'])) {
+            $query->whereDate('created_at', '>=', $filters['from']);
+        }
+
+        if (!empty($filters['to'])) {
+            $query->whereDate('created_at', '<=', $filters['to']);
+        }
+
         $perPage = $filters['per_page'] ?? 15;
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }

@@ -266,15 +266,34 @@ class OrderService implements OrderServiceInterface
      */
     public function updateOrderStatus(string $orderId, ?string $status, ?string $paymentStatus): Order
     {
-        $data = [];
-        if ($status !== null) {
-            $data['status'] = $status;
-        }
-        if ($paymentStatus !== null) {
-            $data['payment_status'] = $paymentStatus;
-        }
+        return DB::transaction(function () use ($orderId, $status, $paymentStatus) {
+            $data = [];
+            if ($status !== null) {
+                $data['status'] = $status;
+            }
+            if ($paymentStatus !== null) {
+                $data['payment_status'] = $paymentStatus;
+            }
 
-        return $this->orderRepository->update($orderId, $data);
+            $order = $this->orderRepository->update($orderId, $data);
+
+            // If payment_status was updated to 'paid', sync the associated Payment records
+            if ($paymentStatus === 'paid') {
+                $order->payments()->where('status', 'pending')->update([
+                    'status' => 'completed',
+                    'paid_at' => now(),
+                    'transaction_id' => $order->payments()->where('status', 'completed')->exists() 
+                        ? null 
+                        : 'MANUAL-' . strtoupper(Str::random(10))
+                ]);
+            } elseif ($paymentStatus === 'unpaid') {
+                $order->payments()->where('status', 'completed')->update([
+                    'status' => 'pending',
+                ]);
+            }
+
+            return $order;
+        });
     }
 }
 

@@ -36,7 +36,7 @@ class UpdateProductRequest extends FormRequest
             'category_ids.*' => 'required|uuid|exists:categories,id',
 
             // Discounts
-            'discount' => 'nullable|array',
+            'discount' => 'nullable',
             'discount.type' => 'required_with:discount|in:percent,fixed',
             'discount.value' => 'required_with:discount|numeric|min:0',
             'discount.starts_at' => 'required_with:discount|date',
@@ -79,7 +79,7 @@ class UpdateProductRequest extends FormRequest
             'variants.*.image_url' => 'nullable|string|max:2083',
             'variants.*.color_id' => 'nullable|uuid|exists:colors,id',
             'variants.*.size_id' => 'nullable|uuid|exists:sizes,id',
-            'variants.*.discount' => 'nullable|array',
+            'variants.*.discount' => 'nullable',
             'variants.*.discount.type' => 'required_with:variants.*.discount|in:percent,fixed',
             'variants.*.discount.value' => 'required_with:variants.*.discount|numeric|min:0',
             'variants.*.discount.starts_at' => 'required_with:variants.*.discount|date',

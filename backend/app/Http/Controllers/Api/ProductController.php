@@ -37,11 +37,115 @@ class ProductController extends Controller
     }
 
     /**
-     * Get cached daily deals.
+     * Get cached daily deals (top 3 shown on homepage).
      */
     public function dailyDeals()
     {
         $deals = \Illuminate\Support\Facades\Cache::get('daily_deals', []);
+
+        return response()->json([
+            'data' => $deals
+        ]);
+    }
+
+    /**
+     * Get live deals — products/variants with active discounts today.
+     * Used by the "View All" deals page. Always fresh, up to 20.
+     */
+    public function dailyDealsAll()
+    {
+        $now = now();
+
+        // Get active discounts valid today
+        $activeDiscounts = \App\Models\Discount::with([
+            'product.images',
+            'product.brand',
+            'product.variants',
+            'product.variants.discounts',
+            'product.discounts',
+            'variant',
+        ])
+            ->where('is_active', true)
+            ->where('starts_at', '<=', $now)
+            ->where('ends_at', '>=', $now)
+            ->orderByDesc('value')
+            ->get();
+
+        $seen = [];
+        $deals = [];
+
+        foreach ($activeDiscounts as $discount) {
+            $product = $discount->product;
+            if (!$product || !$product->is_active) continue;
+
+            $productId = $product->id;
+            if (isset($seen[$productId])) continue;
+            $seen[$productId] = true;
+
+            $dealVariantImageUrl = null;
+            if ($discount->variant_id && $discount->variant) {
+                $dealVariantImageUrl = $discount->variant->image_url;
+            }
+
+            $product->deal_discount_value = $discount->value;
+            $product->deal_discount_type  = $discount->type;
+            $product->deal_variant_image  = $dealVariantImageUrl;
+            $product->deal_variant_id     = $discount->variant_id;
+
+            $deals[] = $product;
+
+            if (count($deals) >= 20) break;
+        }
+
+        // Fill up to 20 if we have fewer
+        if (count($deals) < 20) {
+            $needed = 20 - count($deals);
+            $additional = \App\Models\Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
+                ->where('is_active', true)
+                ->where('discount_percentage', '>', 0)
+                ->whereNotIn('id', array_keys($seen))
+                ->orderByDesc('discount_percentage')
+                ->limit($needed)
+                ->get();
+            
+            foreach ($additional as $p) {
+                $deals[] = $p;
+                $seen[$p->id] = true;
+            }
+
+            // Fallback: Featured
+            if (count($deals) < 20) {
+                $needed = 20 - count($deals);
+                $featured = \App\Models\Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
+                    ->where('is_active', true)
+                    ->where('is_featured', true)
+                    ->whereNotIn('id', array_keys($seen))
+                    ->limit($needed)
+                    ->get();
+                foreach($featured as $p) {
+                    $deals[] = $p;
+                    $seen[$p->id] = true;
+                }
+            }
+
+            // Fallback: Popular
+            if (count($deals) < 20) {
+                $needed = 20 - count($deals);
+                $popular = \App\Models\Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
+                    ->where('is_active', true)
+                    ->whereNotIn('id', array_keys($seen))
+                    ->orderByDesc('sales_count')
+                    ->limit($needed)
+                    ->get();
+                foreach($popular as $p) {
+                    $deals[] = $p;
+                    $seen[$p->id] = true;
+                }
+            }
+        }
+
+        // Shuffle so it's not the same ones in the same order every time
+        shuffle($deals);
 
         return response()->json([
             'data' => $deals

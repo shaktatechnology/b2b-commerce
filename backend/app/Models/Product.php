@@ -94,7 +94,7 @@ class Product extends Model
      */
     public function discounts(): HasMany
     {
-        return $this->hasMany(Discount::class);
+        return $this->hasMany(Discount::class)->whereNull('variant_id');
     }
 
     /**
