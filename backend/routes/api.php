@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\ColorController;
 use App\Http\Controllers\Api\SizeController;
 use App\Http\Controllers\Api\WholesalerApprovalController;
+use App\Http\Controllers\Api\Admin\DashboardStatisticsController;
 
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
@@ -103,6 +104,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Admin Protected APIs (role:admin) ───────────────────────────────────
     Route::prefix('admin')->middleware('role:admin')->group(function () {
+
+        // Dashboard statistics
+        Route::get('/dashboard/statistics', DashboardStatisticsController::class);
 
         // Settings
         Route::put('/settings',      [SettingController::class, 'update']);      // bulk upsert
