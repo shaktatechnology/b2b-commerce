@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
+import { useAppStore } from "@/src/store/use-app-store";
 import { formatRs } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
 import { syncCartToServer, checkoutOrder } from "@/src/lib/cart-api";
@@ -22,6 +23,7 @@ export default function CheckoutPageClient({
   paymentSettings,
 }: CheckoutPageClientProps) {
   const router = useRouter();
+  const user = useAppStore((s) => s.user);
   const items = useCartStore((s) => s.items);
   const subtotal = useCartStore((s) => s.subtotal);
   const discountTotal = useCartStore((s) => s.discountTotal);
@@ -73,7 +75,8 @@ export default function CheckoutPageClient({
     // Clear any pending payment configs from previous sessions
     sessionStorage.removeItem("pending_payment_config");
     
-    const savedAddress = localStorage.getItem("b2b_shipping_address");
+    const storageKey = user ? `b2b_shipping_address_${user.id}` : "b2b_shipping_address";
+    const savedAddress = localStorage.getItem(storageKey);
     if (savedAddress) {
       try {
         const parsed = JSON.parse(savedAddress);
@@ -91,7 +94,7 @@ export default function CheckoutPageClient({
     } else {
       setIsEditingAddress(true);
     }
-  }, []);
+  }, [user]);
 
   const total = subtotal();
   const activeDiscount = step === "shipping" ? discountTotal() : (orderDiscount > 0 ? orderDiscount : checkoutDiscount);
@@ -189,7 +192,8 @@ export default function CheckoutPageClient({
       setOrderTotal(parseFloat(String(order.total)));
 
       // Save valid address to local storage
-      localStorage.setItem("b2b_shipping_address", JSON.stringify({
+      const storageKey = user ? `b2b_shipping_address_${user.id}` : "b2b_shipping_address";
+      localStorage.setItem(storageKey, JSON.stringify({
         street: form.street.trim(),
         city: form.city.trim(),
         state: form.state.trim(),
@@ -347,7 +351,8 @@ export default function CheckoutPageClient({
                     <button
                       type="button"
                       onClick={() => {
-                        localStorage.removeItem("b2b_shipping_address");
+                        const storageKey = user ? `b2b_shipping_address_${user.id}` : "b2b_shipping_address";
+                        localStorage.removeItem(storageKey);
                         setForm({ street: "", city: "", state: "", zip: "", country: "Nepal", notes: "" });
                         setIsEditingAddress(true);
                       }}

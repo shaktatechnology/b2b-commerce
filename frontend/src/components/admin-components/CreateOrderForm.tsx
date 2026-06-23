@@ -20,7 +20,7 @@ const INITIAL = {
   city: "",
   state: "",
   zip: "",
-  country: "US",
+  country: "",
 };
 
 export function CreateOrderModal({ open, onClose, onCreated }: Props) {

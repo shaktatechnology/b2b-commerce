@@ -216,19 +216,6 @@ export default function ProductListingClient({
     const renderSidebar = () => (
         <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b-2 border-primary/20 inline-block">Category</h3>
-                <div className="space-y-1.5">
-                    {categoriesWithCounts.map((cat) => (
-                        <Link key={cat.id} href={`/products?category=${cat.slug}`}
-                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all ${initialCategorySlug === cat.slug ? "bg-primary/10 text-primary font-bold" : "text-gray-600 hover:bg-gray-50"}`}>
-                            <span>{cat.name}</span>
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${initialCategorySlug === cat.slug ? "bg-primary text-white" : "bg-gray-100 text-gray-400"}`}>{cat.count}</span>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-6">Fill by price</h3>
                 <div className="space-y-8">
                     <div className="relative h-1 mb-8">
@@ -348,6 +335,19 @@ export default function ProductListingClient({
                 <button onClick={clearAllFilters} className="w-full mt-6 bg-primary text-white py-2.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
                     <X size={16} /> Clear Filters
                 </button>
+            </div>
+            
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b-2 border-primary/20 inline-block">Category</h3>
+                <div className="space-y-1.5">
+                    {categoriesWithCounts.map((cat) => (
+                        <Link key={cat.id} href={`/products?category=${cat.slug}`}
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-all ${initialCategorySlug === cat.slug ? "bg-primary/10 text-primary font-bold" : "text-gray-600 hover:bg-gray-50"}`}>
+                            <span>{cat.name}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${initialCategorySlug === cat.slug ? "bg-primary text-white" : "bg-gray-100 text-gray-400"}`}>{cat.count}</span>
+                        </Link>
+                    ))}
+                </div>
             </div>
         </div>
     );

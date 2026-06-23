@@ -37,6 +37,7 @@ const PLACEMENT_OPTIONS = [
   { value: "top", label: "Top Banner", color: "bg-blue-50 text-blue-600 border-blue-100" },
   { value: "mid", label: "Middle Section", color: "bg-amber-50 text-amber-600 border-amber-100" },
   { value: "page", label: "Page Specific", color: "bg-purple-50 text-purple-600 border-purple-100" },
+  { value: "deal", label: "Deal of the Day", color: "bg-rose-50 text-rose-600 border-rose-100" },
 ];
 
 const BACKEND_URL = "http://localhost:8000";

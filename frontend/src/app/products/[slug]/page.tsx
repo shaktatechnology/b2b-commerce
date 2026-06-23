@@ -10,7 +10,9 @@ import {
   fetchCategories,
   fetchProductBySlug,
   fetchProducts,
+  fetchOffers,
   countProductsByCategory,
+
   getRelatedProducts,
   getAlsoViewedProducts,
 } from "@/src/lib/storefront-api";
@@ -21,6 +23,8 @@ import {
 } from "@/src/lib/reviews-server";
 import { getProductDisplayImages } from "@/src/lib/product-utils";
 import type { CartProductInput } from "@/src/types/cart";
+import { Offer } from "@/src/types/offer";
+
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -30,7 +34,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const { slug: rawSlug } = await params;
   const slug = decodeURIComponent(rawSlug).trim();
 
-  const [product, categories, allProducts, { storefront }, reviewsData, canReview, myReview] =
+  const [product, categories, allProducts, { storefront }, reviewsData, canReview, myReview, allOffers] =
     await Promise.all([
       fetchProductBySlug(slug),
       fetchCategories(),
@@ -39,11 +43,20 @@ export default async function ProductDetailPage({ params }: PageProps) {
       fetchProductReviewsServer(slug),
       fetchCanReviewServer(slug),
       fetchMyReviewServer(slug),
+      fetchOffers(),
     ]);
 
   if (!product) {
     notFound();
   }
+
+  const pageSpecificOffers = (allOffers || []).filter((offer: Offer) => 
+    offer.placement === 'page' && 
+    offer.is_active &&
+    (offer.product_ids?.includes(product.id) || (product.brand?.id && offer.brand_id === product.brand?.id.toString()))
+  );
+
+
 
   const productKey = product.slug?.trim() || product.id;
   const primaryCategory = product.categories?.[0];
@@ -98,7 +111,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <ProductDetailSidebar
             categoriesWithCounts={categoriesWithCounts}
             similarProducts={similarProducts}
+            offers={pageSpecificOffers}
           />
+
         </div>
       </div>
     </StorefrontLayout>

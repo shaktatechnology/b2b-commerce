@@ -64,7 +64,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
     return () => container.removeEventListener("scroll", checkOverflow);
   }, []);
 
-  if (!products || products.length === 0) return <p>No products available.</p>;
+  if (!products || products.length === 0) return <p></p>;
 
   return (
     <div className="w-full relative group/section">

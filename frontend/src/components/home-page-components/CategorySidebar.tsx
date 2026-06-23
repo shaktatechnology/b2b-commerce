@@ -35,8 +35,7 @@ export default function CategorySidebar({ categories }: Props) {
       {/* list */}
       <div className="space-y-2 mt-2">
         {categories
-          ?.filter((cat) => (cat.products_count ?? 0) > 0)
-          .slice(0, 8)
+          ?.slice(0, 8)
           .map((cat) => {
             const isActive = activeSlug === cat.slug;
             return (

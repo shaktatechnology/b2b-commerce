@@ -18,8 +18,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  auth,
 }: Readonly<{
   children: React.ReactNode;
+  auth: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -31,8 +33,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            
             {children}
+            {/* @auth parallel slot — renders the login/register modal overlay */}
+            {auth}
             <ToastProvider />
           </ThemeProvider>
         </QueryProvider>

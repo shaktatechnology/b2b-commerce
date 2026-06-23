@@ -11,10 +11,18 @@ interface Category {
   slug: string;
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface Props {
   offers: Offer[];
   categories?: Category[];
+  tags?: Tag[];
 }
+
 
 const defaultOffers = [
   {
@@ -43,8 +51,9 @@ const defaultOffers = [
   },
 ];
 
-// Matches any "top" variant the backend might send
-const TOP_PLACEMENTS = new Set(["top", "Top Banner", "top_banner"]);
+// Matches any category variant the backend might send
+const MID_PLACEMENTS = new Set(["mid", "middle", "Middle Section", "middle_section"]);
+
 
 const STORAGE_URL =
   process.env.NEXT_PUBLIC_STORAGE_URL ||
@@ -85,14 +94,15 @@ function isOfferLive(offer: Offer): boolean {
   return true;
 }
 
-export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
-  // Filter to live "top" placement offers only — fall back to defaults if none
-  const topOffers = offers.filter(
-    (o) => o.placement != null && TOP_PLACEMENTS.has(o.placement) && isOfferLive(o)
+export default function BrandSpecialOffers({ offers, categories = [], tags = [] }: Props) {
+  // Filter to live "mid" placement offers only — fall back to defaults if none
+  const midOffers = offers.filter(
+    (o) => o.placement != null && MID_PLACEMENTS.has(o.placement) && isOfferLive(o)
   );
 
-  const displayOffers = topOffers.length > 0
-    ? topOffers.slice(0, 3).map((offer, idx) => {
+  const displayOffers = midOffers.length > 0
+    ? midOffers.slice(0, 3).map((offer, idx) => {
+
       // Try to extract brand_id from the offer's linked products
       const offerBrandId = offer.brand_id || null;
       const linkParams = new URLSearchParams();
@@ -112,6 +122,8 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
       };
     })
     : defaultOffers;
+
+  const sidebarTags = tags.length > 0 ? tags : categories;
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-10 py-8 md:py-10">
@@ -168,20 +180,20 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
             <div className="w-12 h-1 bg-primary/30 rounded-full mb-8" />
 
             <div className="flex flex-wrap gap-3">
-              {categories.slice(0, 12).map((cat) => (
+              {sidebarTags.slice(0, 15).map((tag) => (
                 <Link
-                  key={cat.id}
-                  href={`/category/${cat.slug}`}
+                  key={tag.id}
+                  href={`/products?tag=${tag.slug}`}
                   className="group flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full hover:bg-primary/5 hover:border-primary/20 transition-all duration-300"
                 >
                   <X size={14} className="text-gray-300 group-hover:text-primary transition-colors" />
                   <span className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">
-                    {cat.name}
+                    {tag.name}
                   </span>
                 </Link>
               ))}
 
-              {categories.length === 0 && ["Brown", "Coffees", "Cream", "Hodo Foods", "Meats", "Organic", "Snack", "Vegetables"].map((tag) => (
+              {sidebarTags.length === 0 && ["Brown", "Coffees", "Cream", "Hodo Foods", "Meats", "Organic", "Snack", "Vegetables"].map((tag) => (
                 <div
                   key={tag}
                   className="group flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full hover:bg-primary/5 hover:border-primary/20 cursor-pointer transition-all duration-300"
@@ -199,4 +211,4 @@ export default function BrandSpecialOffers({ offers, categories = [] }: Props) {
       </div>
     </section>
   );
-}
+}

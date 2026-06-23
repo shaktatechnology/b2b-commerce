@@ -1,18 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import DealOfTheDayCard from "../cards/DealOfTheDayCard";
 
 export interface DealProduct {
-  id: number;
+  id: number | string;
   name: string;
-  image: string;
-  price: number;
-  reviews: number;
-  brand: string;
-  days: string;
-  hours: string;
-  minutes: string;
-  seconds: string;
+  image_url?: string;
+  images?: { url: string; is_primary?: boolean }[];
+  deal_variant_image?: string;
+  deal_variant_id?: string;
+  price?: number;
+  variants?: { id?: string; retail_price: number; image_url?: string }[];
+  reviews_count?: number;
+  reviews_avg_rating?: number;
+  brand?: { name: string } | string;
+  deal_discount_value?: number;
+  deal_discount_type?: string;
 }
 
 interface Props {
@@ -20,20 +24,22 @@ interface Props {
 }
 
 export default function DealOfTheDay({ dealProducts }: Props) {
-  return (
-    <section className="max-w-7xl mx-auto px-4 md:px-10 py-8 md:py-10">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-primary">Deal Of The Day</h2>
+  if (!dealProducts || dealProducts.length === 0) return null;
 
-        <button className="text-sm text-gray-500 hover:text-black transition">
+  // Homepage shows top 3
+  const topDeals = dealProducts.slice(0, 3);
+
+  return (
+    <section className="deal-section">
+      <div className="deal-section__header">
+        <h2 className="deal-section__title">Deal Of Day</h2>
+        <Link href="/deals" className="deal-section__view-all">
           View All
-        </button>
+        </Link>
       </div>
 
-      {/* Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
-        {dealProducts.map((product) => (
+      <div className="deal-section__grid">
+        {topDeals.map((product) => (
           <DealOfTheDayCard key={product.id} product={product} />
         ))}
       </div>

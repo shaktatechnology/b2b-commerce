@@ -64,8 +64,8 @@ const emptyForm = {
   variants: [] as ProductVariant[],
 
   is_popular: false,
-  is_top_selling:false,
-  is_trending:false,
+  is_top_selling: false,
+  is_trending: false,
   discount: null as Discount | null,
 };
 
@@ -82,10 +82,10 @@ const generateSKU = (name: string = 'PROD') => {
   return `${prefix}-${random}`;
 };
 
-const ColorOption = ({color, showName = true}: { color: any; showName?: boolean}) => (
+const ColorOption = ({ color, showName = true }: { color: any; showName?: boolean }) => (
   <div className='flex items-center gap-2'>
     <div className='w-4 h-4 rounded sm border-zinc-200 shadow-sm'
-    style={{ backgroundColor: color.hex_code || '#CCCCCC'}}
+      style={{ backgroundColor: color.hex_code || '#CCCCCC' }}
     />
     {showName && <span>{color.name}</span>}
   </div>
@@ -143,16 +143,16 @@ export default function AdminProductsPage() {
       let lastPage = 1;
 
       if (Array.isArray(prodRes)) {
-          productsData = prodRes;
-          total = prodRes.length;
+        productsData = prodRes;
+        total = prodRes.length;
       } else {
-          const resData = prodRes?.data?.data || prodRes?.data || [];
-          productsData = Array.isArray(resData) ? resData : [];
-          total = prodRes?.total || prodRes?.meta?.total || productsData.length;
-          lastPage = prodRes?.last_page || prodRes?.meta?.last_page || 1;
+        const resData = prodRes?.data?.data || prodRes?.data || [];
+        productsData = Array.isArray(resData) ? resData : [];
+        total = prodRes?.total || prodRes?.meta?.total || productsData.length;
+        lastPage = prodRes?.last_page || prodRes?.meta?.last_page || 1;
       }
 
-      productsData.sort((a, b) =>{
+      productsData.sort((a, b) => {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
 
       });
@@ -179,23 +179,23 @@ export default function AdminProductsPage() {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.slug.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // Check if any category matches
-    const matchesCategory = (categoryFilter === 'all') || 
-      (subCategoryFilter !== 'all' 
+    const matchesCategory = (categoryFilter === 'all') ||
+      (subCategoryFilter !== 'all'
         ? (product.categories?.some(cat => cat.id.toString() === subCategoryFilter) ?? false)
-        : (product.categories?.some(cat => 
-            cat.id.toString() === categoryFilter || 
-            cat.parent_id?.toString() === categoryFilter
-          ) ?? false));
+        : (product.categories?.some(cat =>
+          cat.id.toString() === categoryFilter ||
+          cat.parent_id?.toString() === categoryFilter
+        ) ?? false));
 
     let matchesDate = true;
     if (product.created_at) {
       const prodDate = new Date(product.created_at);
       if (dateFrom && dateTo) {
-        matchesDate = isWithinInterval(prodDate, { 
-          start: startOfDay(dateFrom), 
-          end: endOfDay(dateTo) 
+        matchesDate = isWithinInterval(prodDate, {
+          start: startOfDay(dateFrom),
+          end: endOfDay(dateTo)
         });
       } else if (dateFrom) {
         matchesDate = prodDate >= startOfDay(dateFrom);
@@ -235,23 +235,23 @@ export default function AdminProductsPage() {
         size_id: product.size_id || '',
         weight: product.weight || '',
         discount: product.discounts?.[0] ? {
-           type: product.discounts[0].type,
-           value: product.discounts[0].value,
-           starts_at: product.discounts[0].starts_at ? product.discounts[0].starts_at.split('T')[0] : '',
-           ends_at: product.discounts[0].ends_at ? product.discounts[0].ends_at.split('T')[0] : '',
-           is_active: product.discounts[0].is_active,
+          type: product.discounts[0].type,
+          value: product.discounts[0].value,
+          starts_at: product.discounts[0].starts_at ? product.discounts[0].starts_at.split('T')[0] : '',
+          ends_at: product.discounts[0].ends_at ? product.discounts[0].ends_at.split('T')[0] : '',
+          is_active: product.discounts[0].is_active,
         } : null,
         variants: product.variants.length > 0 ? product.variants.map((v: any) => ({
-          ...v, 
-          color_id: v.color_id || '', 
-          size_id: v.size_id || '', 
+          ...v,
+          color_id: v.color_id || '',
+          size_id: v.size_id || '',
           weight: v.weight || '',
           discount: v.discounts?.[0] ? {
-             type: v.discounts[0].type,
-             value: v.discounts[0].value,
-             starts_at: v.discounts[0].starts_at ? v.discounts[0].starts_at.split('T')[0] : '',
-             ends_at: v.discounts[0].ends_at ? v.discounts[0].ends_at.split('T')[0] : '',
-             is_active: v.discounts[0].is_active,
+            type: v.discounts[0].type,
+            value: v.discounts[0].value,
+            starts_at: v.discounts[0].starts_at ? v.discounts[0].starts_at.split('T')[0] : '',
+            ends_at: v.discounts[0].ends_at ? v.discounts[0].ends_at.split('T')[0] : '',
+            is_active: v.discounts[0].is_active,
           } : null
         })) : [{ ...initialVariant }],
         is_popular: Boolean(product.is_popular),
@@ -264,9 +264,9 @@ export default function AdminProductsPage() {
     } else {
       setEditingId(null);
       const newProductSKU = generateSKU();
-      setFormData({ 
-        ...emptyForm, 
-        variants: [{ ...initialVariant, sku: newProductSKU }] 
+      setFormData({
+        ...emptyForm,
+        variants: [{ ...initialVariant, sku: newProductSKU }]
       });
       setExistingImage('');
     }
@@ -301,7 +301,7 @@ export default function AdminProductsPage() {
       ...prev,
       variants: [
         // ...prev.variants, { ...initialVariant, sku: generateSKU(prev.name || 'VAR') }],
-         { ...initialVariant, sku: generateSKU(prev.name || 'VAR') },
+        { ...initialVariant, sku: generateSKU(prev.name || 'VAR') },
         ...prev.variants,
       ],
     }));
@@ -317,8 +317,8 @@ export default function AdminProductsPage() {
 
   const removeVariant = (index: number) => {
     if (formData.variants.length <= 1) {
-       toast.error("At least one variant is required");
-       return;
+      toast.error("At least one variant is required");
+      return;
     }
     setFormData((prev) => ({
       ...prev,
@@ -340,7 +340,7 @@ export default function AdminProductsPage() {
     // Validate prices and discounts for all variants
     for (let i = 0; i < formData.variants.length; i++) {
       const v = formData.variants[i];
-      
+
       // Check prices are greater than 0
       if (v.retail_price <= 0) {
         toast.error(`Variant ${i + 1}: Retail price must be greater than 0.`);
@@ -350,12 +350,12 @@ export default function AdminProductsPage() {
         toast.error(`Variant ${i + 1}: Wholesale price must be greater than 0.`);
         return;
       }
-      
+
       // Validate variant discount if it exists and is complete
       if (v.discount && v.discount.type && v.discount.value !== '' && v.discount.starts_at && v.discount.ends_at) {
         const discountValue = Number(v.discount.value);
         const retailPrice = Number(v.retail_price);
-        
+
         if (v.discount.type === 'percent') {
           if (discountValue < 0 || discountValue > 100) {
             toast.error(`Variant ${i + 1}: Discount percentage must be between 0 and 100.`);
@@ -407,6 +407,9 @@ export default function AdminProductsPage() {
         body.append('discount[starts_at]', formData.discount.starts_at);
         body.append('discount[ends_at]', formData.discount.ends_at);
         body.append('discount[is_active]', formData.discount.is_active ? '1' : '0');
+      } else {
+        // Send a marker to indicate deletion of discount
+        body.append('discount', '');
       }
 
       formData.variants.forEach((v, i) => {
@@ -433,41 +436,44 @@ export default function AdminProductsPage() {
           body.append(`variants[${i}][discount][starts_at]`, v.discount.starts_at);
           body.append(`variants[${i}][discount][ends_at]`, v.discount.ends_at);
           body.append(`variants[${i}][discount][is_active]`, v.discount.is_active ? '1' : '0');
+        } else {
+          // Send a marker to indicate deletion of variant discount
+          body.append(`variants[${i}][discount]`, '');
         }
       });
 
       if (formMode === 'create') {
         const response: any = await apiFetch('/admin/products', { method: 'POST', token: freshToken || undefined, body });
-        
+
         // Find ID in data, data.data, or top level
         const productId = response?.data?.id || response?.data?.data?.id || response?.id;
-        
+
         if (selectedImage && productId) {
           const imageBody = new FormData();
           imageBody.append('image', selectedImage);
           imageBody.append('is_primary', '1');
           imageBody.append('sort_order', '1');
-          await apiFetch(`/admin/products/${productId}/images`, { 
-            method: 'POST', 
-            token: freshToken || undefined, 
-            body: imageBody 
+          await apiFetch(`/admin/products/${productId}/images`, {
+            method: 'POST',
+            token: freshToken || undefined,
+            body: imageBody
           });
         }
-        
+
         toast.success('Product created successfully');
       } else {
         body.append('_method', 'PUT');
         await apiFetch(`/admin/products/${editingId}`, { method: 'POST', token: freshToken || undefined, body });
-        
+
         if (selectedImage && editingId) {
           const imageBody = new FormData();
           imageBody.append('image', selectedImage);
           imageBody.append('is_primary', '1');
           imageBody.append('sort_order', '1');
-          await apiFetch(`/admin/products/${editingId}/images`, { 
-            method: 'POST', 
-            token: freshToken || undefined, 
-            body: imageBody 
+          await apiFetch(`/admin/products/${editingId}/images`, {
+            method: 'POST',
+            token: freshToken || undefined,
+            body: imageBody
           });
         } else if (removeExistingImage && editingId) {
           await apiFetch(`/admin/products/${editingId}/images`, {
@@ -475,7 +481,7 @@ export default function AdminProductsPage() {
             token: freshToken || undefined,
           });
         }
-        
+
         toast.success('Product updated successfully');
       }
       closeModal();
@@ -512,16 +518,16 @@ export default function AdminProductsPage() {
       <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
         <div className="relative flex-1 max-w-sm min-w-[240px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-          <Input 
-            placeholder="Search products or slugs..." 
+          <Input
+            placeholder="Search products or slugs..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-11 h-12 rounded-xl focus-visible:ring-[#966FD6] border-zinc-200 font-medium"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
-          <Select 
-            value={categoryFilter} 
+          <Select
+            value={categoryFilter}
             onValueChange={(val) => {
               setCategoryFilter(val);
               setSubCategoryFilter('all'); // Reset sub when parent changes
@@ -569,10 +575,10 @@ export default function AdminProductsPage() {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">From:</span>
               <div className="w-50">
-                <DatePicker 
-                  date={dateFrom} 
-                  setDate={setDateFrom} 
-                  placeholder="Start Date" 
+                <DatePicker
+                  date={dateFrom}
+                  setDate={setDateFrom}
+                  placeholder="Start Date"
                   disabled={dateTo ? { after: dateTo } : undefined}
                 />
               </div>
@@ -580,10 +586,10 @@ export default function AdminProductsPage() {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">To:</span>
               <div className="w-50">
-                <DatePicker 
-                  date={dateTo} 
-                  setDate={setDateTo} 
-                  placeholder="End Date" 
+                <DatePicker
+                  date={dateTo}
+                  setDate={setDateTo}
+                  placeholder="End Date"
                   disabled={dateFrom ? { before: dateFrom } : undefined}
                 />
               </div>
@@ -591,8 +597,8 @@ export default function AdminProductsPage() {
           </div>
 
           {(searchQuery || categoryFilter !== 'all' || subCategoryFilter !== 'all' || dateFrom || dateTo) && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={clearFilters}
               className="h-11 px-4 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all font-bold gap-2"
             >
@@ -607,9 +613,9 @@ export default function AdminProductsPage() {
         <div className="flex items-center justify-between border-b border-zinc-50 px-6 py-5 bg-zinc-50/30">
           <h2 className="text-lg font-black text-black">Product Registry</h2>
           <div className="flex items-center gap-4">
-             <span className="text-xs font-bold text-zinc-400">
-               {totalItems} Products Total
-             </span>
+            <span className="text-xs font-bold text-zinc-400">
+              {totalItems} Products Total
+            </span>
           </div>
         </div>
         <div className="overflow-x-auto scrollbar-hide">
@@ -674,15 +680,15 @@ export default function AdminProductsPage() {
                       <div className="flex items-center gap-4">
                         <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 overflow-hidden shrink-0">
                           {p.image || p.thumbnail || p.image_url || (p.images && p.images.length > 0) ? (
-                            <img 
+                            <img
                               src={(() => {
                                 const path = p.image || p.thumbnail || p.image_url || p.images?.[0]?.url || '';
                                 if (!path) return '';
                                 if (path.startsWith('http')) return path;
                                 return `http://localhost:8000${path}`;
-                              })()} 
-                              className="w-full h-full object-cover" 
-                              alt={p.name} 
+                              })()}
+                              className="w-full h-full object-cover"
+                              alt={p.name}
                             />
                           ) : (
                             <Package className="size-6" />
@@ -773,184 +779,224 @@ export default function AdminProductsPage() {
                 {formMode === 'create' ? 'Add New Product' : 'Edit Product'}
               </h2>
             </div>
-            
+
             <div className="bg-white rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col border border-zinc-100 mb-8">
-            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="space-y-6">
-                   <div className="space-y-2">
+              <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Media</label>
+                        <div className="flex items-center gap-4">
+                          <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-zinc-100 rounded-3xl hover:bg-zinc-50 cursor-pointer transition-all group">
+                            <ImageIcon className="h-8 w-8 text-zinc-300 group-hover:text-[#966FD6]/50" />
+                            <span className="text-[10px] font-black uppercase mt-2 text-zinc-400 text-center">
+                              {selectedImage ? selectedImage.name : 'Click to Upload Image'}
+                            </span>
+                            <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && setSelectedImage(e.target.files[0])} />
+                          </label>
+                          {selectedImage ? (
+                            <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group">
+                              <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="New preview" />
+                              <button
+                                type="button"
+                                onClick={() => setSelectedImage(null)}
+                                className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                              >
+                                <Trash2 className="size-5" />
+                              </button>
+                            </div>
+                          ) : existingImage && !removeExistingImage ? (
+                            <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group shrink-0">
+                              <img
+                                src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`}
+                                className="w-full h-full object-cover"
+                                alt="Current"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setRemoveExistingImage(true)}
+                                className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                              >
+                                <Trash2 className="size-5" />
+                              </button>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider pointer-events-none">Current</div>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Basic Information</label>
                       <div className="space-y-4">
                         <div className="space-y-1">
-                           <span className="text-xs font-bold text-zinc-500">Name <span className="text-red-500">*</span></span>
-                           <Input 
-                             value={formData.name} 
-                             onChange={(e) => {
-                               const name = e.target.value;
-                               const updatedVariants = [...formData.variants];
-                               if (updatedVariants[0]) {
-                                 updatedVariants[0].sku = generateSKU(name);
-                               }
-                               setFormData({ 
-                                 ...formData, 
-                                 name, 
-                                 slug: slugify(name),
-                                 variants: updatedVariants
-                               });
-                             }} 
-                             className="h-12 rounded-xl" 
-                             required 
-                           />
+                          <span className="text-xs font-bold text-zinc-500">Name <span className="text-red-500">*</span></span>
+                          <Input
+                            value={formData.name}
+                            onChange={(e) => {
+                              const name = e.target.value;
+                              const updatedVariants = [...formData.variants];
+                              if (updatedVariants[0]) {
+                                updatedVariants[0].sku = generateSKU(name);
+                              }
+                              setFormData({
+                                ...formData,
+                                name,
+                                slug: slugify(name),
+                                variants: updatedVariants
+                              });
+                            }}
+                            className="h-12 rounded-xl"
+                            required
+                          />
                         </div>
                         <div className="space-y-1">
-                           <span className="text-xs font-bold text-zinc-500">Slug <span className="text-red-500">*</span></span>
-                           <Input 
-                             value={formData.slug} 
-                             onChange={(e) => setFormData({ ...formData, slug: e.target.value })} 
-                             className="h-12 rounded-xl bg-zinc-50/50" 
-                             required 
-                           />
+                          <span className="text-xs font-bold text-zinc-500">Slug <span className="text-red-500">*</span></span>
+                          <Input
+                            value={formData.slug}
+                            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                            className="h-12 rounded-xl bg-zinc-50/50"
+                            required
+                          />
                         </div>
                         <div className="space-y-3 pt-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                          Product Status
-                        </label>
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                            Product Status
+                          </label>
 
-                        {/* Active */}
-                        <label className="flex items-center justify-between cursor-pointer group">
-                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
-                            Product is Active
-                          </span>
+                          {/* Active */}
+                          <label className="flex items-center justify-between cursor-pointer group">
+                            <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                              Product is Active
+                            </span>
 
-                          <input
-                            type="checkbox"
-                            checked={!!formData.is_active}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_active: e.target.checked })
-                            }
-                            className="h-4 w-4 accent-[#966FD6]"
-                          />
-                        </label>
+                            <input
+                              type="checkbox"
+                              checked={!!formData.is_active}
+                              onChange={(e) =>
+                                setFormData({ ...formData, is_active: e.target.checked })
+                              }
+                              className="h-4 w-4 accent-[#966FD6]"
+                            />
+                          </label>
 
-                        {/* Popular */}
-                        <label className="flex items-center justify-between cursor-pointer group">
-                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
-                            Popular Product
-                          </span>
+                          {/* Popular */}
+                          <label className="flex items-center justify-between cursor-pointer group">
+                            <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                              Popular Product
+                            </span>
 
-                          <input
-                            type="checkbox"
-                            checked={!!formData.is_popular}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_popular: e.target.checked })
-                            }
-                            className="h-4 w-4 accent-[#966FD6]"
-                          />
-                        </label>
+                            <input
+                              type="checkbox"
+                              checked={!!formData.is_popular}
+                              onChange={(e) =>
+                                setFormData({ ...formData, is_popular: e.target.checked })
+                              }
+                              className="h-4 w-4 accent-[#966FD6]"
+                            />
+                          </label>
 
-                        {/* Top Selling */}
-                        <label className="flex items-center justify-between cursor-pointer group">
-                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
-                            Top Selling
-                          </span>
+                          {/* Top Selling */}
+                          <label className="flex items-center justify-between cursor-pointer group">
+                            <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                              Top Selling
+                            </span>
 
-                          <input
-                            type="checkbox"
-                            checked={!!formData.is_top_selling}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_top_selling: e.target.checked })
-                            }
-                            className="h-4 w-4 accent-[#966FD6]"
-                          />
-                        </label>
+                            <input
+                              type="checkbox"
+                              checked={!!formData.is_top_selling}
+                              onChange={(e) =>
+                                setFormData({ ...formData, is_top_selling: e.target.checked })
+                              }
+                              className="h-4 w-4 accent-[#966FD6]"
+                            />
+                          </label>
 
-                        {/* Trending */}
-                        <label className="flex items-center justify-between cursor-pointer group">
-                          <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
-                            Trending
-                          </span>
+                          {/* Trending */}
+                          <label className="flex items-center justify-between cursor-pointer group">
+                            <span className="text-sm font-bold text-zinc-600 group-hover:text-black">
+                              Trending
+                            </span>
 
-                          <input
-                            type="checkbox"
-                            checked={!!formData.is_trending}
-                            onChange={(e) =>
-                              setFormData({ ...formData, is_trending: e.target.checked })
-                            }
-                            className="h-4 w-4 accent-[#966FD6]"
-                          />
-                        </label>
+                            <input
+                              type="checkbox"
+                              checked={!!formData.is_trending}
+                              onChange={(e) =>
+                                setFormData({ ...formData, is_trending: e.target.checked })
+                              }
+                              className="h-4 w-4 accent-[#966FD6]"
+                            />
+                          </label>
+                        </div>
                       </div>
-                      </div>
-                   </div>
-
-                   <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-2 col-span-2 sm:col-span-1">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                        Categories <span className="text-red-500">*</span>
-                      </label>
-
-                      <Select>
-                        <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
-                          <SelectValue
-                            placeholder={
-                              formData.category_ids.length > 0
-                                ? `${formData.category_ids.length} selected`
-                                : "Select Categories"
-                            }
-                          />
-                        </SelectTrigger>
-
-                        <SelectContent className="rounded-xl max-h-[400px] overflow-y-auto">
-                          {categories.filter(c => !c.parent_id).map((root) => {
-                            const subCats = categories.filter(sub => sub.parent_id?.toString() === root.id.toString());
-                            const rootSelected = formData.category_ids.includes(root.id.toString());
-                            
-                            return (
-                              <React.Fragment key={root.id}>
-                                <div
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    toggleCategory(root.id.toString());
-                                  }}
-                                  className={cn(
-                                    "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md mb-1",
-                                    rootSelected ? "bg-[#966FD6]/10 text-[#966FD6] font-bold" : "hover:bg-zinc-100"
-                                  )}
-                                >
-                                  <span className="font-bold">{root.name}</span>
-                                  {rootSelected && <Check className="h-4 w-4" />}
-                                </div>
-                                {subCats.map(sub => {
-                                  const subSelected = formData.category_ids.includes(sub.id.toString());
-                                  return (
-                                    <div
-                                      key={sub.id}
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        toggleCategory(sub.id.toString());
-                                      }}
-                                      className={cn(
-                                        "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md ml-4 mb-1",
-                                        subSelected ? "bg-[#966FD6]/10 text-[#966FD6] font-bold" : "hover:bg-zinc-100"
-                                      )}
-                                    >
-                                      <span>— {sub.name}</span>
-                                      {subSelected && <Check className="h-4 w-4" />}
-                                    </div>
-                                  );
-                                })}
-                              </React.Fragment>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
                     </div>
-                     <div className="space-y-2">
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2 col-span-2 sm:col-span-1">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                          Categories <span className="text-red-500">*</span>
+                        </label>
+
+                        <Select>
+                          <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                            <SelectValue
+                              placeholder={
+                                formData.category_ids.length > 0
+                                  ? `${formData.category_ids.length} selected`
+                                  : "Select Categories"
+                              }
+                            />
+                          </SelectTrigger>
+
+                          <SelectContent className="rounded-xl max-h-[400px] overflow-y-auto">
+                            {categories.filter(c => !c.parent_id).map((root) => {
+                              const subCats = categories.filter(sub => sub.parent_id?.toString() === root.id.toString());
+                              const rootSelected = formData.category_ids.includes(root.id.toString());
+
+                              return (
+                                <React.Fragment key={root.id}>
+                                  <div
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      toggleCategory(root.id.toString());
+                                    }}
+                                    className={cn(
+                                      "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md mb-1",
+                                      rootSelected ? "bg-[#966FD6]/10 text-[#966FD6] font-bold" : "hover:bg-zinc-100"
+                                    )}
+                                  >
+                                    <span className="font-bold">{root.name}</span>
+                                    {rootSelected && <Check className="h-4 w-4" />}
+                                  </div>
+                                  {subCats.map(sub => {
+                                    const subSelected = formData.category_ids.includes(sub.id.toString());
+                                    return (
+                                      <div
+                                        key={sub.id}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          toggleCategory(sub.id.toString());
+                                        }}
+                                        className={cn(
+                                          "flex items-center justify-between px-3 py-2 cursor-pointer rounded-md ml-4 mb-1",
+                                          subSelected ? "bg-[#966FD6]/10 text-[#966FD6] font-bold" : "hover:bg-zinc-100"
+                                        )}
+                                      >
+                                        <span>— {sub.name}</span>
+                                        {subSelected && <Check className="h-4 w-4" />}
+                                      </div>
+                                    );
+                                  })}
+                                </React.Fragment>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Brand</label>
-                        <Select 
-                          value={formData.brand_id || 'none'} 
+                        <Select
+                          value={formData.brand_id || 'none'}
                           onValueChange={(val) => setFormData({ ...formData, brand_id: val === 'none' ? '' : val })}
                         >
                           <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
@@ -963,32 +1009,32 @@ export default function AdminProductsPage() {
                             ))}
                           </SelectContent>
                         </Select>
-                     </div>
-                     {!formData.weight && (
-                       <>
-                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Color (Default)</label>
-                          <Select 
-                            value={formData.color_id || 'none'} 
-                            onValueChange={(val) => setFormData({ ...formData, color_id: val === 'none' ? '' : val })}
-                          >
-                            <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
-                              <SelectValue placeholder="Select Color" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              <SelectItem value="none">No Color</SelectItem>
-                              {colors.map((c) => (
-                                <SelectItem key={c.id} value={c.id.toString()}>
-                                  <ColorOption color={c} />
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                         <div className="space-y-2">
+                      </div>
+                      {!formData.weight && (
+                        <>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Color (Default)</label>
+                            <Select
+                              value={formData.color_id || 'none'}
+                              onValueChange={(val) => setFormData({ ...formData, color_id: val === 'none' ? '' : val })}
+                            >
+                              <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
+                                <SelectValue placeholder="Select Color" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="none">No Color</SelectItem>
+                                {colors.map((c) => (
+                                  <SelectItem key={c.id} value={c.id.toString()}>
+                                    <ColorOption color={c} />
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Size (Default)</label>
-                            <Select 
-                              value={formData.size_id || 'none'} 
+                            <Select
+                              value={formData.size_id || 'none'}
                               onValueChange={(val) => setFormData({ ...formData, size_id: val === 'none' ? '' : val })}
                             >
                               <SelectTrigger className="h-12 rounded-xl border-zinc-200 bg-white font-bold">
@@ -1001,73 +1047,32 @@ export default function AdminProductsPage() {
                                 ))}
                               </SelectContent>
                             </Select>
-                         </div>
-                       </>
-                     )}
-                     {!formData.color_id && !formData.size_id && (
-                       <div className="space-y-2 col-span-2">
+                          </div>
+                        </>
+                      )}
+                      {!formData.color_id && !formData.size_id && (
+                        <div className="space-y-2 col-span-2">
                           <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Weight (String, e.g. 15kg)</label>
-                          <Input 
-                            value={formData.weight || ''} 
-                            onChange={(e) => setFormData({ ...formData, weight: e.target.value })} 
+                          <Input
+                            value={formData.weight || ''}
+                            onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                             className="h-12 rounded-xl bg-white border-zinc-200"
                           />
-                       </div>
-                     )}
-                   </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-                   <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Media</label>
-                      <div className="flex items-center gap-4">
-                        <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-zinc-100 rounded-3xl hover:bg-zinc-50 cursor-pointer transition-all group">
-                          <ImageIcon className="h-8 w-8 text-zinc-300 group-hover:text-[#966FD6]/50" />
-                          <span className="text-[10px] font-black uppercase mt-2 text-zinc-400 text-center">
-                            {selectedImage ? selectedImage.name : 'Click to Upload Image'}
-                          </span>
-                          <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && setSelectedImage(e.target.files[0])} />
-                        </label>
-                        {selectedImage ? (
-                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group">
-                            <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="New preview" />
-                            <button 
-                              type="button"
-                              onClick={() => setSelectedImage(null)}
-                              className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            >
-                              <Trash2 className="size-5" />
-                            </button>
-                          </div>
-                        ) : existingImage && !removeExistingImage ? (
-                          <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group shrink-0">
-                            <img 
-                              src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`} 
-                              className="w-full h-full object-cover" 
-                              alt="Current" 
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setRemoveExistingImage(true)}
-                              className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                            >
-                              <Trash2 className="size-5" />
-                            </button>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider pointer-events-none">Current</div>
-                          </div>
-                        ) : null}
-                      </div>
-                   </div>
-                </div>
-
-                <div className="space-y-6">
-                   <div className="space-y-2">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Short Description</label>
-                         <span className={cn(
-                           "text-[10px] font-bold uppercase",
-                           (formData.description || '').length >= 263 ? "text-red-500" : "text-zinc-400"
-                         )}>
-                           {(formData.description || '').length}/263
-                         </span>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Short Description</label>
+                        <span className={cn(
+                          "text-[10px] font-bold uppercase",
+                          (formData.description || '').length >= 263 ? "text-red-500" : "text-zinc-400"
+                        )}>
+                          {(formData.description || '').length}/263
+                        </span>
                       </div>
                       <textarea
                         value={formData.description || ''}
@@ -1076,91 +1081,91 @@ export default function AdminProductsPage() {
                         placeholder="Detail the product's features, specs, and selling points..."
                         className="w-full min-h-[120px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30 font-bold"
                       />
-                   </div>
-                   <div className="space-y-2">
+                    </div>
+                    <div className="space-y-2">
                       <RichTextEditor
                         label="Long Description"
                         value={formData.long_description || ''}
                         onChange={(val) => setFormData({ ...formData, long_description: val })}
                         placeholder="Comprehensive details for the product page..."
                       />
-                   </div>
-                   <div className="space-y-2">
+                    </div>
+                    <div className="space-y-2">
                       <RichTextEditor
                         label="Additional Info"
                         value={formData.additional_info || ''}
                         onChange={(val) => setFormData({ ...formData, additional_info: val })}
                         placeholder="Extra details like specifications, care instructions, warranty info, etc..."
                       />
-                   </div>
+                    </div>
 
-                   <div className="space-y-4 pt-4 border-t border-zinc-100">
+                    <div className="space-y-4 pt-4 border-t border-zinc-100">
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Discount (Applies to all variants)</label>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" checked={!!formData.discount} onChange={(e) => {
-                             if (e.target.checked) {
-                               setFormData({ ...formData, discount: { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true } });
-                             } else {
-                               // When disabling parent discount, also clear all variant discounts
-                               setFormData({ 
-                                 ...formData, 
-                                 discount: null,
-                                 variants: formData.variants.map(v => ({ ...v, discount: null }))
-                               });
-                             }
+                            if (e.target.checked) {
+                              setFormData({ ...formData, discount: { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true } });
+                            } else {
+                              // When disabling parent discount, also clear all variant discounts
+                              setFormData({
+                                ...formData,
+                                discount: null,
+                                variants: formData.variants.map(v => ({ ...v, discount: null }))
+                              });
+                            }
                           }} className="accent-[#966FD6] h-4 w-4" />
                           <span className="text-[10px] font-black uppercase text-[#966FD6]">Enable Parent Discount</span>
                         </label>
                       </div>
                       {formData.discount && (
                         <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
-                           <div className="space-y-1">
-                              <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
-                              <Select 
-                                value={formData.discount.type} 
-                                onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, type: val } })}
-                              >
-                                <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
-                                  <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="percent">Percentage (%)</SelectItem>
-                                  <SelectItem value="fixed">Fixed Amount</SelectItem>
-                                </SelectContent>
-                              </Select>
-                           </div>
-                           <div className="space-y-1">
-                              <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
-                              <Input type="number" min="0" value={formData.discount.value} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
-                           </div>
-                           <div className="space-y-1">
-                              <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
-                              <DatePicker 
-                                date={formData.discount.starts_at ? new Date(formData.discount.starts_at) : undefined}
-                                setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' } })}
-                                placeholder="Start Date"
-                              />
-                           </div>
-                           <div className="space-y-1">
-                              <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
-                              <DatePicker 
-                                date={formData.discount.ends_at ? new Date(formData.discount.ends_at) : undefined}
-                                setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' } })}
-                                placeholder="End Date"
-                              />
-                           </div>
-                           <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked={formData.discount.is_active} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, is_active: e.target.checked } })} className="accent-[#966FD6] h-4 w-4" />
-                                <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
-                              </label>
-                           </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
+                            <Select
+                              value={formData.discount.type}
+                              onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, type: val } })}
+                            >
+                              <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="percent">Percentage (%)</SelectItem>
+                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
+                            <Input type="number" min="0" value={formData.discount.value} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
+                            <DatePicker
+                              date={formData.discount.starts_at ? new Date(formData.discount.starts_at) : undefined}
+                              setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' } })}
+                              placeholder="Start Date"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
+                            <DatePicker
+                              date={formData.discount.ends_at ? new Date(formData.discount.ends_at) : undefined}
+                              setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' } })}
+                              placeholder="End Date"
+                            />
+                          </div>
+                          <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={formData.discount.is_active} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, is_active: e.target.checked } })} className="accent-[#966FD6] h-4 w-4" />
+                              <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
+                            </label>
+                          </div>
                         </div>
                       )}
-                   </div>
+                    </div>
 
-                   <div className="space-y-4">
+                    <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Variants</label>
                         <Button type="button" size="sm" variant="outline" onClick={addVariant} className="rounded-xl border-[#966FD6]/30 text-[#966FD6] hover:bg-[#966FD6]/5 font-black h-9 px-4">
@@ -1171,219 +1176,219 @@ export default function AdminProductsPage() {
                       <div className="space-y-4">
                         {formData.variants.map((v, i) => (
                           <div key={i} className="p-6 bg-zinc-50/80 rounded-[24px] border border-zinc-100 shadow-sm relative animate-in fade-in zoom-in-95 duration-300">
-                             <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(i)} className="absolute -top-2 -right-2 h-8 w-8 bg-white shadow-md border border-zinc-100 rounded-full text-zinc-400 hover:text-red-500">
-                               <X className="w-4 h-4" />
-                             </Button>
-                             
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Variant Name (Color/Size) <span className="text-red-500">*</span></span>
-                                   <Input value={v.variant_name} onChange={(e) => updateVariant(i, 'variant_name', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200" required />
-                                </div>
-                                <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">SKU Code <span className="text-red-500">*</span></span>
-                                   <Input value={v.sku} onChange={(e) => updateVariant(i, 'sku', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200" required />
-                                </div>
-                                <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Retail Price <span className="text-red-500">*</span></span>
-                                   <Input type="number" step="0.01" min="0.01" value={v.retail_price} onChange={(e) => updateVariant(i, 'retail_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
-                                </div>
-                                <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price <span className="text-red-500">*</span></span>
-                                   <Input type="number" step="0.01" min="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
-                                </div>
-                                <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock <span className="text-red-500">*</span></span>
-                                   <Input type="number" value={v.stock} onChange={(e) => updateVariant(i, 'stock', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
-                                </div>
-                                <div className="space-y-1">
-                                   <span className="text-[10px] font-black uppercase text-zinc-400">MOQ <span className="text-red-500">*</span></span>
-                                   <Input type="number" value={v.moq} onChange={(e) => updateVariant(i, 'moq', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
-                                </div>
-                             </div>
-                             
-                             <div className="mt-4 border-t border-zinc-100 pt-4 space-y-3">
-                                <span className="text-[10px] font-black uppercase text-zinc-400">Variant Image</span>
-                                <div className="flex items-center gap-3">
-                                   <label className="flex-1 h-11 border-2 border-dashed border-zinc-200 hover:border-[#966FD6]/50 rounded-xl flex items-center justify-center cursor-pointer hover:bg-zinc-50 transition-colors gap-2 px-3">
-                                      <ImageIcon className="h-4 w-4 text-zinc-400 shrink-0" />
-                                      <span className="text-xs font-bold text-zinc-500 truncate max-w-[200px]">
-                                         {v.image ? v.image.name : 'Upload Variant Image'}
-                                      </span>
-                                      <input 
-                                         type="file" 
-                                         className="hidden" 
-                                         accept="image/*" 
-                                         onChange={(e) => {
-                                            if (e.target.files && e.target.files[0]) {
-                                               updateVariant(i, 'image', e.target.files[0]);
-                                               updateVariant(i, 'image_url', undefined);
-                                            }
-                                         }} 
-                                      />
-                                   </label>
-                                   {v.image ? (
-                                      <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
-                                         <img src={URL.createObjectURL(v.image)} className="w-full h-full object-cover" alt="Variant preview" />
-                                         <button 
-                                            type="button" 
-                                            onClick={() => {
-                                               updateVariant(i, 'image', null);
-                                               updateVariant(i, 'image_url', '');
-                                            }}
-                                            className="absolute inset-0 bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                         >
-                                            <X className="size-3" />
-                                         </button>
-                                      </div>
-                                   ) : v.image_url ? (
-                                      <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
-                                         <img 
-                                            src={v.image_url.startsWith('http') ? v.image_url : `http://localhost:8000${v.image_url}`} 
-                                            className="w-full h-full object-cover" 
-                                            alt="Variant image" 
-                                         />
-                                         <button 
-                                            type="button" 
-                                            onClick={() => {
-                                               updateVariant(i, 'image_url', '');
-                                               updateVariant(i, 'image', null);
-                                            }}
-                                            className="absolute inset-0 bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                         >
-                                            <X className="size-3" />
-                                         </button>
-                                      </div>
-                                   ) : null}
-                                </div>
-                             </div>
+                            <Button type="button" variant="ghost" size="icon" onClick={() => removeVariant(i)} className="absolute -top-2 -right-2 h-8 w-8 bg-white shadow-md border border-zinc-100 rounded-full text-zinc-400 hover:text-red-500">
+                              <X className="w-4 h-4" />
+                            </Button>
 
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
-                                    {!v.weight && (
-                                      <>
-                                        <div className="space-y-1">
-                                        <span className="text-[10px] font-black uppercase text-zinc-400">Color Override</span>
-                                        <Select 
-                                          value={v.color_id || 'none'} 
-                                          onValueChange={(val) => updateVariant(i, 'color_id', val === 'none' ? '' : val)}
-                                        >
-                                          <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
-                                            <SelectValue placeholder="Default" />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="none">Use Product Default</SelectItem>
-                                            {colors.map((c) => (
-                                              <SelectItem key={c.id} value={c.id.toString()}>
-                                                <ColorOption color={c} />
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                        <div className="space-y-1">
-                                           <span className="text-[10px] font-black uppercase text-zinc-400">Size Override</span>
-                                           <Select 
-                                             value={v.size_id || 'none'} 
-                                             onValueChange={(val) => updateVariant(i, 'size_id', val === 'none' ? '' : val)}
-                                           >
-                                             <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
-                                               <SelectValue placeholder="Default" />
-                                             </SelectTrigger>
-                                             <SelectContent>
-                                               <SelectItem value="none">Use Product Default</SelectItem>
-                                               {sizes.map((s) => (
-                                                 <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
-                                               ))}
-                                             </SelectContent>
-                                           </Select>
-                                        </div>
-                                      </>
-                                    )}
-                                    {!v.color_id && !v.size_id && (
-                                      <div className="space-y-1 col-span-1 sm:col-span-2">
-                                         <span className="text-[10px] font-black uppercase text-zinc-400">Weight Override</span>
-                                         <Input type="text" value={v.weight || ''} onChange={(e) => updateVariant(i, 'weight', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" placeholder="e.g. 5kg" />
-                                      </div>
-                                    )}
-                                 </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">Variant Name (Color/Size) <span className="text-red-500">*</span></span>
+                                <Input value={v.variant_name} onChange={(e) => updateVariant(i, 'variant_name', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">SKU Code <span className="text-red-500">*</span></span>
+                                <Input value={v.sku} onChange={(e) => updateVariant(i, 'sku', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">Retail Price <span className="text-red-500">*</span></span>
+                                <Input type="number" step="0.01" min="0.01" value={v.retail_price} onChange={(e) => updateVariant(i, 'retail_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price <span className="text-red-500">*</span></span>
+                                <Input type="number" step="0.01" min="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock <span className="text-red-500">*</span></span>
+                                <Input type="number" value={v.stock} onChange={(e) => updateVariant(i, 'stock', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">MOQ <span className="text-red-500">*</span></span>
+                                <Input type="number" value={v.moq} onChange={(e) => updateVariant(i, 'moq', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                            </div>
 
-                                 <div className="space-y-4 pt-4 border-t border-zinc-100">
-                                    <div className="flex items-center justify-between">
-                                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Variant Discount (Overrides parent discount)</label>
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={!!v.discount} onChange={(e) => {
-                                           if (e.target.checked) {
-                                              updateVariant(i, 'discount', { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true });
-                                           } else {
-                                              updateVariant(i, 'discount', null);
-                                           }
-                                        }} className="accent-[#966FD6] h-4 w-4" />
-                                        <span className="text-[10px] font-black uppercase text-[#966FD6]">Enable Variant Discount</span>
-                                      </label>
-                                    </div>
-                                    {v.discount && (
-                                      <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
-                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
-                                            <Select 
-                                              value={v.discount.type} 
-                                              onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, type: val })}
-                                            >
-                                              <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
-                                                <SelectValue placeholder="Select type" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="percent">Percentage (%)</SelectItem>
-                                                <SelectItem value="fixed">Fixed Amount</SelectItem>
-                                              </SelectContent>
-                                            </Select>
-                                         </div>
-                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
-                                            <Input type="number" min="0" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
-                                         </div>
-                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
-                                            <DatePicker 
-                                              date={v.discount.starts_at ? new Date(v.discount.starts_at) : undefined}
-                                              setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' })}
-                                              placeholder="Start Date"
-                                            />
-                                         </div>
-                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
-                                            <DatePicker 
-                                              date={v.discount.ends_at ? new Date(v.discount.ends_at) : undefined}
-                                              setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' })}
-                                              placeholder="End Date"
-                                            />
-                                         </div>
-                                         <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
-                                            <label className="flex items-center gap-2 cursor-pointer">
-                                              <input type="checkbox" checked={v.discount.is_active} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, is_active: e.target.checked })} className="accent-[#966FD6] h-4 w-4" />
-                                              <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
-                                            </label>
-                                         </div>
-                                      </div>
-                                    )}
-                                 </div>
-                                 <div className="flex items-center justify-end border-t border-zinc-100 pt-4"><label className="flex items-center gap-2 cursor-pointer">
-                                  <input type="checkbox" checked={v.is_active} onChange={(e) => updateVariant(i, 'is_active', e.target.checked)} className="accent-[#966FD6] h-4 w-4" />
-                                  <span className="text-[10px] font-black uppercase text-zinc-500">Variant Active</span>
+                            <div className="mt-4 border-t border-zinc-100 pt-4 space-y-3">
+                              <span className="text-[10px] font-black uppercase text-zinc-400">Variant Image</span>
+                              <div className="flex items-center gap-3">
+                                <label className="flex-1 h-11 border-2 border-dashed border-zinc-200 hover:border-[#966FD6]/50 rounded-xl flex items-center justify-center cursor-pointer hover:bg-zinc-50 transition-colors gap-2 px-3">
+                                  <ImageIcon className="h-4 w-4 text-zinc-400 shrink-0" />
+                                  <span className="text-xs font-bold text-zinc-500 truncate max-w-[200px]">
+                                    {v.image ? v.image.name : 'Upload Variant Image'}
+                                  </span>
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        updateVariant(i, 'image', e.target.files[0]);
+                                        updateVariant(i, 'image_url', undefined);
+                                      }
+                                    }}
+                                  />
                                 </label>
-                             </div>
+                                {v.image ? (
+                                  <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
+                                    <img src={URL.createObjectURL(v.image)} className="w-full h-full object-cover" alt="Variant preview" />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        updateVariant(i, 'image', null);
+                                        updateVariant(i, 'image_url', '');
+                                      }}
+                                      className="absolute inset-0 bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="size-3" />
+                                    </button>
+                                  </div>
+                                ) : v.image_url ? (
+                                  <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
+                                    <img
+                                      src={v.image_url.startsWith('http') ? v.image_url : `http://localhost:8000${v.image_url}`}
+                                      className="w-full h-full object-cover"
+                                      alt="Variant image"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        updateVariant(i, 'image_url', '');
+                                        updateVariant(i, 'image', null);
+                                      }}
+                                      className="absolute inset-0 bg-black/55 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="size-3" />
+                                    </button>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-zinc-100 pt-4">
+                              {!v.weight && (
+                                <>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase text-zinc-400">Color Override</span>
+                                    <Select
+                                      value={v.color_id || 'none'}
+                                      onValueChange={(val) => updateVariant(i, 'color_id', val === 'none' ? '' : val)}
+                                    >
+                                      <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                        <SelectValue placeholder="Default" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">Use Product Default</SelectItem>
+                                        {colors.map((c) => (
+                                          <SelectItem key={c.id} value={c.id.toString()}>
+                                            <ColorOption color={c} />
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase text-zinc-400">Size Override</span>
+                                    <Select
+                                      value={v.size_id || 'none'}
+                                      onValueChange={(val) => updateVariant(i, 'size_id', val === 'none' ? '' : val)}
+                                    >
+                                      <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                        <SelectValue placeholder="Default" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="none">Use Product Default</SelectItem>
+                                        {sizes.map((s) => (
+                                          <SelectItem key={s.id} value={s.id.toString()}>{s.name}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </>
+                              )}
+                              {!v.color_id && !v.size_id && (
+                                <div className="space-y-1 col-span-1 sm:col-span-2">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Weight Override</span>
+                                  <Input type="text" value={v.weight || ''} onChange={(e) => updateVariant(i, 'weight', e.target.value)} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" placeholder="e.g. 5kg" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-zinc-100">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Variant Discount (Overrides parent discount)</label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" checked={!!v.discount} onChange={(e) => {
+                                    if (e.target.checked) {
+                                      updateVariant(i, 'discount', { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true });
+                                    } else {
+                                      updateVariant(i, 'discount', null);
+                                    }
+                                  }} className="accent-[#966FD6] h-4 w-4" />
+                                  <span className="text-[10px] font-black uppercase text-[#966FD6]">Enable Variant Discount</span>
+                                </label>
+                              </div>
+                              {v.discount && (
+                                <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
+                                    <Select
+                                      value={v.discount.type}
+                                      onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, type: val })}
+                                    >
+                                      <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                        <SelectValue placeholder="Select type" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="percent">Percentage (%)</SelectItem>
+                                        <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
+                                    <Input type="number" min="0" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
+                                    <DatePicker
+                                      date={v.discount.starts_at ? new Date(v.discount.starts_at) : undefined}
+                                      setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' })}
+                                      placeholder="Start Date"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
+                                    <DatePicker
+                                      date={v.discount.ends_at ? new Date(v.discount.ends_at) : undefined}
+                                      setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' })}
+                                      placeholder="End Date"
+                                    />
+                                  </div>
+                                  <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                      <input type="checkbox" checked={v.discount.is_active} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, is_active: e.target.checked })} className="accent-[#966FD6] h-4 w-4" />
+                                      <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
+                                    </label>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-end border-t border-zinc-100 pt-4"><label className="flex items-center gap-2 cursor-pointer">
+                              <input type="checkbox" checked={v.is_active} onChange={(e) => updateVariant(i, 'is_active', e.target.checked)} className="accent-[#966FD6] h-4 w-4" />
+                              <span className="text-[10px] font-black uppercase text-zinc-500">Variant Active</span>
+                            </label>
+                            </div>
                           </div>
                         ))}
                       </div>
-                   </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between p-5 gap-4 border-t border-zinc-50 bg-white">
-                 <p className="hidden md:block text-[10px] font-black uppercase tracking-widest text-[#966FD6] bg-[#966FD6]/5 px-4 py-2 rounded-full border border-[#966FD6]/10">
-                   Ensure categories and variants are correctly defined
-                 </p>
-                 <div className="flex w-full sm:w-auto gap-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between p-5 gap-4 border-t border-zinc-50 bg-white">
+                  <p className="hidden md:block text-[10px] font-black uppercase tracking-widest text-[#966FD6] bg-[#966FD6]/5 px-4 py-2 rounded-full border border-[#966FD6]/10">
+                    Ensure categories and variants are correctly defined
+                  </p>
+                  <div className="flex w-full sm:w-auto gap-3">
                     <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 sm:flex-none font-bold text-zinc-400 rounded-xl md:rounded-2xl h-12 px-6 hover:bg-zinc-50">
                       Cancel
                     </Button>
@@ -1395,9 +1400,9 @@ export default function AdminProductsPage() {
                       {isSubmitting ? <Spinner size="sm" className="border-white mr-2" /> : null}
                       {formMode === 'create' ? 'Publish' : 'Save'}
                     </Button>
-                 </div>
-              </div>
-            </form>
+                  </div>
+                </div>
+              </form>
             </div>
           </div>
         </div>

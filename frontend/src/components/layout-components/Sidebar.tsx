@@ -41,7 +41,9 @@ const navItems = [
   
   { name: 'Attributes', icon: Globe, href: '/admin/attributes' },
   { name: 'Products', icon: Globe, href: '/admin/products' },
+  { name: 'Tags', icon: Tag, href: '/admin/tags' },
   { name: 'Orders', icon: ShoppingCart, href: '/admin/orders' },
+
   { name: 'Payments', icon: CreditCard, href: '/admin/payments' },
   { name: 'Offers', icon: Tag, href: '/admin/offers' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },

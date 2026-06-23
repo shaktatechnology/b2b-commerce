@@ -2,6 +2,7 @@ import type {
   StorefrontCategory,
   StorefrontProduct,
   StorefrontSettings,
+  StorefrontTag,
 } from '@/src/types/storefront';
 import type { PaymentSettings } from '@/src/types/payment-settings';
 import { parsePaymentSettings } from './payment-settings';
@@ -25,6 +26,11 @@ export async function fetchCategories(): Promise<StorefrontCategory[]> {
   return json.data ?? [];
 }
 
+export async function fetchTags(): Promise<StorefrontTag[]> {
+  const json = await apiGet<{ data: StorefrontTag[] }>('/tags');
+  return json.data ?? [];
+}
+
 export async function fetchProducts(queryParams?: Record<string, string>): Promise<StorefrontProduct[]> {
   let path = '/products';
   if (queryParams) {
@@ -38,6 +44,16 @@ export async function fetchProducts(queryParams?: Record<string, string>): Promi
 export async function fetchOffers(): Promise<Offer[]> {
   const json = await apiGet<{ data: Offer[] }>('/offers');
   return json.data ?? [];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function fetchAllDeals(): Promise<any[]> {
+  try {
+    const json = await apiGet<{ data: any[] }>('/products/all-deals');
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchProductBySlug(
