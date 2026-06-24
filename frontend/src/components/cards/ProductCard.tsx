@@ -10,6 +10,7 @@ import {
   productToCartLineItem,
 } from "@/src/lib/product-utils";
 import type { CartProductInput } from "@/src/types/cart";
+import { cn } from "@/src/lib/utils";
 
 interface ProductCardProps {
   product: CartProductInput;
@@ -45,9 +46,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
       toast.error("This product cannot be added to cart.");
       return;
     }
+
+    if ((lineItem.stock ?? 0) <= 0) {
+      toast.error("This item is currently out of stock.");
+      return;
+    }
+
     addItem(lineItem);
     toast.success(`${product.name} added to cart`);
   };
+
+  const isOutOfStock = (lineItem?.stock ?? 0) <= 0;
 
   const avgRating = Number(product.reviews_avg_rating ?? 0);
   const reviewsCount = product.reviews_count ?? 0;
@@ -106,9 +115,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
             <div className="flex flex-wrap items-center gap-3 mt-4">
               <button
                 onClick={handleAdd}
-                className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
+                disabled={isOutOfStock}
+                className={cn(
+                  "px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer",
+                  isOutOfStock ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
+                )}
               >
-                <ShoppingCart size={16} /> Add to Cart
+                {isOutOfStock ? null : <ShoppingCart size={16} />}
+                {isOutOfStock ? "Out of Stock" : "Add to Cart"}
               </button>
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -191,10 +205,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
             <button
               type="button"
               onClick={handleAdd}
-              className="flex items-center gap-1.5 text-[10px] font-bold bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-all shadow-sm cursor-pointer"
+              disabled={isOutOfStock}
+              className={cn(
+                "flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm cursor-pointer",
+                isOutOfStock ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
+              )}
             >
-              <ShoppingCart size={14} />
-              Add
+              {isOutOfStock ? null : <ShoppingCart size={14} />}
+              {isOutOfStock ? "Out" : "Add"}
             </button>
           </div>
         </div>

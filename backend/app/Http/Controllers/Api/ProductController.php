@@ -68,6 +68,9 @@ class ProductController extends Controller
             ->where('is_active', true)
             ->where('starts_at', '<=', $now)
             ->where('ends_at', '>=', $now)
+            ->whereHas('product.variants', function ($q) {
+                $q->where('stock', '>', 0)->where('is_active', true);
+            })
             ->orderByDesc('value')
             ->get();
 

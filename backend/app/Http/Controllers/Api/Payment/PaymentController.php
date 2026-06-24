@@ -124,13 +124,14 @@ class PaymentController extends Controller
                     ? 'https://epay.esewa.com.np/api/epay/main/v2/form'
                     : 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
 
+                $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
                 $data['esewa'] = [
                     'merchant_code' => $merchantCode,
                     'signature' => $signature,
                     'mode' => $mode,
                     'action_url' => $actionUrl,
-                    'success_url' => url("/payment-verify?gateway=esewa&status=completed&payment_id={$payment->id}&order_id={$payment->order_id}"),
-                    'failure_url' => url("/payment-verify?gateway=esewa&status=failed&payment_id={$payment->id}&order_id={$payment->order_id}"),
+                    'success_url' => "{$frontendUrl}/payment-verify?gateway=esewa&status=completed&payment_id={$payment->id}&order_id={$payment->order_id}",
+                    'failure_url' => "{$frontendUrl}/payment-verify?gateway=esewa&status=failed&payment_id={$payment->id}&order_id={$payment->order_id}",
                 ];
             } elseif ($gateway === 'paypal') {
                 $data['paypal'] = [

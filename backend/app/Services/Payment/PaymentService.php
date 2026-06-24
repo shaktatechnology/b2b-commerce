@@ -90,13 +90,15 @@ class PaymentService implements PaymentServiceInterface
                 ? 'https://epay.esewa.com.np/api/epay/main/v2/form'
                 : 'https://rc-epay.esewa.com.np/api/epay/main/v2/form';
 
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+
             $responseData['esewa'] = [
                 'merchant_code' => $merchantCode,
                 'signature' => $signature,
                 'mode' => $mode,
                 'action_url' => $actionUrl,
-                'success_url' => url("/payment-verify?gateway=esewa&status=completed&payment_id={$payment->id}&order_id={$order->id}"),
-                'failure_url' => url("/payment-verify?gateway=esewa&status=failed&payment_id={$payment->id}&order_id={$order->id}"),
+                'success_url' => "{$frontendUrl}/payment-verify?gateway=esewa&status=completed&payment_id={$payment->id}&order_id={$order->id}",
+                'failure_url' => "{$frontendUrl}/payment-verify?gateway=esewa&status=failed&payment_id={$payment->id}&order_id={$order->id}",
             ];
         } elseif ($gateway === 'paypal') {
             $clientId = Setting::get('paypal_client_id', '');

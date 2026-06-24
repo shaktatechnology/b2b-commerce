@@ -26,26 +26,28 @@ export interface OrderItem {
   line_total: string | number;
   created_at?: string;
   updated_at?: string;
-  variant?: {
-    id: string;
-    product_id: string;
-    variant_name: string;
-    sku: string;
-    retail_price: string | number;
-    wholesale_price: string | number;
-    moq: number;
-    stock: number;
-    weight?: string | null;
-    image_url?: string | null;
-    is_active?: boolean;
-    product?: {
+    variant?: {
       id: string;
-      name: string;
-      slug: string;
-      description?: string | null;
+      product_id: string;
+      variant_name: string;
+      sku: string;
+      retail_price: string | number;
+      wholesale_price: string | number;
+      moq: number;
+      stock: number;
+      weight?: string | null;
       image_url?: string | null;
+      is_active?: boolean;
+      color?: { name: string };
+      size?: { name: string };
+      product?: {
+        id: string;
+        name: string;
+        slug: string;
+        description?: string | null;
+        image_url?: string | null;
+      };
     };
-  };
 }
 
 export interface Order {

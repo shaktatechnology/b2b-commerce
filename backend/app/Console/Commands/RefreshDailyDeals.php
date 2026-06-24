@@ -39,6 +39,9 @@ class RefreshDailyDeals extends Command
             ->where('is_active', true)
             ->where('starts_at', '<=', $now)
             ->where('ends_at', '>=', $now)
+            ->whereHas('product.variants', function ($q) {
+                $q->where('stock', '>', 0)->where('is_active', true);
+            })
             ->orderByDesc('value')
             ->get();
 
@@ -48,6 +51,9 @@ class RefreshDailyDeals extends Command
 
             $products = Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
                 ->where('is_active', true)
+                ->whereHas('variants', function($q) {
+                    $q->where('stock', '>', 0)->where('is_active', true);
+                })
                 ->where('discount_percentage', '>', 0)
                 ->orderByDesc('discount_percentage')
                 ->orderByDesc('sales_count')
@@ -98,6 +104,9 @@ class RefreshDailyDeals extends Command
             // Fallback 1: Products with discount_percentage > 0
             $additional = Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
                 ->where('is_active', true)
+                ->whereHas('variants', function($q) {
+                    $q->where('stock', '>', 0)->where('is_active', true);
+                })
                 ->where('discount_percentage', '>', 0)
                 ->whereNotIn('id', array_keys($seen))
                 ->orderByDesc('discount_percentage')
@@ -114,6 +123,9 @@ class RefreshDailyDeals extends Command
                 $needed = 12 - count($deals);
                 $featured = Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
                     ->where('is_active', true)
+                    ->whereHas('variants', function($q) {
+                        $q->where('stock', '>', 0)->where('is_active', true);
+                    })
                     ->where('is_featured', true)
                     ->whereNotIn('id', array_keys($seen))
                     ->limit($needed)
@@ -130,6 +142,9 @@ class RefreshDailyDeals extends Command
                 $needed = 12 - count($deals);
                 $popular = Product::with(['images', 'brand', 'variants', 'variants.discounts', 'discounts'])
                     ->where('is_active', true)
+                    ->whereHas('variants', function($q) {
+                        $q->where('stock', '>', 0)->where('is_active', true);
+                    })
                     ->whereNotIn('id', array_keys($seen))
                     ->orderByDesc('sales_count')
                     ->limit($needed)

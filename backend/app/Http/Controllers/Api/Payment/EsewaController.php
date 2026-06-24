@@ -27,8 +27,8 @@ class EsewaController extends Controller
                 'oid' => 'required|string',
             ]);
 
-            // Find payment by transaction UUID
-            $payment = Payment::where('transaction_id', $validated['transaction_uuid'])->first();
+            // Find payment by its UUID (which was sent as transaction_uuid)
+            $payment = Payment::find($validated['transaction_uuid']);
 
             if (!$payment) {
                 Log::warning('eSewa payment callback: Transaction UUID not found', $validated);
@@ -105,7 +105,7 @@ class EsewaController extends Controller
                 'transaction_uuid' => 'required|string',
             ]);
 
-            $payment = Payment::where('transaction_id', $validated['transaction_uuid'])->first();
+            $payment = Payment::find($validated['transaction_uuid']);
 
             if ($payment) {
                 $payment->update([

@@ -7,6 +7,7 @@ import { useCartStore } from "@/src/store/use-cart-store";
 import { toast } from "sonner";
 import { productToCartLineItem, getProductPath } from "@/src/lib/product-utils";
 import { CartProductInput } from "@/src/types/cart";
+import { cn } from "@/src/lib/utils";
 
 export interface DealProduct {
   id: number | string;
@@ -143,6 +144,11 @@ export default function DealOfTheDayCard({ product }: Props) {
       return;
     }
 
+    if ((variant.stock ?? 0) <= 0) {
+      toast.error("This item is currently out of stock.");
+      return;
+    }
+
     const lineItem = productToCartLineItem(
       product as unknown as CartProductInput,
       {
@@ -166,6 +172,7 @@ export default function DealOfTheDayCard({ product }: Props) {
   };
 
   const productPath = getProductPath({ id: String(product.id), slug: product.slug });
+  const isOutOfStock = (product.variants?.[0]?.stock ?? 0) <= 0;
 
   return (
     <Link href={productPath} className="deal-card group block overflow-hidden rounded-2xl">
@@ -179,6 +186,13 @@ export default function DealOfTheDayCard({ product }: Props) {
             unoptimized
             className="deal-card__img group-hover:scale-105 transition-transform duration-500"
           />
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-10">
+              <span className="bg-red-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-xl">
+                Out of Stock
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ── Body ──────────────────────────────────── */}
@@ -204,9 +218,14 @@ export default function DealOfTheDayCard({ product }: Props) {
                 </div>
               )}
             </div>
-            <button className="deal-card__add-btn" onClick={handleAddToCart} title="Add to cart">
-              <ShoppingCart size={14} />
-              Add
+            <button 
+              className={cn("deal-card__add-btn", isOutOfStock && "opacity-50 cursor-not-allowed bg-zinc-400")} 
+              onClick={handleAddToCart} 
+              disabled={isOutOfStock}
+              title={isOutOfStock ? "Out of Stock" : "Add to cart"}
+            >
+              {isOutOfStock ? null : <ShoppingCart size={14} />}
+              {isOutOfStock ? "Out" : "Add"}
             </button>
           </div>
         </div>

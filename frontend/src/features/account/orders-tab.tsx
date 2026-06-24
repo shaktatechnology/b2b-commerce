@@ -140,14 +140,22 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                      <>View Details <ChevronDown className="w-4 h-4" /></>
                    )}
                  </Button>
-                 <Button 
-                  variant="ghost"
-                  onClick={() => router.push(`/account/orders/${order.id}`)}
-                  className="font-black text-[10px] uppercase tracking-widest text-zinc-500 hover:text-black"
-                 >
-                   Go to Page
-                 </Button>
-              </div>
+                  {order.payment_status === 'unpaid' && order.status === 'pending' && (
+                   <Button 
+                    onClick={() => router.push(`/account/orders/${order.id}`)}
+                    className="rounded-xl px-6 h-12 bg-emerald-600 text-white hover:bg-emerald-700 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-200"
+                   >
+                     Complete Payment <CheckCircle2 className="w-4 h-4" />
+                   </Button>
+                  )}
+                  <Button 
+                   variant="ghost"
+                   onClick={() => router.push(`/account/orders/${order.id}`)}
+                   className="font-black text-[10px] uppercase tracking-widest text-zinc-500 hover:text-black"
+                  >
+                    Go to Page
+                  </Button>
+               </div>
             </div>
 
             {isExpanded && !isLoadingDetail && (
@@ -175,6 +183,11 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                                 </p>
                                 <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">
                                   Qty: {item.quantity} × Rs. {Number(item.unit_price).toLocaleString()}
+                                  {(item.variant?.color || item.variant?.size) && (
+                                    <span className="ml-2 lowercase">
+                                      ({[item.variant?.color?.name, item.variant?.size?.name].filter(Boolean).join(', ')})
+                                    </span>
+                                  )}
                                 </p>
                               </div>
                             </div>

@@ -27,7 +27,7 @@ class OrderService implements OrderServiceInterface
      */
     public function getUserOrders(string $userId)
     {
-        return Order::with(['items.variant.product'])
+        return Order::with(['items.variant.product', 'items.variant.color', 'items.variant.size'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
