@@ -21,6 +21,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/orders',
+        destination: '/account?tab=orders',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

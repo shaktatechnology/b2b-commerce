@@ -2,6 +2,7 @@
 
 import {  useEffect,  useState,  useRef,  useLayoutEffect,  useCallback,} from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {  Menu,  Search,  ShoppingCart,  User,  Globe,  X,  Phone,  ChevronRight,  ChevronLeft,  ChevronDown,  LogOut} from "lucide-react";
 import { useCartStore } from "@/src/store/use-cart-store";
@@ -30,6 +31,7 @@ export default function Navbar({
   const user = useAppStore((s) => s.user);
   const setUser = useAppStore((s) => s.setUser);
   const clearUser = useAppStore((s) => s.logout);
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -49,6 +51,8 @@ export default function Navbar({
     try {
       await logoutApi();
       clearUser();
+      setMenuOpen(false);
+      router.push('/');
     } catch (err) {
       console.error("Logout failed:", err);
     }

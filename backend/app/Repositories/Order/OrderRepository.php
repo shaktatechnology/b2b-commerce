@@ -12,7 +12,7 @@ class OrderRepository implements OrderRepositoryInterface
      */
     public function all(array $filters)
     {
-        $query = Order::with(['user', 'items.variant.product']);
+        $query = Order::with(['user', 'items.variant.product', 'items.variant.color', 'items.variant.size']);
 
         if (!empty($filters['user_id'])) {
             $query->where('user_id', $filters['user_id']);
@@ -63,7 +63,7 @@ class OrderRepository implements OrderRepositoryInterface
      */
     public function findById(string $id): ?Order
     {
-        return Order::with(['user', 'items.variant.product'])->find($id);
+        return Order::with(['user', 'items.variant.product', 'items.variant.color', 'items.variant.size'])->find($id);
     }
 
     /**
@@ -81,6 +81,6 @@ class OrderRepository implements OrderRepositoryInterface
     {
         $order = Order::findOrFail($id);
         $order->update($data);
-        return $order->load(['user', 'items.variant.product']);
+        return $order->load(['user', 'items.variant.product', 'items.variant.color', 'items.variant.size']);
     }
 }

@@ -58,15 +58,18 @@ class AppServiceProvider extends ServiceProvider
 
         // Rate Limiters
         \Illuminate\Support\Facades\RateLimiter::for('login', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(5)->by($request->email . $request->ip());
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(10)->by($request->email . $request->ip());
+            // return \Illuminate\Cache\RateLimiting\Limit::perMinute(5)->by($request->email . $request->ip());
         });
 
         \Illuminate\Support\Facades\RateLimiter::for('registration', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perHour(3)->by($request->ip());
+            return \Illuminate\Cache\RateLimiting\Limit::perHour(20)->by($request->ip());
+            // return \Illuminate\Cache\RateLimiting\Limit::perHour(3)->by($request->ip());
         });
 
         \Illuminate\Support\Facades\RateLimiter::for('forgot-password', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perHour(3)->by($request->ip());
+            return \Illuminate\Cache\RateLimiting\Limit::perHour(10)->by($request->ip());
+            // return \Illuminate\Cache\RateLimiting\Limit::perHour(3)->by($request->ip());
         });
     }
 }

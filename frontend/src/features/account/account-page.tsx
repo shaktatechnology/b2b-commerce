@@ -74,6 +74,9 @@ export function AccountPageFeature() {
 
   if (!user) return null;
 
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const defaultTab = searchParams?.get('tab') || 'profile';
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <Button 
@@ -92,7 +95,7 @@ export function AccountPageFeature() {
         </div>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-12">
+      <Tabs defaultValue={defaultTab} className="space-y-12">
         <TabsList className="bg-zinc-100/50 p-1 rounded-2xl border border-zinc-100 h-auto self-start">
           <TabsTrigger 
             value="profile" 

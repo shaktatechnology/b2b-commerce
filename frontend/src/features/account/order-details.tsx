@@ -12,21 +12,39 @@ import { ChevronLeft, Package, Truck, CheckCircle2, Clock, MapPin, Receipt, Cale
 import { cn } from '@/src/lib/utils';
 
 import { resolveProductImageUrl } from '@/src/lib/product-utils';
+import { fetchAllSettings } from '@/src/lib/storefront-api';
+import { initiatePayment } from '@/src/lib/payment-api';
+import { getAuthToken } from '@/src/lib/auth';
+import { PaymentSettings, PaymentGatewayId } from '@/src/types/payment-settings';
+import EsewaPaymentForm from '@/src/components/checkout/EsewaPaymentForm';
 
 export function OrderDetailsFeature() {
   const router = useRouter();
   const { id } = useParams();
   const [order, setOrder] = React.useState<Order | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [paymentSettings, setPaymentSettings] = React.useState<PaymentSettings | null>(null);
+  const [selectedGateway, setSelectedGateway] = React.useState<PaymentGatewayId | null>(null);
+  const [isPaying, setIsPaying] = React.useState(false);
+  const [esewaConfig, setEsewaConfig] = React.useState<{
+    config: import("@/src/lib/payment-api").EsewaPaymentConfig;
+    paymentId: string;
+    amount: number;
+  } | null>(null);
 
   React.useEffect(() => {
-    if (!id) return;
-
-    async function loadOrder() {
+    async function loadData() {
       try {
         setIsLoading(true);
-        const data = await fetchOrderById(id as string);
-        setOrder(data);
+        const [orderData, settingsData] = await Promise.all([
+          fetchOrderById(id as string),
+          fetchAllSettings()
+        ]);
+        setOrder(orderData);
+        setPaymentSettings(settingsData.payment);
+        if (settingsData.payment.defaultGateway) {
+          setSelectedGateway(settingsData.payment.defaultGateway);
+        }
       } catch (error: any) {
         toast.error('Failed to load order details');
         console.error(error);
@@ -35,8 +53,49 @@ export function OrderDetailsFeature() {
       }
     }
 
-    loadOrder();
-  }, [id]);
+    loadData();
+  }, [id, router]);
+
+  const handlePay = async () => {
+    const token = getAuthToken();
+    if (!token || !order || !selectedGateway) {
+      toast.error("Please select a payment method.");
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      const payment = await initiatePayment(token, String(order.id), selectedGateway);
+
+      if (selectedGateway === "cod") {
+        toast.success("Order confirmed as Cash on Delivery!");
+        router.push(`/payment-verify?gateway=cod&order_id=${order.id}&status=success`);
+        return;
+      }
+
+      if (selectedGateway === "esewa" && payment.esewa) {
+        setEsewaConfig({
+          config: payment.esewa,
+          paymentId: payment.payment_id,
+          amount: payment.amount,
+        });
+        return;
+      }
+
+      if (selectedGateway === "paypal" && payment.paypal) {
+        sessionStorage.setItem("pending_payment_config", JSON.stringify(payment));
+        router.push(`/payment?order_id=${order.id}&payment_id=${payment.payment_id}&gateway=paypal`);
+        return;
+      }
+
+      toast.error("Payment gateway configuration is incomplete.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Payment initiation failed.";
+      toast.error(message);
+    } finally {
+      setIsPaying(false);
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
@@ -74,6 +133,20 @@ export function OrderDetailsFeature() {
         <Button onClick={() => router.push('/account')} className="bg-black text-white rounded-xl font-black uppercase text-xs">
           Back to Dashboard
         </Button>
+      </div>
+    );
+  }
+
+  if (esewaConfig) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <Spinner className="w-8 h-8 text-[#966FD6] mb-4" />
+        <p className="text-zinc-600 font-bold uppercase tracking-widest text-xs">Redirecting to eSewa...</p>
+        <EsewaPaymentForm
+          config={esewaConfig.config}
+          paymentId={esewaConfig.paymentId}
+          amount={esewaConfig.amount}
+        />
       </div>
     );
   }
@@ -136,6 +209,11 @@ export function OrderDetailsFeature() {
                               </p>
                               <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">
                                 {item.variant?.sku || 'SKU-000'}
+                                {(item.variant?.color || item.variant?.size) && (
+                                  <span className="ml-2 lowercase font-medium italic">
+                                    ({[item.variant?.color?.name, item.variant?.size?.name].filter(Boolean).join(', ')})
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
@@ -189,8 +267,61 @@ export function OrderDetailsFeature() {
           )}
         </div>
 
-        {/* Shipping Sidebar */}
+        {/* Shipping & Payment Sidebar */}
         <div className="space-y-6">
+          {/* Payment Section for Unpaid Orders */}
+          {order.payment_status === 'unpaid' && order.status === 'pending' && paymentSettings && (
+             <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.08)] rounded-[2.5rem] overflow-hidden bg-white border-2 border-[#966FD6]/20">
+               <CardHeader className="bg-emerald-600 p-8 text-white">
+                 <div className="flex items-center gap-3 mb-2">
+                   <Clock className="w-5 h-5" />
+                   <h3 className="font-black text-sm uppercase tracking-widest">Complete Payment</h3>
+                 </div>
+                 <p className="text-emerald-50/80 text-[10px] font-bold uppercase tracking-widest">Select a method to confirm order</p>
+               </CardHeader>
+               <CardContent className="p-8 space-y-6">
+                 <div className="space-y-3">
+                   {paymentSettings.gateways.map((gateway) => (
+                     <label
+                       key={gateway.id}
+                       className={cn(
+                         "flex items-start gap-3 border rounded-xl p-4 cursor-pointer transition-all",
+                         selectedGateway === gateway.id
+                           ? "border-[#966FD6] bg-[#966FD6]/5 ring-1 ring-[#966FD6]/20"
+                           : "border-zinc-100 hover:border-zinc-200"
+                       )}
+                     >
+                       <input
+                         type="radio"
+                         name="gateway"
+                         checked={selectedGateway === gateway.id}
+                         onChange={() => setSelectedGateway(gateway.id as PaymentGatewayId)}
+                         className="mt-1 accent-[#966FD6]"
+                       />
+                       <div>
+                         <p className="font-black text-xs text-black uppercase tracking-widest">
+                           {gateway.label}
+                         </p>
+                         <p className="text-[10px] text-zinc-500 font-medium mt-1">
+                           {gateway.description}
+                         </p>
+                       </div>
+                     </label>
+                   ))}
+                 </div>
+                 
+                 <Button 
+                   onClick={handlePay}
+                   disabled={isPaying || !selectedGateway}
+                   className="w-full h-14 bg-[#966FD6] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#855cc4] transition-all shadow-xl shadow-[#966FD6]/20"
+                 >
+                   {isPaying ? <Spinner className="w-4 h-4 mr-2" /> : null}
+                   {selectedGateway === 'cod' ? 'Confirm with COD' : 'Pay Now'}
+                 </Button>
+               </CardContent>
+             </Card>
+          )}
+
           <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] overflow-hidden bg-white">
             <CardHeader className="bg-[#966FD6] p-8 text-white">
               <div className="flex items-center gap-3 mb-2">
@@ -208,17 +339,17 @@ export function OrderDetailsFeature() {
                     {order.shipping_address?.country}
                   </p>
                 </div>
-                <div className="pt-6 border-t border-zinc-50 space-y-1">
+                {/* <div className="pt-6 border-t border-zinc-50 space-y-1">
                   <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Customer Entity</p>
                   <p className="font-bold text-black">{order.customer || 'Shakta Client'}</p>
-                </div>
+                </div> */}
               </div>
 
-              <div className="pt-8 text-center border-t border-zinc-50">
+              {/* <div className="pt-8 text-center border-t border-zinc-50">
                  <Button className="w-full h-12 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-zinc-800 transition-all shadow-xl shadow-black/10">
                    Track Shipment
                  </Button>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
         </div>

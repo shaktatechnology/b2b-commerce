@@ -27,7 +27,7 @@ class OrderService implements OrderServiceInterface
      */
     public function getUserOrders(string $userId)
     {
-        return Order::with(['items.variant.product'])
+        return Order::with(['items.variant.product', 'items.variant.color', 'items.variant.size'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -98,7 +98,10 @@ class OrderService implements OrderServiceInterface
                     ->where('ends_at', '>=', $now)
                     ->where(function ($q) use ($variant) {
                         $q->where('variant_id', $variant->id)
-                          ->orWhere('product_id', $variant->product_id);
+                          ->orWhere(function ($q2) use ($variant) {
+                              $q2->where('product_id', $variant->product_id)
+                                 ->whereNull('variant_id');
+                          });
                     })
                     ->orderBy('variant_id', 'desc') // Prioritize specific variant discount
                     ->first();
@@ -201,7 +204,10 @@ class OrderService implements OrderServiceInterface
                     ->where('ends_at', '>=', $now)
                     ->where(function ($q) use ($variant) {
                         $q->where('variant_id', $variant->id)
-                          ->orWhere('product_id', $variant->product_id);
+                          ->orWhere(function ($q2) use ($variant) {
+                              $q2->where('product_id', $variant->product_id)
+                                 ->whereNull('variant_id');
+                          });
                     })
                     ->orderBy('variant_id', 'desc')
                     ->first();
