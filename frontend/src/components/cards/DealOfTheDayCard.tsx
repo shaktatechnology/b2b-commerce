@@ -109,7 +109,7 @@ function computePricing(product: DealProduct) {
     const active =
       product.discounts?.find((d) => d.is_active) ||
       product.variants?.[0]?.discounts?.find((d) => d.is_active);
-    
+
     if (active) {
       if (active.type === "percent" || active.type === "percentage") {
         discountAmount = base * (Number(active.value) / 100);
@@ -128,8 +128,8 @@ function computePricing(product: DealProduct) {
 export default function DealOfTheDayCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const { basePrice, finalPrice, discountAmount, discountPct, hasDiscount } = computePricing(product);
-  const rating = product.reviews_count && product.reviews_count > 0 
-    ? Math.round(product.reviews_avg_rating ?? 0) 
+  const rating = product.reviews_count && product.reviews_count > 0
+    ? Math.round(product.reviews_avg_rating ?? 0)
     : 0;
   const brandName = typeof product.brand === "string" ? product.brand : product.brand?.name || "";
 
@@ -157,7 +157,7 @@ export default function DealOfTheDayCard({ product }: Props) {
       if (dealImg !== "/placeholder.png") {
         lineItem.image = dealImg;
       }
-      
+
       addItem(lineItem);
       toast.success(`${product.name} added to cart`);
     } else {
@@ -172,12 +172,12 @@ export default function DealOfTheDayCard({ product }: Props) {
       <div className="h-full flex flex-col">
         {/* ── Image ─────────────────────────────────── */}
         <div className="deal-card__image-wrap relative">
-          <Image 
-            src={resolveProductImage(product)} 
-            alt={product.name} 
-            fill 
-            unoptimized 
-            className="deal-card__img group-hover:scale-105 transition-transform duration-500" 
+          <Image
+            src={resolveProductImage(product)}
+            alt={product.name}
+            fill
+            unoptimized
+            className="deal-card__img group-hover:scale-105 transition-transform duration-500"
           />
         </div>
 

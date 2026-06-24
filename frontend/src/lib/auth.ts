@@ -11,6 +11,7 @@ export function setAuthCookie(token: string) {
 
 export function clearAuthCookie() {
   document.cookie = `${TOKEN_COOKIE}=; path=/; max-age=0`;
+  document.cookie = `role=; path=/; max-age=0`;
 }
 
 export function getAuthToken(): string | null {

@@ -165,7 +165,6 @@ export function UsersPage() {
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="wholesaler">Wholesaler</SelectItem>
-              <SelectItem value="retailer">Retailer</SelectItem>
               <SelectItem value="customer">Customer</SelectItem>
             </SelectContent>
           </Select>
