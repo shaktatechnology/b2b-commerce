@@ -20,6 +20,7 @@ class AnalyticsService
     public function dashboardStatistics(): array
     {
         $now = now();
+        $customerRoleCounts = $this->customerRoleCounts();
 
         return [
             'total_revenue' => $this->revenue(),
@@ -28,7 +29,8 @@ class AnalyticsService
             'total_orders' => Order::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
             'completed_orders' => Order::where('status', 'delivered')->count(),
-            'total_customers' => User::whereIn('role', self::CUSTOMER_ROLES)->count(),
+            'total_customers' => array_sum($customerRoleCounts),
+            'customer_role_counts' => $customerRoleCounts,
             'top_selling_products' => $this->topSellingProducts(),
             'low_stock_products' => $this->lowStockProducts(),
         ];
@@ -122,6 +124,20 @@ class AnalyticsService
         $paidOrdersWithoutCompletedPaymentsRevenue = $this->paidOrdersWithoutCompletedPaymentsQuery($start, $end)->sum('total');
 
         return $this->money((float) $completedPaymentsRevenue + (float) $paidOrdersWithoutCompletedPaymentsRevenue);
+    }
+
+    private function customerRoleCounts(): array
+    {
+        $counts = User::query()
+            ->select('role', DB::raw('COUNT(*) as total'))
+            ->whereIn('role', self::CUSTOMER_ROLES)
+            ->groupBy('role')
+            ->pluck('total', 'role')
+            ->all();
+
+        return collect(self::CUSTOMER_ROLES)
+            ->mapWithKeys(fn (string $role) => [$role => (int) ($counts[$role] ?? 0)])
+            ->all();
     }
 
     private function saleOrderIdsBetween(CarbonInterface $start, CarbonInterface $end): array
