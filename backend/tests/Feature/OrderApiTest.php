@@ -39,6 +39,7 @@ class OrderApiTest extends TestCase
             'email' => 'wholesaler@example.com',
             'password' => bcrypt('password123'),
             'role' => 'wholesaler',
+            'wholeseller_status' => 'approved',
         ]);
 
         $this->admin = User::create([

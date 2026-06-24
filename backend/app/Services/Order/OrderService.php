@@ -8,6 +8,7 @@ use App\Interfaces\Cart\CartServiceInterface;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Discount;
+use App\Models\ProductVariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -63,7 +64,7 @@ class OrderService implements OrderServiceInterface
         }
 
         $user = User::findOrFail($userId);
-        $userType = ($user->role === 'wholesaler') ? 'wholesale' : 'retail';
+        $userType = $this->userTypeFor($user);
 
         return DB::transaction(function () use ($userId, $cart, $userType, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
@@ -104,7 +105,7 @@ class OrderService implements OrderServiceInterface
                     ->first();
 
                 $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
+                if ($discount) {
                     if ($discount->type === 'percent') {
                         $unitDiscount = round($unitPrice * ($discount->value / 100), 2);
                     } elseif ($discount->type === 'fixed') {
@@ -172,7 +173,7 @@ class OrderService implements OrderServiceInterface
         ?string $addressId = null
     ): Order {
         $user = User::findOrFail($userId);
-        $userType = ($user->role === 'wholesaler') ? 'wholesale' : 'retail';
+        $userType = $this->userTypeFor($user);
 
         return DB::transaction(function () use ($userId, $userType, $items, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
@@ -183,7 +184,7 @@ class OrderService implements OrderServiceInterface
             $orderItemsData = [];
 
             foreach ($items as $item) {
-                $variant = \App\Models\ProductVariant::findOrFail($item['variant_id']);
+                $variant = ProductVariant::findOrFail($item['variant_id']);
 
                 if (!$variant->is_active) {
                     throw new \Exception("Variant '{$variant->variant_name}' is inactive.");
@@ -207,7 +208,7 @@ class OrderService implements OrderServiceInterface
                     ->first();
 
                 $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
+                if ($discount) {
                     $unitDiscount = $discount->type === 'percent'
                         ? round($unitPrice * ($discount->value / 100), 2)
                         : $discount->value;
@@ -253,6 +254,13 @@ class OrderService implements OrderServiceInterface
         });
     }
 
+    private function userTypeFor(User $user): string
+    {
+        return ($user->role === 'wholesaler' && $user->wholeseller_status === 'approved')
+            ? 'wholesale'
+            : 'retail';
+    }
+
     /**
      * Admin method to list all orders with filters.
      */
@@ -277,4 +285,3 @@ class OrderService implements OrderServiceInterface
         return $this->orderRepository->update($orderId, $data);
     }
 }
-

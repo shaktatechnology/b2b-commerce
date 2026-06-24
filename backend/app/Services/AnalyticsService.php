@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 
 class AnalyticsService
 {
+    private const CUSTOMER_ROLES = ['customer', 'wholesaler', 'retailer'];
+
     public function dashboardStatistics(): array
     {
         $now = now();
@@ -26,7 +28,7 @@ class AnalyticsService
             'total_orders' => Order::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
             'completed_orders' => Order::where('status', 'delivered')->count(),
-            'total_customers' => User::where('role', 'customer')->count(),
+            'total_customers' => User::whereIn('role', self::CUSTOMER_ROLES)->count(),
             'top_selling_products' => $this->topSellingProducts(),
             'low_stock_products' => $this->lowStockProducts(),
         ];
@@ -58,7 +60,7 @@ class AnalyticsService
             'revenue' => $this->revenue($start, $end),
             'order_count' => count($saleOrderIds),
             'items_sold' => $this->itemsSoldForOrders($saleOrderIds),
-            'new_customer_count' => User::where('role', 'customer')
+            'new_customer_count' => User::whereIn('role', self::CUSTOMER_ROLES)
                 ->whereBetween('created_at', [$start, $end])
                 ->count(),
         ];
