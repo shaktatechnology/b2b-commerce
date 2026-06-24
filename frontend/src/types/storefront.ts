@@ -27,6 +27,7 @@ export interface StorefrontProductImage {
   id?: string;
   url: string;
   is_primary?: boolean;
+  type?: 'image' | 'video';
 }
 
 export interface StorefrontProduct {

@@ -49,12 +49,12 @@ class Product extends Model
      */
     public function getImageUrlAttribute()
     {
-        $primary = $this->images->where('is_primary', true)->first();
+        $primary = $this->images->where('is_primary', true)->where('type', 'image')->first();
         if ($primary) {
             return $primary->url;
         }
-        $first = $this->images->first();
-        return $first ? $first->url : null;
+        $firstImage = $this->images->where('type', 'image')->first();
+        return $firstImage ? $firstImage->url : null;
     }
 
     /**

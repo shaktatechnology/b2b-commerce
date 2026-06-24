@@ -64,7 +64,7 @@ class ProductService implements ProductServiceInterface
         return $this->productRepository->delete($id);
     }
 
-    public function uploadProductImage(string $productId, $imageFile, bool $isPrimary = false, int $sortOrder = 0)
+    public function uploadProductImage(string $productId, $imageFile, bool $isPrimary = false, int $sortOrder = 0, string $type = 'image')
     {
         if ($imageFile && $imageFile->isValid()) {
             if ($isPrimary) {
@@ -72,17 +72,19 @@ class ProductService implements ProductServiceInterface
                 ProductImage::where('product_id', $productId)->update(['is_primary' => false]);
             }
 
-            $path = $imageFile->store('products', 'public');
+            $directory = $type === 'video' ? 'videos' : 'products';
+            $path = $imageFile->store($directory, 'public');
             $url = Storage::url($path);
 
             return $this->productRepository->addImage($productId, [
                 'url' => $url,
+                'type' => $type,
                 'is_primary' => $isPrimary,
                 'sort_order' => $sortOrder,
             ]);
         }
 
-        throw new \InvalidArgumentException('Invalid image upload.');
+        throw new \InvalidArgumentException('Invalid file upload.');
     }
 
     public function deleteProductImage(string $imageId)

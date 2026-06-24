@@ -27,33 +27,32 @@ export default function ProductMainArea({
   );
 
   // Collect images keeping track of their source variant if any
-  const galleryImagesWithSource = useMemo(() => {
-    const images: { url: string; variantId: string | null }[] = [];
+  const galleryMediaWithSource = useMemo(() => {
+    const media: { url: string; type: 'image' | 'video'; variantId: string | null }[] = [];
 
     (product.images ?? []).forEach((img) => {
       const url = resolveProductImageUrl(img.url);
-      if (url && !images.some(i => i.url === url)) {
-        images.push({ url, variantId: null });
+      if (url && !media.some(i => i.url === url)) {
+        media.push({ url, type: (img as any).type === 'video' ? 'video' : 'image', variantId: null });
       }
     });
 
     (product.variants ?? []).forEach((v) => {
       const url = resolveProductImageUrl(v.image_url);
-      if (url && !images.some(i => i.url === url)) {
-        images.push({ url, variantId: String(v.id) });
+      if (url && !media.some(i => i.url === url)) {
+        media.push({ url, type: 'image', variantId: String(v.id) });
       } else if (url) {
-        // if image is already there, maybe map variantId if it was null?
-        const existing = images.find(i => i.url === url);
+        const existing = media.find(i => i.url === url);
         if (existing && !existing.variantId) {
             existing.variantId = String(v.id);
         }
       }
     });
 
-    return images;
+    return media;
   }, [product.images, product.variants]);
 
-  const galleryImageUrls = galleryImagesWithSource.map(i => i.url);
+  const galleryItems = galleryMediaWithSource.map(i => ({ url: i.url, type: i.type }));
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleVariantChange = (variantId: string) => {
@@ -61,7 +60,7 @@ export default function ProductMainArea({
     const selectedVariant = activeVariants.find((v) => v.id === variantId);
     if (selectedVariant && selectedVariant.image_url) {
       const url = resolveProductImageUrl(selectedVariant.image_url);
-      const index = galleryImageUrls.indexOf(url || '');
+      const index = galleryItems.findIndex(i => i.url === url);
       if (index !== -1) {
         setActiveIndex(index);
       }
@@ -70,7 +69,7 @@ export default function ProductMainArea({
 
   const handleImageChange = (index: number) => {
     setActiveIndex(index);
-    const source = galleryImagesWithSource[index];
+    const source = galleryMediaWithSource[index];
     if (source && source.variantId) {
       setSelectedVariantId(source.variantId);
     }
@@ -79,7 +78,7 @@ export default function ProductMainArea({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
       <ProductGallery
-        images={galleryImageUrls}
+        items={galleryItems}
         productName={product.name}
         activeIndex={activeIndex}
         onChangeImage={handleImageChange}

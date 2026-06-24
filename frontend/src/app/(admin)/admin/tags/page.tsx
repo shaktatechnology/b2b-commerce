@@ -44,6 +44,9 @@ export default function AdminTagsPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [page, setPage] = React.useState(1);
+  const [totalPages, setTotalPages] = React.useState(1);
+  const [totalItems, setTotalItems] = React.useState(0);
 
   // Form State
   const [formMode, setFormMode] = React.useState<'create' | 'edit'>('create');
@@ -54,23 +57,29 @@ export default function AdminTagsPage() {
   const loadData = React.useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch<any>('/tags');
-      setTags(res?.data || []);
+      const res = await apiFetch<any>(`/tags?page=${page}&per_page=10&search=${searchQuery}`);
+      if (res?.data && Array.isArray(res.data)) {
+        setTags(res.data);
+        setTotalPages(res.last_page || 1);
+        setTotalItems(res.total || res.data.length);
+      } else {
+        setTags(res?.data || []);
+        setTotalPages(1);
+        setTotalItems(res?.data?.length || 0);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to load tags');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, searchQuery]);
 
   React.useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const filteredTags = tags.filter((tag) =>
-    tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    tag.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtering is now handled on the server via searchQuery in loadData
+  // const filteredTags = tags.filter((tag) => ...);
 
   const openModal = (mode: 'create' | 'edit', tag?: Tag) => {
     setFormMode(mode);
@@ -152,7 +161,10 @@ export default function AdminTagsPage() {
         <Input 
           placeholder="Search tags..." 
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setPage(1); // Reset to page 1 on search
+          }}
           className="pl-11 h-12 rounded-xl focus-visible:ring-purple-600 border-zinc-200"
         />
       </div>
@@ -161,6 +173,7 @@ export default function AdminTagsPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
+              <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest px-6 py-4 w-[80px]">S.N.</TableHead>
               <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest px-6 py-4">Tag Name</TableHead>
               <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest px-6 py-4">Slug</TableHead>
               <TableHead className="font-bold text-black uppercase text-[10px] tracking-widest px-6 py-4 text-right">Actions</TableHead>
@@ -170,18 +183,22 @@ export default function AdminTagsPage() {
             {isLoading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <TableRow key={i}>
+                  <TableCell className="px-6 py-4"><Skeleton className="h-4 w-8" /></TableCell>
                   <TableCell className="px-6 py-4"><Skeleton className="h-5 w-32" /></TableCell>
                   <TableCell className="px-6 py-4"><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell className="px-6 py-4 text-right"><Skeleton className="h-8 w-16 ml-auto" /></TableCell>
                 </TableRow>
               ))
-            ) : filteredTags.length === 0 ? (
+            ) : tags.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center p-12 text-zinc-500 italic">No tags found.</TableCell>
+                <TableCell colSpan={4} className="text-center p-12 text-zinc-500 italic">No tags found.</TableCell>
               </TableRow>
             ) : (
-              filteredTags.map((tag) => (
+              tags.map((tag, index) => (
                 <TableRow key={tag.id} className="hover:bg-zinc-50/50">
+                  <TableCell className="px-6 py-4 font-medium text-zinc-500">
+                    {(page - 1) * 10 + index + 1}
+                  </TableCell>
                   <TableCell className="px-6 py-4 font-bold text-zinc-800">
                     <div className="flex items-center gap-2">
                        <TagIcon className="size-4 text-purple-600/50" />
@@ -202,6 +219,35 @@ export default function AdminTagsPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 bg-zinc-50 border-t border-zinc-100">
+            <p className="text-xs font-black uppercase text-zinc-400 tracking-widest">
+              Showing page {page} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="rounded-xl h-9 px-4 border-zinc-200"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="rounded-xl h-9 px-4 border-zinc-200"
+              >
+                Next <ChevronLeft className="h-4 w-4 ml-1 rotate-180" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

@@ -221,16 +221,18 @@ class ProductController extends Controller
         }
 
         $request->validate([
-            'image' => 'required|image|max:5120',
+            'image' => 'required|file|max:20480',
             'is_primary' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
+            'type' => 'nullable|string|in:image,video',
         ]);
 
         $image = $this->productService->uploadProductImage(
             $id,
             $request->file('image'),
             $request->boolean('is_primary', false),
-            $request->integer('sort_order', 0)
+            $request->integer('sort_order', 0),
+            $request->input('type', 'image')
         );
 
         return response()->json([

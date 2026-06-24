@@ -35,6 +35,10 @@ class UpdateProductRequest extends FormRequest
             'category_ids' => 'sometimes|required|array|min:1',
             'category_ids.*' => 'required|uuid|exists:categories,id',
 
+            // Tags pivot
+            'tag_ids' => 'nullable|array',
+            'tag_ids.*' => 'required|uuid|exists:tags,id',
+
             // Discounts
             'discount' => 'nullable',
             'discount.type' => 'required_with:discount|in:percent,fixed',

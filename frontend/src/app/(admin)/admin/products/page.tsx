@@ -3,7 +3,13 @@
 import * as React from 'react';
 import { apiFetch } from '@/src/lib/api';
 import { getAuthToken } from '@/src/lib/auth';
-import { Product, Category, ProductVariant, Discount } from '@/src/types';
+import { Product, ProductVariant, Discount, ProductImage } from '@/src/types/product';
+import { Category } from '@/src/types/category';
+
+type Brand = any;
+type Color = any;
+type Size = any;
+type TagType = any;
 import { PageHeader } from '@/src/components/layout-components/page-wrapper';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
@@ -26,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/src/components/ui/select';
-import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX, ChevronLeft, ChevronRight, Layers } from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Image as ImageIcon, Package, Search, Calendar, Tag, Check, FilterX, ChevronLeft, ChevronRight, Layers, Film } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/src/lib/utils';
 import { RichTextEditor } from '@/src/components/ui/rich-text-editor';
@@ -57,16 +63,19 @@ const emptyForm = {
   additional_info: '',
   is_active: true,
   category_ids: [] as string[],
+  tag_ids: [] as string[],
   brand_id: '',
   color_id: '',
   size_id: '',
   weight: '',
-  variants: [] as ProductVariant[],
-
+  variants: [
+    { variant_name: 'Regular', sku: '', retail_price: 0, wholesale_price: 0, moq: 1, stock: 0, is_active: true }
+  ] as ProductVariant[],
   is_popular: false,
   is_top_selling: false,
   is_trending: false,
   discount: null as Discount | null,
+  images: [] as ProductImage[]
 };
 
 const slugify = (text: string) => {
@@ -94,11 +103,13 @@ const ColorOption = ({ color, showName = true }: { color: any; showName?: boolea
 export default function AdminProductsPage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [categories, setCategories] = React.useState<Category[]>([]);
-  const [brands, setBrands] = React.useState<any[]>([]);
-  const [colors, setColors] = React.useState<any[]>([]);
-  const [sizes, setSizes] = React.useState<any[]>([]);
+  const [brands, setBrands] = React.useState<Brand[]>([]);
+  const [colors, setColors] = React.useState<Color[]>([]);
+  const [sizes, setSizes] = React.useState<Size[]>([]);
+  const [tags, setTags] = React.useState<TagType[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [tagSearch, setTagSearch] = React.useState('');
 
   // Filters
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -115,7 +126,8 @@ export default function AdminProductsPage() {
   const [editingId, setEditingId] = React.useState<string | number | null>(null);
   const [formData, setFormData] = React.useState({ ...emptyForm });
   const [selectedImage, setSelectedImage] = React.useState<File | null>(null);
-  const [existingImage, setExistingImage] = React.useState<string>('');
+  const [selectedMedia, setSelectedMedia] = React.useState<File[]>([]);
+  const [existingImage, setExistingImage] = React.useState<string | null>(null);
   const [removeExistingImage, setRemoveExistingImage] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -125,9 +137,10 @@ export default function AdminProductsPage() {
     setIsLoading(true);
     try {
       const freshToken = getAuthToken();
-      const [prodRes, catRes, brandsRes, colorsRes, sizesRes] = await Promise.all([
+      const [prodRes, catRes, tagsRes, brandsRes, colorsRes, sizesRes] = await Promise.all([
         apiFetch<any>(`/products?include_inactive=1&status=all&page=${page}&per_page=10`, { token: freshToken || undefined }),
         apiFetch<any>('/categories?include_inactive=1&all=1&status=all', { token: freshToken || undefined }),
+        apiFetch<any>('/tags', { token: freshToken || undefined }),
         apiFetch<any>('/brands', { token: freshToken || undefined }),
         apiFetch<any>('/colors', { token: freshToken || undefined }),
         apiFetch<any>('/sizes', { token: freshToken || undefined }),
@@ -161,6 +174,7 @@ export default function AdminProductsPage() {
       setProducts(productsData);
       setTotalItems(total);
       setTotalPages(lastPage);
+      setTags(tagsRes?.data || []);
       setBrands(brandsRes?.data || []);
       setColors(colorsRes?.data || []);
       setSizes(sizesRes?.data || []);
@@ -169,11 +183,11 @@ export default function AdminProductsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page]);
 
   React.useEffect(() => {
     loadData();
-  }, [loadData, page]);
+  }, [loadData]);
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -219,59 +233,44 @@ export default function AdminProductsPage() {
 
   const openModal = (mode: 'create' | 'edit', product?: Product) => {
     setFormMode(mode);
+    setSelectedImage(null);
+    setSelectedMedia([]);
+    setRemoveExistingImage(false);
     if (mode === 'edit' && product) {
       setEditingId(product.id);
+      const primaryImage = product.images?.find(img => img.is_primary);
+      setExistingImage(primaryImage?.url || null);
+      
       setFormData({
         name: product.name,
         slug: product.slug,
-
         description: product.description || '',
         long_description: product.long_description || '',
         additional_info: product.additional_info || '',
         is_active: Boolean(product.is_active),
-        category_ids: product.categories?.map(c => c.id.toString()) || [],
-        brand_id: product.brand_id || '',
-        color_id: product.color_id || '',
-        size_id: product.size_id || '',
-        weight: product.weight || '',
-        discount: product.discounts?.[0] ? {
-          type: product.discounts[0].type,
-          value: product.discounts[0].value,
-          starts_at: product.discounts[0].starts_at ? product.discounts[0].starts_at.split('T')[0] : '',
-          ends_at: product.discounts[0].ends_at ? product.discounts[0].ends_at.split('T')[0] : '',
-          is_active: product.discounts[0].is_active,
-        } : null,
-        variants: product.variants.length > 0 ? product.variants.map((v: any) => ({
-          ...v,
-          color_id: v.color_id || '',
-          size_id: v.size_id || '',
-          weight: v.weight || '',
-          discount: v.discounts?.[0] ? {
-            type: v.discounts[0].type,
-            value: v.discounts[0].value,
-            starts_at: v.discounts[0].starts_at ? v.discounts[0].starts_at.split('T')[0] : '',
-            ends_at: v.discounts[0].ends_at ? v.discounts[0].ends_at.split('T')[0] : '',
-            is_active: v.discounts[0].is_active,
-          } : null
-        })) : [{ ...initialVariant }],
         is_popular: Boolean(product.is_popular),
         is_top_selling: Boolean(product.is_top_selling),
         is_trending: Boolean(product.is_trending),
+        category_ids: product.categories?.map(c => c.id.toString()) || [],
+        tag_ids: product.tags?.map(t => t.id.toString()) || [],
+        brand_id: product.brand_id?.toString() || '',
+        color_id: product.color_id?.toString() || '',
+        size_id: product.size_id?.toString() || '',
+        weight: product.weight || '',
+        variants: product.variants.map((v: any) => ({
+          ...v,
+          color_id: v.color_id || '',
+          size_id: v.size_id || '',
+          discount: v.discounts?.[0] || null
+        })),
+        discount: product.discounts?.[0] || null,
+        images: product.images || []
       });
-      // Set existing image from available fields
-      const imgPath = product.image || product.thumbnail || product.image_url || product.images?.[0]?.url || '';
-      setExistingImage(imgPath);
     } else {
       setEditingId(null);
-      const newProductSKU = generateSKU();
-      setFormData({
-        ...emptyForm,
-        variants: [{ ...initialVariant, sku: newProductSKU }]
-      });
-      setExistingImage('');
+      setExistingImage(null);
+      setFormData({ ...emptyForm });
     }
-    setSelectedImage(null);
-    setRemoveExistingImage(false);
     setIsModalOpen(true);
   };
 
@@ -282,6 +281,41 @@ export default function AdminProductsPage() {
     setExistingImage('');
     setRemoveExistingImage(false);
     setEditingId(null);
+    setTagSearch('');
+  };
+
+  const toggleTag = (id: string) => {
+    setFormData((prev) => {
+      const already = prev.tag_ids.includes(id);
+      return {
+        ...prev,
+        tag_ids: already
+          ? prev.tag_ids.filter((t) => t !== id)
+          : [...prev.tag_ids, id],
+      };
+    });
+  };
+
+  const handleCreateTag = async () => {
+    if (!tagSearch.trim()) return;
+    try {
+      const freshToken = getAuthToken();
+      const res: any = await apiFetch('/admin/tags', {
+        method: 'POST',
+        token: freshToken || undefined,
+        body: JSON.stringify({ name: tagSearch.trim() })
+      });
+      
+      const newTag = res?.data || res;
+      if (newTag && newTag.id) {
+        setTags((prev) => [...prev, newTag]);
+        toggleTag(newTag.id.toString());
+        setTagSearch('');
+        toast.success(`Tag "${newTag.name}" created and added.`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create tag');
+    }
   };
 
   const toggleCategory = (id: string) => {
@@ -400,6 +434,7 @@ export default function AdminProductsPage() {
       body.append('weight', formData.weight || '');
 
       formData.category_ids.forEach((id) => body.append('category_ids[]', id));
+      formData.tag_ids.forEach((id) => body.append('tag_ids[]', id));
 
       if (formData.discount && formData.discount.type && formData.discount.value !== '' && formData.discount.starts_at && formData.discount.ends_at) {
         body.append('discount[type]', formData.discount.type);
@@ -451,6 +486,7 @@ export default function AdminProductsPage() {
         if (selectedImage && productId) {
           const imageBody = new FormData();
           imageBody.append('image', selectedImage);
+          imageBody.append('type', 'image');
           imageBody.append('is_primary', '1');
           imageBody.append('sort_order', '1');
           await apiFetch(`/admin/products/${productId}/images`, {
@@ -458,6 +494,20 @@ export default function AdminProductsPage() {
             token: freshToken || undefined,
             body: imageBody
           });
+        }
+
+        if (selectedMedia.length > 0 && productId) {
+          for (const file of selectedMedia) {
+            const mediaBody = new FormData();
+            mediaBody.append('image', file);
+            mediaBody.append('type', file.type.startsWith('video/') ? 'video' : 'image');
+            mediaBody.append('is_primary', '0');
+            await apiFetch(`/admin/products/${productId}/images`, {
+              method: 'POST',
+              token: freshToken || undefined,
+              body: mediaBody
+            });
+          }
         }
 
         toast.success('Product created successfully');
@@ -468,6 +518,7 @@ export default function AdminProductsPage() {
         if (selectedImage && editingId) {
           const imageBody = new FormData();
           imageBody.append('image', selectedImage);
+          imageBody.append('type', 'image');
           imageBody.append('is_primary', '1');
           imageBody.append('sort_order', '1');
           await apiFetch(`/admin/products/${editingId}/images`, {
@@ -475,7 +526,23 @@ export default function AdminProductsPage() {
             token: freshToken || undefined,
             body: imageBody
           });
-        } else if (removeExistingImage && editingId) {
+        }
+
+        if (selectedMedia.length > 0 && editingId) {
+          for (const file of selectedMedia) {
+            const mediaBody = new FormData();
+            mediaBody.append('image', file);
+            mediaBody.append('type', file.type.startsWith('video/') ? 'video' : 'image');
+            mediaBody.append('is_primary', '0');
+            await apiFetch(`/admin/products/${editingId}/images`, {
+              method: 'POST',
+              token: freshToken || undefined,
+              body: mediaBody
+            });
+          }
+        }
+
+        if (removeExistingImage && editingId) {
           await apiFetch(`/admin/products/${editingId}/images`, {
             method: 'DELETE',
             token: freshToken || undefined,
@@ -679,10 +746,12 @@ export default function AdminProductsPage() {
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
                         <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 overflow-hidden shrink-0">
-                          {p.image || p.thumbnail || p.image_url || (p.images && p.images.length > 0) ? (
+                          {p.images?.find(img => img.is_primary)?.type === 'video' ? (
+                            <Film className="size-6 text-[#966FD6]" />
+                          ) : (p.image || p.thumbnail || p.image_url || (p.images && p.images.length > 0)) ? (
                             <img
                               src={(() => {
-                                const path = p.image || p.thumbnail || p.image_url || p.images?.[0]?.url || '';
+                                const path = p.image || p.thumbnail || p.image_url || p.images?.find(img => img.is_primary)?.url || p.images?.[0]?.url || '';
                                 if (!path) return '';
                                 if (path.startsWith('http')) return path;
                                 return `http://localhost:8000${path}`;
@@ -786,43 +855,145 @@ export default function AdminProductsPage() {
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Media</label>
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Main Product Image (Primary)</label>
                         <div className="flex items-center gap-4">
-                          <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-zinc-100 rounded-3xl hover:bg-zinc-50 cursor-pointer transition-all group">
+                          <label className="flex-1 flex flex-col items-center justify-center h-32 border-2 border-dashed border-zinc-100 rounded-3xl hover:bg-zinc-50 cursor-pointer transition-all group relative overflow-hidden">
                             <ImageIcon className="h-8 w-8 text-zinc-300 group-hover:text-[#966FD6]/50" />
-                            <span className="text-[10px] font-black uppercase mt-2 text-zinc-400 text-center">
-                              {selectedImage ? selectedImage.name : 'Click to Upload Image'}
+                            <span className="text-[10px] font-black uppercase mt-2 text-zinc-400 text-center px-4">
+                              {selectedImage ? selectedImage.name : 'Select Primary Image'}
                             </span>
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files && setSelectedImage(e.target.files[0])} />
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*" 
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  const file = e.target.files[0];
+                                  if (file.type.startsWith('video/')) {
+                                    toast.error('Only images are allowed for the Primary Media slot. Please use the Gallery for videos.');
+                                    e.target.value = ''; // Reset input
+                                    return;
+                                  }
+                                  setSelectedImage(file);
+                                }
+                              }} 
+                            />
                           </label>
                           {selectedImage ? (
                             <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group">
-                              <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="New preview" />
+                              <img src={URL.createObjectURL(selectedImage)} className="w-full h-full object-cover" alt="New primary preview" />
                               <button
                                 type="button"
                                 onClick={() => setSelectedImage(null)}
-                                className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                               >
                                 <Trash2 className="size-5" />
                               </button>
                             </div>
-                          ) : existingImage && !removeExistingImage ? (
+                          ) : (existingImage && !removeExistingImage) ? (
                             <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group shrink-0">
-                              <img
-                                src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`}
-                                className="w-full h-full object-cover"
-                                alt="Current"
-                              />
+                                <img
+                                    src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`}
+                                    className="w-full h-full object-cover"
+                                    alt="Current primary"
+                                />
                               <button
                                 type="button"
                                 onClick={() => setRemoveExistingImage(true)}
-                                className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
                               >
                                 <Trash2 className="size-5" />
                               </button>
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider pointer-events-none">Current</div>
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] font-bold uppercase text-center py-1 tracking-wider pointer-events-none">Primary</div>
                             </div>
                           ) : null}
+                        </div>
+
+                        <div className="pt-4 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Product Gallery (Images & Videos)</label>
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{selectedMedia.length} newly added</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                            <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-zinc-100 rounded-2xl hover:bg-zinc-50 cursor-pointer transition-all group">
+                              <Plus className="size-5 text-zinc-300 group-hover:text-[#966FD6]" />
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                multiple 
+                                accept="image/*,video/*" 
+                                onChange={(e) => {
+                                  if (e.target.files) {
+                                    setSelectedMedia([...selectedMedia, ...Array.from(e.target.files)]);
+                                  }
+                                }} 
+                              />
+                            </label>
+
+                            {/* Existing Gallery Media */}
+                            {formMode === 'edit' && formData.images?.filter(img => !img.is_primary).map((img, idx) => (
+                              <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-zinc-100 relative group bg-zinc-50">
+                                {img.type === 'video' ? (
+                                  <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900">
+                                    <Film className="size-6 text-zinc-500" />
+                                    <span className="text-[8px] font-bold text-zinc-400 uppercase mt-1">Video</span>
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={img.url.startsWith('http') ? img.url : `http://localhost:8000${img.url}`} 
+                                    className="w-full h-full object-cover" 
+                                    alt="Existing gallery" 
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                      if (!confirm("Remove this media permanently?")) return;
+                                      try {
+                                          await apiFetch(`/admin/products/images/${img.id}`, { method: 'DELETE', token: getAuthToken() || undefined });
+                                          toast.success("Media removed");
+                                          setFormData({
+                                              ...formData,
+                                              images: formData.images.filter(i => i.id !== img.id)
+                                          });
+                                      } catch (err: any) {
+                                          toast.error(err.message);
+                                      }
+                                  }}
+                                  className="absolute top-1 right-1 size-6 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:scale-110 active:scale-95"
+                                >
+                                  <X className="size-3" />
+                                </button>
+                              </div>
+                            ))}
+
+                            {/* Newly Selected Media */}
+                            {selectedMedia.map((file, idx) => (
+                              <div key={idx} className="aspect-square rounded-2xl overflow-hidden border border-[#966FD6]/20 relative group bg-white ring-1 ring-[#966FD6]/10 shadow-sm">
+                                {file.type.startsWith('video/') ? (
+                                  <div className="w-full h-full flex flex-col items-center justify-center bg-[#966FD6]/5">
+                                    <Film className="size-6 text-[#966FD6]" />
+                                    <span className="text-[8px] font-bold text-[#966FD6] uppercase mt-1">Video</span>
+                                  </div>
+                                ) : (
+                                  <img 
+                                    src={URL.createObjectURL(file)} 
+                                    className="w-full h-full object-cover" 
+                                    alt="New media clip" 
+                                  />
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedMedia(selectedMedia.filter((_, i) => i !== idx))}
+                                  className="absolute top-1 right-1 size-6 bg-[#966FD6] text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:scale-110 active:scale-95"
+                                >
+                                  <X className="size-3" />
+                                </button>
+                                <div className="absolute bottom-0 left-0 right-0 bg-[#966FD6]/80 text-white text-[7px] font-bold uppercase text-center py-0.5 tracking-[0.1em]">New</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Basic Information</label>
@@ -1060,6 +1231,103 @@ export default function AdminProductsPage() {
                           />
                         </div>
                       )}
+
+                      <div className="space-y-2 col-span-2">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                          Tags
+                        </label>
+
+                        <div className="space-y-4">
+                          {/* Selected Tags Preview */}
+                          {formData.tag_ids.length > 0 && (
+                            <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                              {formData.tag_ids.map(id => {
+                                const tag = tags.find(t => t.id.toString() === id);
+                                return tag ? (
+                                  <span key={id} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#966FD6]/10 text-[#966FD6] text-[10px] font-black uppercase tracking-wider border border-[#966FD6]/20">
+                                    {tag.name}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleTag(id)}
+                                      className="hover:bg-[#966FD6] hover:text-white rounded-full p-0.5 transition-colors"
+                                    >
+                                      <X className="size-3" />
+                                    </button>
+                                  </span>
+                                ) : null;
+                              })}
+                            </div>
+                          )}
+
+                          {/* Tag Search and Dropdown */}
+                          <div className="relative group">
+                            <div className="relative">
+                              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 group-focus-within:text-[#966FD6] transition-colors" />
+                              <Input
+                                placeholder="Search and select tags..."
+                                value={tagSearch}
+                                onChange={(e) => setTagSearch(e.target.value)}
+                                className="h-12 pl-12 rounded-xl bg-white border-zinc-200 font-bold focus:ring-[#966FD6]/20 focus:border-[#966FD6]"
+                              />
+                            </div>
+
+                            {tagSearch && (
+                              <div className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-zinc-100 p-2 max-h-[250px] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
+                                {tags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase())).length === 0 ? (
+                                  <div 
+                                    onClick={handleCreateTag}
+                                    className="p-8 text-center cursor-pointer hover:bg-zinc-50 rounded-xl group transition-all"
+                                  >
+                                    <Plus className="size-8 text-[#966FD6] mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                                    <p className="text-sm font-bold text-black mb-1">Create "{tagSearch}"</p>
+                                    <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">New tag detected</p>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {tags
+                                      .filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()))
+                                      .map((tag) => {
+                                        const tagSelected = formData.tag_ids.includes(tag.id.toString());
+                                        return (
+                                          <div
+                                            key={tag.id}
+                                            onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              toggleTag(tag.id.toString());
+                                              setTagSearch('');
+                                            }}
+                                            className={cn(
+                                              "flex items-center justify-between px-4 py-3 cursor-pointer rounded-xl mb-1 transition-all",
+                                              tagSelected ? "bg-[#966FD6] text-white shadow-lg shadow-[#966FD6]/20" : "hover:bg-zinc-50 text-zinc-600 font-bold"
+                                            )}
+                                          >
+                                            <span className="text-sm">{tag.name}</span>
+                                            {tagSelected ? (
+                                              <Check className="h-4 w-4" />
+                                            ) : (
+                                              <Plus className="h-4 w-4 opacity-30" />
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    {/* Offer to create if search doesn't exactly match any tag name */}
+                                    {!tags.some(t => t.name.toLowerCase() === tagSearch.toLowerCase()) && (
+                                      <div 
+                                        onClick={handleCreateTag}
+                                        className="mt-2 pt-2 border-t border-zinc-100 flex items-center justify-between px-4 py-3 cursor-pointer rounded-xl hover:bg-[#966FD6]/5 text-[#966FD6] font-black uppercase tracking-tight text-xs"
+                                      >
+                                        <span>Create new tag: "{tagSearch}"</span>
+                                        <Plus className="size-4" />
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

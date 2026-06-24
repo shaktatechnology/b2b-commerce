@@ -26,6 +26,14 @@ export interface ProductVariant {
   discount?: Discount | null;
 }
 
+export interface ProductImage {
+  id: string | number;
+  url: string;
+  type?: 'image' | 'video';
+  is_primary: boolean;
+  sort_order?: number;
+}
+
 export interface Product {
   id: string | number;
   name: string;
@@ -43,10 +51,11 @@ export interface Product {
   size_id?: string | null;
   weight?: string | null;
   categories?: Category[];
+  tags?: Array<{ id: string | number; name: string; slug: string }>;
   image?: string;
   thumbnail?: string;
   image_url?: string;
-  images?: Array<{ id: string | number; image_path: string; url?: string }>;
+  images?: ProductImage[];
   variants: ProductVariant[];
   discounts?: Discount[];
   reviews_avg_rating?: number | null;
@@ -66,11 +75,13 @@ export interface ProductFormData {
   is_top_selling?: boolean;
   is_trending?: boolean;
   category_ids: string[];
+  tag_ids: string[];
   brand_id?: string | null;
   color_id?: string | null;
   size_id?: string | null;
   weight?: string | null;
   variants: ProductVariant[];
   image?: File | null;
+  images?: ProductImage[];
   discount?: Discount | null;
 }

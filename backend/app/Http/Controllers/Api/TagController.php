@@ -10,10 +10,23 @@ class TagController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $query = \App\Models\Tag::query();
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%");
+        }
+
+        if ($request->has('page') || $request->has('per_page')) {
+            $perPage = $request->integer('per_page', 15);
+            return response()->json($query->paginate($perPage));
+        }
+
         return response()->json([
-            'data' => \App\Models\Tag::all()
+            'data' => $query->latest()->get()
         ]);
     }
 

@@ -36,7 +36,12 @@ export function productToCartLineItem(
     : (variant.retail_price ?? 0);
   const basePrice = parseFloat(String(rawPrice));
   const image = resolveProductImageUrl(
-    variant.image_url ?? product.images?.[0]?.url ?? null
+    variant.image_url ?? 
+    product.images?.find(img => img.is_primary && img.type === 'image')?.url ??
+    product.images?.find(img => img.type === 'image')?.url ??
+    product.images?.[0]?.url ??
+    (product as any).image_url ?? 
+    null
   );
 
   // Auto-calculate discount from product/variant discount data if not explicitly provided

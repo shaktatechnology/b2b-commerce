@@ -33,6 +33,10 @@ class CreateProductRequest extends FormRequest
             'category_ids' => 'required|array|min:1',
             'category_ids.*' => 'required|uuid|exists:categories,id',
 
+            // Tags pivot
+            'tag_ids' => 'nullable|array',
+            'tag_ids.*' => 'required|uuid|exists:tags,id',
+
             // Discounts
             'discount' => 'nullable|array',
             'discount.type' => 'required_with:discount|in:percent,fixed',

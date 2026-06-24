@@ -19,8 +19,9 @@ function ProductCard({ product }: { product: StorefrontProduct }) {
   const finalPrice = basePrice - discountAmount;
   const hasDiscount = discountAmount > 0;
 
+  const firstImage = product.images?.find(img => img.type === 'image') || product.images?.find(img => !img.type);
   const imgUrl = resolveProductImageUrl(
-    lineItem?.image ?? product.images?.[0]?.url ?? product.image_url
+    lineItem?.image ?? firstImage?.url ?? product.image_url
   );
 
   return (

@@ -21,6 +21,8 @@ export interface CartDiscount {
 export interface CartProductImageInput {
   url?: string;
   image_path?: string;
+  is_primary?: boolean;
+  type?: 'image' | 'video';
 }
 
 export interface CartProductInput {

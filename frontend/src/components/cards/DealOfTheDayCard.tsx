@@ -76,12 +76,24 @@ function resolveProductImage(product: DealProduct): string {
       if (u) return u;
     }
   }
+  // Try first variant image if no specific deal variant is set
+  if (product.variants && product.variants.length > 0) {
+    const v = product.variants[0];
+    if (v.image_url) {
+      const u = normalizeUrl(v.image_url);
+      if (u) return u;
+    }
+  }
   if (product.image_url) {
     const u = normalizeUrl(product.image_url);
     if (u) return u;
   }
-  const primary = product.images?.find((i) => i.is_primary);
-  const raw = primary?.url || primary?.image_path || product.images?.[0]?.url || product.images?.[0]?.image_path;
+  
+  // Gallery fallback (images only)
+  const primary = product.images?.find((i) => i.is_primary && (i as any).type !== 'video');
+  const firstImg = product.images?.find((i) => (i as any).type !== 'video');
+  const raw = primary?.url || primary?.image_path || firstImg?.url || firstImg?.image_path;
+  
   if (raw) {
     const u = normalizeUrl(raw);
     if (u) return u;

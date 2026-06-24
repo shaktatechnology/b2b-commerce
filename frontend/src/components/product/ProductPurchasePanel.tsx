@@ -208,6 +208,160 @@ export default function ProductPurchasePanel({
           </>
         )}
       </div>
+
+      {/* Variant Selection: Color Family & Size/Weight */}
+      <div className="mt-6 space-y-6">
+        {/* Color Family */}
+        {(product.color || activeVariants.some(v => v.color)) && (
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+              Color Family: <span className="text-zinc-900 font-black ml-1">
+                {selectedVariant?.color?.name || 'Default'}
+              </span>
+            </h3>
+            <div className="flex flex-wrap gap-2.5">
+              {(() => {
+                const uniqueColors = new Set<string>();
+                return activeVariants.filter(v => {
+                    const name = v.color?.name || product.color?.name || 'Default';
+                    if (uniqueColors.has(name)) return false;
+                    uniqueColors.add(name);
+                    return true;
+                }).map((variant) => {
+                  const colorName = variant.color?.name || product.color?.name || 'Default';
+                  const isSelected = (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName;
+                  
+                  return (
+                    <button
+                      key={variant.id}
+                      type="button"
+                      onClick={() => onVariantChange(variant.id)}
+                      className={`group relative w-16 h-16 rounded-2xl border-2 transition-all p-1 overflow-hidden shrink-0 ${
+                        isSelected 
+                          ? "border-primary shadow-xl scale-110 z-10" 
+                          : "border-zinc-50 hover:border-zinc-200 bg-white"
+                      }`}
+                    >
+                      {variant.image_url ? (
+                        <div className="w-full h-full rounded-xl overflow-hidden">
+                           <img 
+                                src={variant.image_url.startsWith('http') ? variant.image_url : `http://localhost:8000${variant.image_url}`} 
+                                className="w-full h-full object-cover" 
+                                alt={colorName} 
+                            />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full bg-zinc-50 flex items-center justify-center text-[10px] font-black text-zinc-300 rounded-xl uppercase">
+                          {colorName.slice(0, 3)}
+                        </div>
+                      )}
+                      {isSelected && (
+                         <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
+                            <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform scale-110 animate-in zoom-in-50 duration-200">
+                                <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M1 5L4.5 8.5L11 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                            </div>
+                         </div>
+                      )}
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* Size or Weight (Whichever is available) */}
+        {(() => {
+            const hasSize = product.size || activeVariants.some(v => v.size);
+            const hasWeight = product.weight || activeVariants.some(v => v.weight);
+            
+            if (!hasSize && !hasWeight) return null;
+
+            // Prefer Size over Weight if both exist (standard e-commerce)
+            const label = hasSize ? 'Size' : 'Weight';
+            const property = hasSize ? 'size' : 'weight';
+
+            return (
+              <div className="space-y-3">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  {label}: <span className="text-zinc-900 font-black ml-1">
+                    {(() => {
+                        const val = selectedVariant[property as keyof typeof selectedVariant];
+                        return typeof val === 'object' ? (val as any)?.name : (val as string) || (product as any)[property] || 'Default';
+                    })()}
+                  </span>
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {(() => {
+                    const uniqueOptions = new Set<string>();
+                    const currentColor = selectedVariant?.color?.name || product.color?.name || 'Default';
+                    
+                    return activeVariants
+                      .filter(v => (v.color?.name || product.color?.name || 'Default') === currentColor)
+                      .filter(v => {
+                        const val = typeof v[property as keyof typeof v] === 'object' 
+                            ? (v[property as keyof typeof v] as any)?.name 
+                            : (v[property as keyof typeof v] as string) || 'Default';
+                        if (uniqueOptions.has(val)) return false;
+                        uniqueOptions.add(val);
+                        return true;
+                      })
+                      .map((variant) => {
+                        const optionValue = typeof variant[property as keyof typeof variant] === 'object' 
+                            ? (variant[property as keyof typeof variant] as any)?.name 
+                            : (variant[property as keyof typeof variant] as string) || 'Default';
+                        
+                        const isSelected = (typeof selectedVariant[property as keyof typeof selectedVariant] === 'object' 
+                            ? (selectedVariant[property as keyof typeof selectedVariant] as any)?.name 
+                            : (selectedVariant[property as keyof typeof selectedVariant] as string) || 'Default') === optionValue;
+
+                        return (
+                          <button
+                            key={variant.id}
+                            type="button"
+                            onClick={() => onVariantChange(variant.id)}
+                            className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-primary text-white border-primary shadow-sm"
+                                : "bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            {optionValue}
+                          </button>
+                        );
+                      });
+                  })()}
+                </div>
+              </div>
+            );
+        })()}
+
+        {/* Fallback for generic variants if no color/size/weight */}
+        {(!product.color && !product.size && !product.weight && !activeVariants.some(v => v.color || v.size || v.weight)) && (
+          <div className="space-y-3">
+             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Options</h3>
+             <div className="flex flex-wrap gap-2">
+                {activeVariants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => onVariantChange(variant.id)}
+                    className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${
+                      selectedVariantId === variant.id
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-primary"
+                    }`}
+                  >
+                    {variant.variant_name || "Select"}
+                  </button>
+                ))}
+             </div>
+          </div>
+        )}
+      </div>
+
       <div className="mt-2">
         {isOutOfStock ? (
           <p className="text-sm font-semibold text-red-600">Out of stock</p>
@@ -215,98 +369,6 @@ export default function ProductPurchasePanel({
           <p className="text-sm text-gray-600">Available: {stock} unit{stock === 1 ? "" : "s"}</p>
         )}
       </div>
-
-      {(product.long_description || product.description) && (
-        <p className="text-sm text-gray-600 mt-4 line-clamp-4">
-          {(product.long_description || product.description || "").replace(/<[^>]+>/g, "").slice(0, 280)}
-          {(product.long_description || product.description || "").length > 280 ? "…" : ""}
-        </p>
-      )}
-
-      {activeVariants.length > 0 && (
-        <div className="mt-5 space-y-4">
-          <div className="flex flex-wrap gap-4">
-            {(product.color || activeVariants.some(v => v.color)) && (
-              <div>
-                <p className="text-sm font-medium text-gray-800 mb-2">Color</p>
-                <div className="flex flex-wrap gap-2">
-                  {/* Group variants by color to avoid duplicates if possible, or just list all variant options */}
-                  {Array.from(new Set(activeVariants.map(v => (v.color?.name || product.color?.name || 'Default')))).map(colorName => {
-                    const vForColor = activeVariants.find(v => (v.color?.name || product.color?.name || 'Default') === colorName);
-                    if (!vForColor) return null;
-                    return (
-                        <button
-                        key={colorName}
-                        type="button"
-                        onClick={() => onVariantChange(vForColor.id)}
-                        className={`px-3 py-1.5 text-sm rounded border transition-colors cursor-pointer ${
-                            selectedVariantId === vForColor.id || (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName
-                            ? "bg-primary text-white border-primary"
-                            : "border-gray-300 text-gray-700 hover:border-primary"
-                        }`}
-                        >
-                        {colorName}
-                        </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-            {(product.size || activeVariants.some(v => v.size)) && (
-              <div>
-                <p className="text-sm font-medium text-gray-800 mb-2">Size</p>
-                <div className="flex flex-wrap gap-2">
-                  {Array.from(new Set(activeVariants.map(v => (v.size?.name || product.size?.name || 'Default')))).map(sizeName => {
-                    // Try to find a variant matching both current color (if selected) and this new size
-                    const currentColorName = selectedVariant?.color?.name || product.color?.name || 'Default';
-                    let vForSize = activeVariants.find(v => (v.color?.name || product.color?.name || 'Default') === currentColorName && (v.size?.name || product.size?.name || 'Default') === sizeName);
-                    // Fallback to any variant with this size if no matching color
-                    if (!vForSize) vForSize = activeVariants.find(v => (v.size?.name || product.size?.name || 'Default') === sizeName);
-                    if (!vForSize) return null;
-                    
-                    return (
-                        <button
-                        key={sizeName}
-                        type="button"
-                        onClick={() => onVariantChange(vForSize.id)}
-                        className={`px-3 py-1.5 text-sm rounded border transition-colors cursor-pointer ${
-                            (selectedVariant?.size?.name || product.size?.name || 'Default') === sizeName
-                            ? "bg-primary text-white border-primary"
-                            : "border-gray-300 text-gray-700 hover:border-primary"
-                        }`}
-                        >
-                        {sizeName}
-                        </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {(!product.color && !product.size && !activeVariants.some(v => v.color || v.size)) && (
-            <div>
-              <p className="text-sm font-medium text-gray-800 mb-2">Options</p>
-              <div className="flex flex-wrap gap-2">
-                {activeVariants.map((variant) => (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    onClick={() => onVariantChange(variant.id)}
-                    className={`px-3 py-1.5 text-sm rounded border transition-colors cursor-pointer ${
-                      selectedVariantId === variant.id
-                        ? "bg-primary text-white border-primary"
-                        : "border-gray-300 text-gray-700 hover:border-primary"
-                    }`}
-                  >
-                    {variant.variant_name || (variant.weight || product.weight ? `${variant.weight || product.weight}` : "Default")}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="flex items-center border border-gray-300 rounded overflow-hidden">
