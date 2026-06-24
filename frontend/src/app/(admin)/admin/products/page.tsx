@@ -34,6 +34,7 @@ import { DatePicker } from '@/src/components/ui/date-picker';
 import { Pagination } from '@/src/components/ui/pagination';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import PreviewPage from '@/src/app/preview/page';
+import { ConfirmDialog } from '@/src/components/modals/confirm-dialog';
 
 const initialVariant: ProductVariant = {
   variant_name: 'Default',
@@ -118,6 +119,8 @@ export default function AdminProductsPage() {
   const [existingImage, setExistingImage] = React.useState<string>('');
   const [removeExistingImage, setRemoveExistingImage] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
+  const [idToDelete, setIdToDelete] = React.useState<string | number | null>(null);
 
   const token = getAuthToken();
 
@@ -493,19 +496,28 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleDelete = async (id: string | number) => {
-    if (!confirm('Are you sure?')) return;
+  const handleDelete = (id: string | number) => {
+    setIdToDelete(id);
+    setIsConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!idToDelete) return;
     try {
-      await apiFetch(`/admin/products/${id}`, { method: 'DELETE', token: token || undefined });
+      await apiFetch(`/admin/products/${idToDelete}`, { method: 'DELETE', token: token || undefined });
       toast.success('Product deleted');
       loadData();
     } catch (err: any) {
       toast.error(err.message);
+    } finally {
+      setIsConfirmOpen(false);
+      setIdToDelete(null);
     }
   };
 
   return (
-    <div className="space-y-8 font-lato">
+    <>
+      <div className="space-y-8 font-lato">
       <PageHeader title="Product Management" description="Catalog, pricing, and variant control.">
         <Button
           onClick={() => openModal('create')}
@@ -622,6 +634,7 @@ export default function AdminProductsPage() {
           <Table>
             <TableHeader className="bg-zinc-50/50">
               <TableRow className="hover:bg-transparent">
+                <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest w-16">SN</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Product</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Pricing (Base)</TableHead>
                 <TableHead className="py-5 px-6 font-black text-black text-xs uppercase tracking-widest">Categories</TableHead>
@@ -633,6 +646,9 @@ export default function AdminProductsPage() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="border-zinc-50">
+                    <TableCell className="py-5 px-6">
+                      <Skeleton className="h-4 w-6" />
+                    </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
                         <Skeleton className="h-14 w-14 rounded-2xl shrink-0" />
@@ -674,8 +690,11 @@ export default function AdminProductsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((p) => (
+                filteredProducts.map((p, index) => (
                   <TableRow key={p.id} className="border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+                    <TableCell className="py-5 px-6 font-bold text-zinc-400">
+                      {(page - 1) * 10 + index + 1}.
+                    </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="flex items-center gap-4">
                         <div className="h-14 w-14 rounded-2xl bg-zinc-100 flex items-center justify-center text-zinc-400 overflow-hidden shrink-0">
@@ -1407,6 +1426,17 @@ export default function AdminProductsPage() {
           </div>
         </div>
       )}
-    </div>
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Product"
+        description="Are you sure you want to delete this product? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+      />
+      </div>
+    </>
   );
 }

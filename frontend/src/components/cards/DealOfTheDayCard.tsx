@@ -128,7 +128,9 @@ function computePricing(product: DealProduct) {
 export default function DealOfTheDayCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const { basePrice, finalPrice, discountAmount, discountPct, hasDiscount } = computePricing(product);
-  const rating = Math.round(product.reviews_avg_rating ?? 3.5);
+  const rating = product.reviews_count && product.reviews_count > 0 
+    ? Math.round(product.reviews_avg_rating ?? 0) 
+    : 0;
   const brandName = typeof product.brand === "string" ? product.brand : product.brand?.name || "";
 
   const handleAddToCart = (e: React.MouseEvent) => {

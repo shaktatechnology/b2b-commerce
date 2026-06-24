@@ -145,8 +145,10 @@
 }
 
 /* ============================================================
-   Deal Of Day — Section
+   Deal Of Day — Section & Card (wrapped in @layer components
+   so Tailwind v4's cascade layers don't override these styles)
    ============================================================ */
+@layer components {
 .deal-section {
   max-width: 80rem;
   margin-inline: auto;
@@ -385,4 +387,5 @@
 .deal-card__add-btn:hover {
   background: #e9d5ff;
   transform: scale(1.04);
-}
+}
+} /* end @layer components */
