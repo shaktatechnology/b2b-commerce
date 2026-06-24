@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
@@ -31,9 +32,30 @@ function resolveImage(offer: Offer | string): string {
 }
 
 export default function HeroSlider({ slides = [], offers = [] }: Props) {
-  const allSlides = offers.length > 0 ? offers.map(o => resolveImage(o)) : slides;
+  const getOfferLink = (offer: Offer) => {
+    const offerBrandId = offer.brand_id || null;
+    const linkParams = new URLSearchParams();
+    linkParams.set("offer_id", String(offer.id));
+    if (offerBrandId) linkParams.set("brand", offerBrandId);
+    if (offer.product_ids && offer.product_ids.length === 1) {
+      linkParams.set("product_id", String(offer.product_ids[0]));
+    }
+    return `/products?${linkParams.toString()}`;
+  };
 
-  if (allSlides.length === 0) return null;
+  const processedSlides = offers.length > 0 
+    ? offers.map(o => ({
+        image: resolveImage(o),
+        link: getOfferLink(o),
+        title: o.title
+      })) 
+    : slides.map(s => ({
+        image: s,
+        link: null,
+        title: "Banner"
+      }));
+
+  if (processedSlides.length === 0) return null;
 
   return (
     <>
@@ -57,18 +79,32 @@ export default function HeroSlider({ slides = [], offers = [] }: Props) {
           }}
           className="hero-swiper"
         >
-          {allSlides.map((slide, index) => (
+          {processedSlides.map((slide, index) => (
             <SwiperSlide key={index} className="!w-auto">
               <div className="relative h-[180px] sm:h-[220px] md:h-[300px]">
-                <Image
-                  src={slide}
-                  alt={`Banner ${index + 1}`}
-                  width={600}
-                  height={300}
-                  priority={index === 0}
-                  className="h-full w-auto object-contain rounded-xl"
-                  unoptimized
-                />
+                {slide.link ? (
+                  <Link href={slide.link} className="relative block h-full">
+                    <Image
+                      src={slide.image}
+                      alt={slide.title || `Banner ${index + 1}`}
+                      width={600}
+                      height={300}
+                      priority={index === 0}
+                      className="h-full w-auto object-contain rounded-xl hover:opacity-90 transition-opacity"
+                      unoptimized
+                    />
+                  </Link>
+                ) : (
+                  <Image
+                    src={slide.image}
+                    alt={slide.title || `Banner ${index + 1}`}
+                    width={600}
+                    height={300}
+                    priority={index === 0}
+                    className="h-full w-auto object-contain rounded-xl"
+                    unoptimized
+                  />
+                )}
               </div>
             </SwiperSlide>
           ))}

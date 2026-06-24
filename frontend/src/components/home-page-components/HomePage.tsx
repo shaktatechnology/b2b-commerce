@@ -22,6 +22,30 @@ async function safeFetch(url: string) {
   }
 }
 
+function parseBackendDate(dateStr: string | null | undefined): Date | null {
+  if (!dateStr) return null;
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr.replace(' ', 'T') + 'Z');
+  }
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function isOfferLive(offer: any): boolean {
+  const active = offer.is_active == null ? true : Boolean(Number(offer.is_active));
+  if (!active) return false;
+  const now = new Date();
+  if (offer.starts_at) {
+    const start = parseBackendDate(offer.starts_at);
+    if (start && now < start) return false;
+  }
+  if (offer.ends_at) {
+    const end = parseBackendDate(offer.ends_at);
+    if (end && now > end) return false;
+  }
+  return true;
+}
+
 export default async function HomePage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -42,7 +66,9 @@ export default async function HomePage() {
   const dailyDeals = dailyDealsData?.data || [];
 
 
-  const topOffers = rawOffers.filter((o: any) => o.placement === "top" || o.placement === "Top Banner");
+  const topOffers = rawOffers.filter((o: any) => 
+    (o.placement === "top" || o.placement === "Top Banner") && isOfferLive(o)
+  );
 
   const rawLogo = settingsData?.data?.general?.site_logo;
   const logo =
