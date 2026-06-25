@@ -63,7 +63,7 @@ class OrderService implements OrderServiceInterface
         }
 
         $user = User::findOrFail($userId);
-        $userType = ($user->role === 'wholesaler') ? 'wholesale' : 'retail';
+        $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
 
         return DB::transaction(function () use ($userId, $cart, $userType, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
@@ -175,7 +175,7 @@ class OrderService implements OrderServiceInterface
         ?string $addressId = null
     ): Order {
         $user = User::findOrFail($userId);
-        $userType = ($user->role === 'wholesaler') ? 'wholesale' : 'retail';
+        $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
 
         return DB::transaction(function () use ($userId, $userType, $items, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
