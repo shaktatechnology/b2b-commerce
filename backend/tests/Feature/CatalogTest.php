@@ -118,6 +118,7 @@ class CatalogTest extends TestCase
                     'sku' => 'CHIPS-100G',
                     'retail_price' => 2.50,
                     'wholesale_price' => 1.80,
+                    'international_price' => 3.25,
                     'moq' => 10,
                     'stock' => 100,
                 ],
@@ -138,7 +139,11 @@ class CatalogTest extends TestCase
             ->assertJsonCount(2, 'data.variants');
 
         $this->assertDatabaseHas('products', ['name' => 'Premium Potato Chips']);
-        $this->assertDatabaseHas('product_variants', ['sku' => 'CHIPS-100G']);
+        $response->assertJsonPath('data.variants.0.international_price', '3.25');
+        $this->assertDatabaseHas('product_variants', [
+            'sku' => 'CHIPS-100G',
+            'international_price' => 3.25,
+        ]);
         $this->assertDatabaseHas('product_variants', ['sku' => 'CHIPS-250G']);
     }
 
@@ -163,11 +168,17 @@ class CatalogTest extends TestCase
                     'sku' => 'CHIPS-100', // same SKU
                     'retail_price' => 2.20,
                     'wholesale_price' => 1.60,
+                    'international_price' => 2.80,
                 ]
             ]
         ]);
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertJsonPath('data.variants.0.international_price', '2.80');
+        $this->assertDatabaseHas('product_variants', [
+            'id' => $variant->id,
+            'international_price' => 2.80,
+        ]);
 
         // Trying to create or update another variant with an already taken SKU should fail
         $product2 = Product::create(['name' => 'Popcorn', 'slug' => 'popcorn']);

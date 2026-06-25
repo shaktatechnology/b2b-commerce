@@ -18,6 +18,7 @@ class ProductVariant extends Model
         'sku',
         'retail_price',
         'wholesale_price',
+        'international_price',
         'moq',
         'stock',
         'weight',
@@ -30,6 +31,7 @@ class ProductVariant extends Model
     protected $casts = [
         'retail_price' => 'decimal:2',
         'wholesale_price' => 'decimal:2',
+        'international_price' => 'decimal:2',
         'moq' => 'integer',
         'stock' => 'integer',
         'is_active' => 'boolean',

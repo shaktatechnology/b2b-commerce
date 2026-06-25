@@ -51,6 +51,7 @@ class CreateProductRequest extends FormRequest
             'variants.*.sku' => 'required|string|max:100|unique:product_variants,sku',
             'variants.*.retail_price' => 'required|numeric|min:0',
             'variants.*.wholesale_price' => 'required|numeric|min:0',
+            'variants.*.international_price' => 'nullable|numeric|min:0',
             'variants.*.moq' => 'nullable|integer|min:1',
             'variants.*.stock' => 'nullable|integer|min:0',
             'variants.*.weight' => 'nullable|string|max:50',
