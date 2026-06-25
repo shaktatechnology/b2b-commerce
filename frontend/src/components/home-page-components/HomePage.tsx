@@ -12,6 +12,9 @@ import Navbar from "../layouts/Navbar";
 
 
 import { isOfferLive } from "@/src/lib/offer-utils";
+import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
 
 async function safeFetch(url: string) {
   try {
@@ -75,10 +78,12 @@ export default async function HomePage() {
           />
         </main>
         <aside className="w-1/4 hidden md:block">
-          <CategorySidebar
-            categories={categoryData?.data || []}
-            products={productData?.data || []}
-          />
+          <Suspense fallback={<div className="h-40 animate-pulse bg-gray-100 rounded-xl" />}>
+            <CategorySidebar
+              categories={categoryData?.data || []}
+              products={productData?.data || []}
+            />
+          </Suspense>
         </aside>
       </div>
 
