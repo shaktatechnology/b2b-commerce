@@ -42,6 +42,11 @@ import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import PreviewPage from '@/src/app/preview/page';
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog';
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_STORAGE_URL ||
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+  "http://localhost:8000";
+
 const initialVariant: ProductVariant = {
   variant_name: 'Default',
   sku: '',
@@ -773,7 +778,7 @@ export default function AdminProductsPage() {
                                 const path = p.image || p.thumbnail || p.image_url || p.images?.find(img => img.is_primary)?.url || p.images?.[0]?.url || '';
                                 if (!path) return '';
                                 if (path.startsWith('http')) return path;
-                                return `http://localhost:8000${path}`;
+                                return `${BACKEND_URL}${path}`;
                               })()}
                               className="w-full h-full object-cover"
                               alt={p.name}
@@ -912,7 +917,7 @@ export default function AdminProductsPage() {
                           ) : (existingImage && !removeExistingImage) ? (
                             <div className="h-32 w-32 rounded-3xl overflow-hidden border border-zinc-100 shadow-md relative group shrink-0">
                                 <img
-                                    src={existingImage.startsWith('http') ? existingImage : `http://localhost:8000${existingImage}`}
+                                    src={existingImage.startsWith('http') ? existingImage : `${BACKEND_URL}${existingImage}`}
                                     className="w-full h-full object-cover"
                                     alt="Current primary"
                                 />
@@ -960,7 +965,7 @@ export default function AdminProductsPage() {
                                   </div>
                                 ) : (
                                   <img 
-                                    src={img.url.startsWith('http') ? img.url : `http://localhost:8000${img.url}`} 
+                                    src={img.url.startsWith('http') ? img.url : `${BACKEND_URL}${img.url}`} 
                                     className="w-full h-full object-cover" 
                                     alt="Existing gallery" 
                                   />
@@ -1531,7 +1536,7 @@ export default function AdminProductsPage() {
                                 ) : v.image_url ? (
                                   <div className="size-11 rounded-xl overflow-hidden border border-zinc-200 relative group shrink-0">
                                     <img
-                                      src={v.image_url.startsWith('http') ? v.image_url : `http://localhost:8000${v.image_url}`}
+                                      src={v.image_url.startsWith('http') ? v.image_url : `${BACKEND_URL}${v.image_url}`}
                                       className="w-full h-full object-cover"
                                       alt="Variant image"
                                     />

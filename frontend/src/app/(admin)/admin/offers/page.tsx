@@ -40,7 +40,10 @@ const PLACEMENT_OPTIONS = [
   { value: "deal", label: "Deal of the Day", color: "bg-rose-50 text-rose-600 border-rose-100" },
 ];
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_STORAGE_URL ||
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+  "http://localhost:8000";
 
 function getOfferImageUrl(offer: Offer | string | null | undefined): string | null {
   if (!offer) return null;
@@ -836,7 +839,7 @@ export default function AdminOffersPage() {
                                   <div className="flex items-center gap-4">
                                     <div className="h-12 w-12 rounded-xl bg-zinc-100 flex items-center justify-center overflow-hidden border border-zinc-200">
                                       {p.thumbnail || p.image_url ? (
-                                        <img src={(p.thumbnail || p.image_url)?.startsWith('http') ? (p.thumbnail || p.image_url) : `http://localhost:8000${p.thumbnail || p.image_url}`} className="w-full h-full object-cover" alt="" />
+                                        <img src={(p.thumbnail || p.image_url)?.startsWith('http') ? (p.thumbnail || p.image_url) : `${BACKEND_URL}${p.thumbnail || p.image_url}`} className="w-full h-full object-cover" alt="" />
                                       ) : <ImageIcon className="size-5 text-zinc-300" />}
                                     </div>
                                     <div className="text-left">

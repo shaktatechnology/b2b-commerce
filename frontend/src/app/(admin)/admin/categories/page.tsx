@@ -31,6 +31,11 @@ import { DatePicker } from '@/src/components/ui/date-picker';
 import { Pagination } from '@/src/components/ui/pagination';
 import { format, isSameDay, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_STORAGE_URL ||
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
+  "http://localhost:8000";
+
 const slugify = (text: string) => {
   return text
     .toLowerCase()
@@ -377,7 +382,7 @@ export default function CategoriesPage() {
                         <div className="h-12 w-12 rounded-xl bg-[#966FD6]/10 flex items-center justify-center text-[#966FD6] shrink-0 overflow-hidden">
                           {cat.image_url ? (
                             <img 
-                              src={cat.image_url.startsWith('http') ? cat.image_url : `http://localhost:8000${cat.image_url}`} 
+                              src={cat.image_url.startsWith('http') ? cat.image_url : `${BACKEND_URL}${cat.image_url}`} 
                               alt={cat.name} 
                               className="w-full h-full object-cover" 
                             />
@@ -554,7 +559,7 @@ export default function CategoriesPage() {
                   ) : formData.existingImage && !removeExistingImage ? (
                     <div className="h-24 w-24 rounded-2xl border border-zinc-100 overflow-hidden bg-zinc-50 relative shrink-0 group">
                       <img 
-                        src={formData.existingImage.startsWith('http') ? formData.existingImage : `http://localhost:8000${formData.existingImage}`} 
+                        src={formData.existingImage.startsWith('http') ? formData.existingImage : `${BACKEND_URL}${formData.existingImage}`} 
                         className="w-full h-full object-cover" 
                         alt="Current" 
                       />
