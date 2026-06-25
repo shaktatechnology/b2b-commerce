@@ -4,18 +4,13 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/src/store/use-app-store';
 import { fetchProfile, updateProfile, getAuthToken } from '@/src/lib/auth';
-import { AuthUser } from '@/src/types';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/src/components/ui/card';
 import { toast } from 'sonner';
 import { Spinner } from '@/src/components/ui/spinner';
 import { Edit2, Save, X, User, Mail, Phone, Building, MapPin, Shield, ChevronLeft } from 'lucide-react';
-import { cn } from '@/src/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/src/components/ui/tabs';
 import { fetchUserOrders } from '@/src/lib/orders-api';
 import { Order } from '@/src/types/orders';
-import { ShoppingBag, Package, Truck, CheckCircle2, Clock } from 'lucide-react';
 
 import { ProfileTab } from './profile-tab';
 import { OrdersTab } from './orders-tab';

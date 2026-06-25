@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Offer } from "../../types/offer";
 import { X } from "lucide-react";
+import { isOfferLive, resolveOfferImage, getOfferLink } from "@/src/lib/offer-utils";
 
 interface Category {
   id: string;
@@ -22,7 +23,6 @@ interface Props {
   categories?: Category[];
   tags?: Tag[];
 }
-
 
 const defaultOffers = [
   {
@@ -54,46 +54,6 @@ const defaultOffers = [
 // Matches any category variant the backend might send
 const MID_PLACEMENTS = new Set(["mid", "middle", "Middle Section", "middle_section"]);
 
-
-const STORAGE_URL =
-  process.env.NEXT_PUBLIC_STORAGE_URL ||
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-  "http://localhost:8000";
-
-function resolveImage(raw: string | null | undefined): string {
-  if (!raw) return "/placeholder.png";
-  if (raw.startsWith("http") || raw.startsWith("blob")) return raw;
-  if (raw.startsWith("/storage/")) return `${STORAGE_URL}${raw}`;
-  if (raw.startsWith("storage/")) return `${STORAGE_URL}/${raw}`;
-  if (raw.startsWith("/")) return `${STORAGE_URL}${raw}`;
-  return `${STORAGE_URL}/storage/${raw}`;
-}
-
-function parseBackendDate(dateStr: string | null | undefined): Date | null {
-  if (!dateStr) return null;
-  // If it's Y-m-d H:i:s, assume UTC by appending Z
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-    return new Date(dateStr.replace(' ', 'T') + 'Z');
-  }
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function isOfferLive(offer: Offer): boolean {
-  const active = offer.is_active == null ? true : Boolean(Number(offer.is_active));
-  if (!active) return false;
-  const now = new Date();
-  if (offer.starts_at) {
-    const start = parseBackendDate(offer.starts_at);
-    if (start && now < start) return false;
-  }
-  if (offer.ends_at) {
-    const end = parseBackendDate(offer.ends_at);
-    if (end && now > end) return false;
-  }
-  return true;
-}
-
 export default function BrandSpecialOffers({ offers, categories = [], tags = [] }: Props) {
   // Filter to live "mid" placement offers only — fall back to defaults if none
   const midOffers = offers.filter(
@@ -102,22 +62,12 @@ export default function BrandSpecialOffers({ offers, categories = [], tags = [] 
 
   const displayOffers = midOffers.length > 0
     ? midOffers.slice(0, 3).map((offer, idx) => {
-
-      // Try to extract brand_id from the offer's linked products
-      const offerBrandId = offer.brand_id || null;
-      const linkParams = new URLSearchParams();
-      linkParams.set("offer_id", String(offer.id));
-      if (offerBrandId) linkParams.set("brand", offerBrandId);
-      if (offer.product_ids && offer.product_ids.length === 1) {
-        linkParams.set("product_id", String(offer.product_ids[0]));
-      }
-
       return {
         id: offer.id,
-        image: resolveImage(offer.image_url || offer.image),
+        image: resolveOfferImage(offer.image_url || offer.image),
         title: offer.title,
         description: offer.description || "",
-        link: `/products?${linkParams.toString()}`,
+        link: getOfferLink(offer),
         bgColor: idx === 0 ? "bg-[#8B1A1A]" : idx === 1 ? "bg-[#1A237E]" : "bg-[#FBC02D]",
       };
     })
@@ -126,7 +76,7 @@ export default function BrandSpecialOffers({ offers, categories = [], tags = [] 
   const sidebarTags = tags.length > 0 ? tags : categories;
 
   return (
-    <section className="max-w-7xl mx-auto px-4 md:px-10 py-8 md:py-10">
+    <section className="max-w-7xl mx-auto px-4 md:px-10 py-6 md:py-10">
       <div className="flex flex-col lg:flex-row gap-8">
 
         {/* Main Content: Brand Special Offers */}
@@ -180,7 +130,7 @@ export default function BrandSpecialOffers({ offers, categories = [], tags = [] 
             <div className="w-12 h-1 bg-primary/30 rounded-full mb-8" />
 
             <div className="flex flex-wrap gap-3">
-              {sidebarTags.slice(0, 15).map((tag) => (
+              {sidebarTags.slice(0, 10).map((tag) => (
                 <Link
                   key={tag.id}
                   href={`/products?tag=${tag.slug}`}
@@ -211,4 +161,4 @@ export default function BrandSpecialOffers({ offers, categories = [], tags = [] 
       </div>
     </section>
   );
-}
+}

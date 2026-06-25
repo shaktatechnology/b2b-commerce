@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { productToCartLineItem, getProductPath } from "@/src/lib/product-utils";
 import { CartProductInput } from "@/src/types/cart";
 import { cn } from "@/src/lib/utils";
+import { getUserRole } from "@/src/lib/auth";
+import { useState, useEffect } from "react";
 
 export interface DealProduct {
   id: number | string;
@@ -102,26 +104,47 @@ function resolveProductImage(product: DealProduct): string {
   return "/placeholder.png";
 }
 
-function computePricing(product: DealProduct) {
-  const basePrice =
-    product.price ??
-    (product.variants && product.variants.length > 0
-      ? Number(product.variants[0].retail_price)
-      : 0);
+function computePricing(product: DealProduct, isWholesaler: boolean = false) {
+  const variant = product.deal_variant_id && product.variants
+    ? product.variants.find((x) => String(x.id) === String(product.deal_variant_id))
+    : product.variants?.[0];
+
+  let basePrice = product.price;
+
+  if (variant) {
+    basePrice = isWholesaler ? (variant.wholesale_price ?? variant.retail_price) : variant.retail_price;
+  }
+
+  if (basePrice == null) {
+    const firstV = product.variants?.[0];
+    if (firstV) {
+      basePrice = isWholesaler ? (firstV.wholesale_price ?? firstV.retail_price) : firstV.retail_price;
+    } else {
+      basePrice = 0;
+    }
+  }
 
   const base = Number(basePrice || 0);
   let discountAmount = 0;
 
-  if (product.deal_discount_value != null) {
-    if (product.deal_discount_type === "percentage") {
+  // Rule: Wholesalers do not get retail discounts
+  if (isWholesaler) {
+    discountAmount = 0;
+  } else if (product.deal_discount_value != null) {
+    if (product.deal_discount_type === "percentage" || product.deal_discount_type === "percent") {
       discountAmount = base * (product.deal_discount_value / 100);
     } else {
       discountAmount = Math.min(product.deal_discount_value, base);
     }
   } else {
+    // Fallback to variant-level or product-level active discounts
+    const dealV = product.deal_variant_id 
+      ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
+      : product.variants?.[0];
+
     const active =
-      product.discounts?.find((d) => d.is_active) ||
-      product.variants?.[0]?.discounts?.find((d) => d.is_active);
+      dealV?.discounts?.find((d) => d.is_active) ||
+      product.discounts?.find((d) => d.is_active);
 
     if (active) {
       if (active.type === "percent" || active.type === "percentage") {
@@ -140,7 +163,14 @@ function computePricing(product: DealProduct) {
 
 export default function DealOfTheDayCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
-  const { basePrice, finalPrice, discountAmount, discountPct, hasDiscount } = computePricing(product);
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole(getUserRole());
+  }, []);
+
+  const isWholesaler = role === "wholesaler" || role === "wholeseller";
+  const { basePrice, finalPrice, discountAmount, discountPct, hasDiscount } = computePricing(product, isWholesaler);
   const rating = product.reviews_count && product.reviews_count > 0
     ? Math.round(product.reviews_avg_rating ?? 0)
     : 0;
@@ -150,12 +180,19 @@ export default function DealOfTheDayCard({ product }: Props) {
     e.preventDefault();
     e.stopPropagation();
 
-    const variant = product.variants?.[0];
+    // Use the deal variant if available
+    let variant = product.variants?.[0];
+    if (product.deal_variant_id && product.variants) {
+      const found = product.variants.find((v) => String(v.id) === String(product.deal_variant_id));
+      if (found) variant = found;
+    }
+
     if (!variant?.id) {
       toast.error("This product has no purchasable variant.");
       return;
     }
 
+    // Check stock for the selected variant
     if ((variant.stock ?? 0) <= 0) {
       toast.error("This item is currently out of stock.");
       return;
@@ -183,8 +220,16 @@ export default function DealOfTheDayCard({ product }: Props) {
     }
   };
 
-  const productPath = getProductPath({ id: String(product.id), slug: product.slug });
-  const isOutOfStock = (product.variants?.[0]?.stock ?? 0) <= 0;
+  let productPath = getProductPath({ id: String(product.id), slug: product.slug });
+  if (product.deal_variant_id) {
+    productPath += `?variant=${product.deal_variant_id}`;
+  }
+
+  const selectedVariant = product.deal_variant_id 
+    ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
+    : product.variants?.[0];
+    
+  const isOutOfStock = (selectedVariant?.stock ?? 0) <= 0;
 
   return (
     <Link href={productPath} className="deal-card group block overflow-hidden rounded-2xl">

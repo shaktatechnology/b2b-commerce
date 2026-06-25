@@ -94,13 +94,13 @@ export function LoginForm() {
 
       const role = res.data?.role;
       if (redirectTo && redirectTo.startsWith('/')) {
-        router.push(redirectTo);
+        window.location.href = redirectTo;
       } else if (role === 'admin') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else if (role === 'wholeseller' || role === 'wholesaler') {
-        router.push('/wholeseller');
+        window.location.href = '/wholeseller';
       } else {
-        router.push('/');
+        window.location.href = '/';
       }
     } catch (err: unknown) {
       const message =

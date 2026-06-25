@@ -11,6 +11,8 @@ import Navbar from "../layouts/Navbar";
 
 
 
+import { isOfferLive } from "@/src/lib/offer-utils";
+
 async function safeFetch(url: string) {
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -20,30 +22,6 @@ async function safeFetch(url: string) {
     console.error(`Fetch failed for ${url}:`, err);
     return null;
   }
-}
-
-function parseBackendDate(dateStr: string | null | undefined): Date | null {
-  if (!dateStr) return null;
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(dateStr)) {
-    return new Date(dateStr.replace(' ', 'T') + 'Z');
-  }
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function isOfferLive(offer: any): boolean {
-  const active = offer.is_active == null ? true : Boolean(Number(offer.is_active));
-  if (!active) return false;
-  const now = new Date();
-  if (offer.starts_at) {
-    const start = parseBackendDate(offer.starts_at);
-    if (start && now < start) return false;
-  }
-  if (offer.ends_at) {
-    const end = parseBackendDate(offer.ends_at);
-    if (end && now > end) return false;
-  }
-  return true;
 }
 
 export default async function HomePage() {

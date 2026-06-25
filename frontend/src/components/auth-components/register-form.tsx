@@ -219,11 +219,11 @@ export function RegisterForm() {
 
       const userRole = res.data.user?.role;
       if (redirectTo && redirectTo.startsWith('/')) {
-        router.push(redirectTo);
+        window.location.href = redirectTo;
       } else if (userRole === 'admin') {
-        router.push('/admin/dashboard');
+        window.location.href = '/admin/dashboard';
       } else {
-        router.push('/');
+        window.location.href = '/';
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
@@ -235,7 +235,7 @@ export function RegisterForm() {
 
   const handleModalClose = () => {
     setPendingApproval(false);
-    router.push('/login');
+    window.location.href = '/';
   };
 
   return (

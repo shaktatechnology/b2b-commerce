@@ -29,7 +29,7 @@ export function productToCartLineItem(
   if (!variant?.id) return null;
 
   const role = getUserRole();
-  const isWholesaler = role === 'wholesaler';
+  const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
 
   const rawPrice = isWholesaler
     ? (variant.wholesale_price ?? variant.retail_price ?? 0)
@@ -46,7 +46,11 @@ export function productToCartLineItem(
 
   // Auto-calculate discount from product/variant discount data if not explicitly provided
   let discount = options?.discount ?? 0;
-  if (discount === 0 && options?.discount === undefined) {
+
+  // Rule: Wholesalers do not get retail discounts
+  if (isWholesaler) {
+    discount = 0;
+  } else if (discount === 0 && options?.discount === undefined) {
     // Check variant-level discounts first, then product-level
     let activeDiscount = variant.discounts?.find((d) => d.is_active) ?? null;
     if (!activeDiscount) {

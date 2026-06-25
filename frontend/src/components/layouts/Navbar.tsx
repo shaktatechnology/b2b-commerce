@@ -52,7 +52,7 @@ export default function Navbar({
       await logoutApi();
       clearUser();
       setMenuOpen(false);
-      router.push('/');
+      window.location.href = '/';
     } catch (err) {
       console.error("Logout failed:", err);
     }

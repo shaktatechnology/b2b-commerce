@@ -50,7 +50,7 @@ export default function ProductPurchasePanel({
   const selectedVariant =
     activeVariants.find((v) => v.id === selectedVariantId) ?? activeVariants[0];
 
-  const isWholesaler = role === "wholesaler";
+  const isWholesaler = role === "wholesaler" || role === "wholeseller";
   const moq = selectedVariant?.moq ?? 1;
   const stock = selectedVariant?.stock ?? 0;
   const isOutOfStock = stock <= 0;
@@ -77,6 +77,11 @@ export default function ProductPurchasePanel({
   }
   if (!activeDiscount && product.discounts && product.discounts.length > 0) {
       activeDiscount = product.discounts.find(d => d.is_active);
+  }
+
+  // Rule: Wholesalers do not get retail discounts
+  if (isWholesaler) {
+    activeDiscount = null;
   }
 
   let price = basePrice;
