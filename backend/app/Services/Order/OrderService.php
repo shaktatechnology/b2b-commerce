@@ -8,6 +8,7 @@ use App\Interfaces\Cart\CartServiceInterface;
 use App\Models\Order;
 use App\Models\User;
 use App\Models\Discount;
+use App\Models\ProductVariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -54,7 +55,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, string $currency = 'NPR'): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -63,9 +64,10 @@ class OrderService implements OrderServiceInterface
         }
 
         $user = User::findOrFail($userId);
-        $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
+        $userType = $this->orderUserType($user);
+        $currency = $this->normalizeCurrency($currency);
 
-        return DB::transaction(function () use ($userId, $cart, $userType, $shippingAddress, $notes, $addressId) {
+        return DB::transaction(function () use ($userId, $cart, $userType, $currency, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;
@@ -88,33 +90,11 @@ class OrderService implements OrderServiceInterface
                     throw new \Exception("Insufficient stock for '{$variant->variant_name}'. Only {$variant->stock} left.");
                 }
 
-                // Wholesaler pays wholesale price, regular customer pays retail price
-                $unitPrice = ($userType === 'wholesale') ? $variant->wholesale_price : $variant->retail_price;
-
-                // Find active discount
-                $now = now();
-                $discount = Discount::where('is_active', true)
-                    ->where('starts_at', '<=', $now)
-                    ->where('ends_at', '>=', $now)
-                    ->where(function ($q) use ($variant) {
-                        $q->where('variant_id', $variant->id)
-                          ->orWhere(function ($q2) use ($variant) {
-                              $q2->where('product_id', $variant->product_id)
-                                 ->whereNull('variant_id');
-                          });
-                    })
-                    ->orderBy('variant_id', 'desc') // Prioritize specific variant discount
-                    ->first();
-
-                $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
-                    if ($discount->type === 'percent') {
-                        $unitDiscount = round($unitPrice * ($discount->value / 100), 2);
-                    } elseif ($discount->type === 'fixed') {
-                        $unitDiscount = $discount->value;
-                    }
-                    $unitDiscount = min($unitDiscount, $unitPrice); // Discount cannot exceed price
-                }
+                $unitPrice = $this->unitPriceFor($variant, $userType, $currency);
+                $discount = $this->activeDiscountFor($variant);
+                $unitDiscount = $discount
+                    ? $discount->calculateAmountFor($unitPrice, $userType, $currency)
+                    : 0.00;
 
                 $lineSubtotal = $unitPrice * $item->quantity;
                 $lineDiscount = $unitDiscount * $item->quantity;
@@ -148,6 +128,7 @@ class OrderService implements OrderServiceInterface
                 'payment_status' => 'unpaid',
                 'shipping_address' => $shippingAddress,
                 'address_id' => $addressId,
+                'currency' => $currency,
                 'notes' => $notes,
             ]);
 
@@ -172,12 +153,14 @@ class OrderService implements OrderServiceInterface
         array $items,
         array $shippingAddress,
         ?string $notes,
-        ?string $addressId = null
+        ?string $addressId = null,
+        string $currency = 'NPR'
     ): Order {
         $user = User::findOrFail($userId);
-        $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
+        $userType = $this->orderUserType($user);
+        $currency = $this->normalizeCurrency($currency);
 
-        return DB::transaction(function () use ($userId, $userType, $items, $shippingAddress, $notes, $addressId) {
+        return DB::transaction(function () use ($userId, $userType, $currency, $items, $shippingAddress, $notes, $addressId) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal       = 0;
@@ -186,7 +169,7 @@ class OrderService implements OrderServiceInterface
             $orderItemsData = [];
 
             foreach ($items as $item) {
-                $variant = \App\Models\ProductVariant::findOrFail($item['variant_id']);
+                $variant = ProductVariant::findOrFail($item['variant_id']);
 
                 if (!$variant->is_active) {
                     throw new \Exception("Variant '{$variant->variant_name}' is inactive.");
@@ -195,30 +178,11 @@ class OrderService implements OrderServiceInterface
                     throw new \Exception("Insufficient stock for '{$variant->variant_name}'. Only {$variant->stock} left.");
                 }
 
-                $unitPrice = ($userType === 'wholesale') ? $variant->wholesale_price : $variant->retail_price;
-
-                // Find active discount
-                $now      = now();
-                $discount = \App\Models\Discount::where('is_active', true)
-                    ->where('starts_at', '<=', $now)
-                    ->where('ends_at', '>=', $now)
-                    ->where(function ($q) use ($variant) {
-                        $q->where('variant_id', $variant->id)
-                          ->orWhere(function ($q2) use ($variant) {
-                              $q2->where('product_id', $variant->product_id)
-                                 ->whereNull('variant_id');
-                          });
-                    })
-                    ->orderBy('variant_id', 'desc')
-                    ->first();
-
-                $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
-                    $unitDiscount = $discount->type === 'percent'
-                        ? round($unitPrice * ($discount->value / 100), 2)
-                        : $discount->value;
-                    $unitDiscount = min($unitDiscount, $unitPrice);
-                }
+                $unitPrice = $this->unitPriceFor($variant, $userType, $currency);
+                $discount = $this->activeDiscountFor($variant);
+                $unitDiscount = $discount
+                    ? $discount->calculateAmountFor($unitPrice, $userType, $currency)
+                    : 0.00;
 
                 $lineTotal = ($unitPrice - $unitDiscount) * $item['quantity'];
 
@@ -248,6 +212,7 @@ class OrderService implements OrderServiceInterface
                 'payment_status'   => 'unpaid',
                 'shipping_address' => $shippingAddress,
                 'address_id'       => $addressId,
+                'currency'         => $currency,
                 'notes'            => $notes,
             ]);
 
@@ -301,5 +266,53 @@ class OrderService implements OrderServiceInterface
             return $order;
         });
     }
-}
 
+    private function orderUserType(User $user): string
+    {
+        return $this->isApprovedWholesaler($user) ? 'wholesale' : 'retail';
+    }
+
+    private function isApprovedWholesaler(User $user): bool
+    {
+        return $user->role === 'wholesaler'
+            && $user->wholeseller_status === 'approved';
+    }
+
+    private function normalizeCurrency(string $currency): string
+    {
+        return strtoupper($currency) === 'USD' ? 'USD' : 'NPR';
+    }
+
+    private function unitPriceFor(ProductVariant $variant, string $userType, string $currency): float
+    {
+        if ($currency === 'USD') {
+            if ($variant->international_price === null) {
+                throw new \Exception("International price is unavailable for '{$variant->variant_name}'.");
+            }
+
+            return (float) $variant->international_price;
+        }
+
+        return (float) ($userType === 'wholesale'
+            ? $variant->wholesale_price
+            : $variant->retail_price);
+    }
+
+    private function activeDiscountFor(ProductVariant $variant): ?Discount
+    {
+        $now = now();
+
+        return Discount::where('is_active', true)
+            ->where('starts_at', '<=', $now)
+            ->where('ends_at', '>=', $now)
+            ->where(function ($q) use ($variant) {
+                $q->where('variant_id', $variant->id)
+                    ->orWhere(function ($q2) use ($variant) {
+                        $q2->where('product_id', $variant->product_id)
+                            ->whereNull('variant_id');
+                    });
+            })
+            ->orderBy('variant_id', 'desc')
+            ->first();
+    }
+}

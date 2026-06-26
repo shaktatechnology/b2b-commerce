@@ -118,14 +118,8 @@ class ProductRepository implements ProductRepositoryInterface
             }
 
             // Create product discount
-            if (isset($data['discount']) && is_array($data['discount']) && isset($data['discount']['type'])) {
-                $product->discounts()->create([
-                    'type' => $data['discount']['type'],
-                    'value' => $data['discount']['value'],
-                    'starts_at' => $data['discount']['starts_at'],
-                    'ends_at' => $data['discount']['ends_at'],
-                    'is_active' => filter_var($data['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                ]);
+            if ($this->hasDiscountDefinition($data['discount'] ?? null)) {
+                $product->discounts()->create($this->discountAttributes($data['discount']));
             }
 
             // Create variants
@@ -152,15 +146,11 @@ class ProductRepository implements ProductRepositoryInterface
                         'image_url' => $variantImageUrl,
                     ]);
 
-                    if (isset($variant['discount']) && is_array($variant['discount']) && isset($variant['discount']['type'])) {
-                        $newVariant->discounts()->create([
-                            'product_id' => $product->id,
-                            'type' => $variant['discount']['type'],
-                            'value' => $variant['discount']['value'],
-                            'starts_at' => $variant['discount']['starts_at'],
-                            'ends_at' => $variant['discount']['ends_at'],
-                            'is_active' => filter_var($variant['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                        ]);
+                    if ($this->hasDiscountDefinition($variant['discount'] ?? null)) {
+                        $newVariant->discounts()->create(array_merge(
+                            ['product_id' => $product->id],
+                            $this->discountAttributes($variant['discount'])
+                        ));
                     }
                 }
             }
@@ -201,14 +191,8 @@ class ProductRepository implements ProductRepositoryInterface
             // Update product discount
             if (array_key_exists('discount', $data)) {
                 $product->discounts()->whereNull('variant_id')->delete();
-                if (is_array($data['discount']) && isset($data['discount']['type'])) {
-                    $product->discounts()->create([
-                        'type' => $data['discount']['type'],
-                        'value' => $data['discount']['value'],
-                        'starts_at' => $data['discount']['starts_at'],
-                        'ends_at' => $data['discount']['ends_at'],
-                        'is_active' => filter_var($data['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                    ]);
+                if ($this->hasDiscountDefinition($data['discount'])) {
+                    $product->discounts()->create($this->discountAttributes($data['discount']));
                 }
             }
 
@@ -261,15 +245,11 @@ class ProductRepository implements ProductRepositoryInterface
 
                     if (array_key_exists('discount', $variantData)) {
                         $variantModel->discounts()->delete();
-                        if (is_array($variantData['discount']) && isset($variantData['discount']['type'])) {
-                            $variantModel->discounts()->create([
-                                'product_id' => $product->id,
-                                'type' => $variantData['discount']['type'],
-                                'value' => $variantData['discount']['value'],
-                                'starts_at' => $variantData['discount']['starts_at'],
-                                'ends_at' => $variantData['discount']['ends_at'],
-                                'is_active' => filter_var($variantData['discount']['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                            ]);
+                        if ($this->hasDiscountDefinition($variantData['discount'])) {
+                            $variantModel->discounts()->create(array_merge(
+                                ['product_id' => $product->id],
+                                $this->discountAttributes($variantData['discount'])
+                            ));
                         }
                     }
                 }
@@ -300,5 +280,49 @@ class ProductRepository implements ProductRepositoryInterface
     {
         $image = ProductImage::findOrFail($imageId);
         return $image->delete();
+    }
+
+    private function hasDiscountDefinition($discount): bool
+    {
+        if (!is_array($discount)) {
+            return false;
+        }
+
+        $pairs = [
+            'type' => 'value',
+            'international_type' => 'international_value',
+            'wholesale_type' => 'wholesale_value',
+            'wholesale_international_type' => 'wholesale_international_value',
+        ];
+
+        foreach ($pairs as $typeKey => $valueKey) {
+            if (
+                !empty($discount[$typeKey])
+                && array_key_exists($valueKey, $discount)
+                && $discount[$valueKey] !== null
+                && $discount[$valueKey] !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function discountAttributes(array $discount): array
+    {
+        return [
+            'type' => $discount['type'] ?? null,
+            'value' => $discount['value'] ?? null,
+            'international_type' => $discount['international_type'] ?? null,
+            'international_value' => $discount['international_value'] ?? null,
+            'wholesale_type' => $discount['wholesale_type'] ?? null,
+            'wholesale_value' => $discount['wholesale_value'] ?? null,
+            'wholesale_international_type' => $discount['wholesale_international_type'] ?? null,
+            'wholesale_international_value' => $discount['wholesale_international_value'] ?? null,
+            'starts_at' => $discount['starts_at'],
+            'ends_at' => $discount['ends_at'],
+            'is_active' => filter_var($discount['is_active'] ?? true, FILTER_VALIDATE_BOOLEAN),
+        ];
     }
 }

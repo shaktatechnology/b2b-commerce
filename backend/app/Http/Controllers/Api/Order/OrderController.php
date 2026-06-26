@@ -55,7 +55,8 @@ class OrderController extends Controller
                 $request->user()->id,
                 $request->input('shipping_address'),
                 $request->input('notes'),
-                $request->input('address_id')
+                $request->input('address_id'),
+                $request->input('currency', 'NPR')
             );
 
             return response()->json([
@@ -108,7 +109,8 @@ class OrderController extends Controller
                 $request->input('items'),
                 $request->input('shipping_address'),
                 $request->input('notes'),
-                $request->input('address_id')
+                $request->input('address_id'),
+                $request->input('currency', 'NPR')
             );
 
             return response()->json([

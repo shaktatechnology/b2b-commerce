@@ -23,6 +23,7 @@ class CheckoutRequest extends FormRequest
             'shipping_address.state' => 'required_without:address_id|string|max:255',
             'shipping_address.zip' => 'required_without:address_id|string|max:20',
             'shipping_address.country' => 'required_without:address_id|string|max:255',
+            'currency' => 'nullable|string|in:NPR,USD',
             'notes' => 'nullable|string|max:2000',
         ];
     }

@@ -199,6 +199,145 @@ class CatalogTest extends TestCase
     }
 
     /** @test */
+    public function an_admin_can_create_and_update_product_with_separate_discount_fields()
+    {
+        $category = Category::create(['name' => 'Deals', 'slug' => 'deals']);
+        $startsAt = now()->subDay()->toDateTimeString();
+        $endsAt = now()->addDay()->toDateTimeString();
+
+        $response = $this->actingAs($this->admin, 'sanctum')->postJson('/api/admin/products', [
+            'name' => 'Discount Matrix',
+            'category_ids' => [$category->id],
+            'discount' => [
+                'type' => 'percent',
+                'value' => 10,
+                'international_type' => 'fixed',
+                'international_value' => 2.50,
+                'wholesale_type' => 'fixed',
+                'wholesale_value' => 75,
+                'wholesale_international_type' => 'percent',
+                'wholesale_international_value' => 5,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+                'is_active' => true,
+            ],
+            'variants' => [
+                [
+                    'variant_name' => 'Box',
+                    'sku' => 'DISCOUNT-BOX',
+                    'retail_price' => 1000,
+                    'wholesale_price' => 800,
+                    'international_price' => 12,
+                    'stock' => 20,
+                    'discount' => [
+                        'type' => 'fixed',
+                        'value' => 100,
+                        'international_type' => 'percent',
+                        'international_value' => 10,
+                        'wholesale_type' => 'percent',
+                        'wholesale_value' => 15,
+                        'wholesale_international_type' => 'fixed',
+                        'wholesale_international_value' => 1,
+                        'starts_at' => $startsAt,
+                        'ends_at' => $endsAt,
+                    ],
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.discounts.0.type', 'percent')
+            ->assertJsonPath('data.discounts.0.international_type', 'fixed')
+            ->assertJsonPath('data.discounts.0.wholesale_type', 'fixed')
+            ->assertJsonPath('data.discounts.0.wholesale_international_type', 'percent')
+            ->assertJsonPath('data.variants.0.discounts.0.type', 'fixed')
+            ->assertJsonPath('data.variants.0.discounts.0.international_type', 'percent')
+            ->assertJsonPath('data.variants.0.discounts.0.wholesale_type', 'percent')
+            ->assertJsonPath('data.variants.0.discounts.0.wholesale_international_type', 'fixed');
+
+        $product = Product::where('slug', 'discount-matrix')->firstOrFail();
+        $variant = $product->variants()->firstOrFail();
+
+        $this->assertDatabaseHas('discounts', [
+            'product_id' => $product->id,
+            'variant_id' => null,
+            'type' => 'percent',
+            'value' => 10,
+            'international_type' => 'fixed',
+            'international_value' => 2.50,
+            'wholesale_type' => 'fixed',
+            'wholesale_value' => 75,
+            'wholesale_international_type' => 'percent',
+            'wholesale_international_value' => 5,
+        ]);
+
+        $this->assertDatabaseHas('discounts', [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'type' => 'fixed',
+            'value' => 100,
+            'international_type' => 'percent',
+            'international_value' => 10,
+            'wholesale_type' => 'percent',
+            'wholesale_value' => 15,
+            'wholesale_international_type' => 'fixed',
+            'wholesale_international_value' => 1,
+        ]);
+
+        $updateResponse = $this->actingAs($this->admin, 'sanctum')->putJson("/api/admin/products/{$product->id}", [
+            'name' => 'Discount Matrix Updated',
+            'discount' => [
+                'wholesale_type' => 'fixed',
+                'wholesale_value' => 50,
+                'starts_at' => $startsAt,
+                'ends_at' => $endsAt,
+            ],
+            'variants' => [
+                [
+                    'id' => $variant->id,
+                    'variant_name' => 'Box Updated',
+                    'sku' => 'DISCOUNT-BOX',
+                    'retail_price' => 1100,
+                    'wholesale_price' => 850,
+                    'international_price' => 13,
+                    'discount' => [
+                        'international_type' => 'fixed',
+                        'international_value' => 1.25,
+                        'starts_at' => $startsAt,
+                        'ends_at' => $endsAt,
+                    ],
+                ],
+            ],
+        ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJsonPath('data.discounts.0.type', null)
+            ->assertJsonPath('data.discounts.0.wholesale_type', 'fixed')
+            ->assertJsonPath('data.discounts.0.wholesale_value', '50.00')
+            ->assertJsonPath('data.variants.0.discounts.0.type', null)
+            ->assertJsonPath('data.variants.0.discounts.0.international_type', 'fixed')
+            ->assertJsonPath('data.variants.0.discounts.0.international_value', '1.25');
+
+        $this->assertDatabaseHas('discounts', [
+            'product_id' => $product->id,
+            'variant_id' => null,
+            'type' => null,
+            'value' => null,
+            'wholesale_type' => 'fixed',
+            'wholesale_value' => 50,
+        ]);
+
+        $this->assertDatabaseHas('discounts', [
+            'product_id' => $product->id,
+            'variant_id' => $variant->id,
+            'type' => null,
+            'value' => null,
+            'international_type' => 'fixed',
+            'international_value' => 1.25,
+        ]);
+    }
+
+    /** @test */
     public function users_can_search_and_filter_products_publicly()
     {
         $cat = Category::create(['name' => 'Beverages', 'slug' => 'beverages']);

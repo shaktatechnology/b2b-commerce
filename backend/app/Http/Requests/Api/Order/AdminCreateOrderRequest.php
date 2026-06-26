@@ -22,6 +22,7 @@ class AdminCreateOrderRequest extends FormRequest
             'shipping_address.state'        => 'required|string|max:255',
             'shipping_address.zip'          => 'required|string|max:20',
             'shipping_address.country'      => 'required|string|max:255',
+            'currency'                      => 'nullable|string|in:NPR,USD',
             'notes'                         => 'nullable|string|max:2000',
             'items'                         => 'required|array|min:1',
             'items.*.variant_id'            => 'required|uuid|exists:product_variants,id',

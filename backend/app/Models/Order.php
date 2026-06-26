@@ -23,6 +23,7 @@ class Order extends Model
         'payment_status',
         'shipping_address',
         'address_id',
+        'currency',
         'notes',
     ];
 
