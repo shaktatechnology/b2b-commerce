@@ -82,14 +82,14 @@ export default function ProductPurchasePanel({
       ? (selectedVariant?.wholesale_price ?? selectedVariant?.retail_price ?? 0)
       : (selectedVariant?.retail_price ?? 0));
   const basePrice = parseFloat(String(rawBasePrice));
-  
+
   // Calculate discount for all users (variant discount takes precedence over product discount)
   let activeDiscount = null;
   if (selectedVariant?.discounts && selectedVariant.discounts.length > 0) {
-      activeDiscount = selectedVariant.discounts.find(d => d.is_active);
+    activeDiscount = selectedVariant.discounts.find(d => d.is_active);
   }
   if (!activeDiscount && product.discounts && product.discounts.length > 0) {
-      activeDiscount = product.discounts.find(d => d.is_active);
+    activeDiscount = product.discounts.find(d => d.is_active);
   }
 
   const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
@@ -204,21 +204,29 @@ export default function ProductPurchasePanel({
         </span>
       </div>
 
-      <div className="flex flex-wrap items-end gap-2 mt-4">
-        <span className="text-3xl font-bold text-primary">
-          Rs.{price.toFixed(0)}
-        </span>
-        {discountPct > 0 && (
-          <>
-            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-medium">
-              {discountPct}% off
-            </span>
-            <span className="text-gray-400 line-through text-sm">
-              Rs.{compareAt}
-            </span>
-          </>
-        )}
-      </div>
+      {isInternationalPriceMissing && (
+        <div className="mt-4 px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs font-medium">
+          ⚠️ International (USD) pricing is not available for this variant. Please select a different variant or switch to NPR.
+        </div>
+      )}
+
+      {!isInternationalPriceMissing && (
+        <div className="flex flex-wrap items-end gap-2 mt-4">
+          <span className="text-3xl font-bold text-primary">
+            {formatPrice(price, currency, 0)}
+          </span>
+          {discountPct > 0 && (
+            <>
+              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-medium">
+                {discountPct}% off
+              </span>
+              <span className="text-gray-400 line-through text-sm">
+                {formatPrice(compareAt, currency, 0)}
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Variant Selection: Color Family & Size/Weight */}
       <div className="mt-6 space-y-6">
@@ -234,32 +242,31 @@ export default function ProductPurchasePanel({
               {(() => {
                 const uniqueColors = new Set<string>();
                 return activeVariants.filter(v => {
-                    const name = v.color?.name || product.color?.name || 'Default';
-                    if (uniqueColors.has(name)) return false;
-                    uniqueColors.add(name);
-                    return true;
+                  const name = v.color?.name || product.color?.name || 'Default';
+                  if (uniqueColors.has(name)) return false;
+                  uniqueColors.add(name);
+                  return true;
                 }).map((variant) => {
                   const colorName = variant.color?.name || product.color?.name || 'Default';
                   const isSelected = (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName;
-                  
+
                   return (
                     <button
                       key={variant.id}
                       type="button"
                       onClick={() => onVariantChange(variant.id)}
-                      className={`group relative w-16 h-16 rounded-2xl border-2 transition-all p-1 overflow-hidden shrink-0 ${
-                        isSelected 
-                          ? "border-primary shadow-xl scale-110 z-10" 
-                          : "border-zinc-50 hover:border-zinc-200 bg-white"
-                      }`}
+                      className={`group relative w-16 h-16 rounded-2xl border-2 transition-all p-1 overflow-hidden shrink-0 ${isSelected
+                        ? "border-primary shadow-xl scale-110 z-10"
+                        : "border-zinc-50 hover:border-zinc-200 bg-white"
+                        }`}
                     >
                       {variant.image_url ? (
                         <div className="w-full h-full rounded-xl overflow-hidden">
-                           <img 
-                                src={variant.image_url.startsWith('http') ? variant.image_url : `http://localhost:8000${variant.image_url}`} 
-                                className="w-full h-full object-cover" 
-                                alt={colorName} 
-                            />
+                          <img
+                            src={variant.image_url.startsWith('http') ? variant.image_url : `http://localhost:8000${variant.image_url}`}
+                            className="w-full h-full object-cover"
+                            alt={colorName}
+                          />
                         </div>
                       ) : (
                         <div className="w-full h-full bg-zinc-50 flex items-center justify-center text-[10px] font-black text-zinc-300 rounded-xl uppercase">
@@ -267,13 +274,13 @@ export default function ProductPurchasePanel({
                         </div>
                       )}
                       {isSelected && (
-                         <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
-                            <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform scale-110 animate-in zoom-in-50 duration-200">
-                                <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M1 5L4.5 8.5L11 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                            </div>
-                         </div>
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
+                          <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform scale-110 animate-in zoom-in-50 duration-200">
+                            <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M1 5L4.5 8.5L11 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                        </div>
                       )}
                     </button>
                   );
@@ -285,90 +292,104 @@ export default function ProductPurchasePanel({
 
         {/* Size or Weight (Whichever is available) */}
         {(() => {
-            const hasSize = product.size || activeVariants.some(v => v.size);
-            const hasWeight = product.weight || activeVariants.some(v => v.weight);
-            
-            if (!hasSize && !hasWeight) return null;
+          const hasSize = product.size || activeVariants.some(v => v.size);
+          const hasWeight = product.weight || activeVariants.some(v => v.weight);
 
-            // Prefer Size over Weight if both exist (standard e-commerce)
-            const label = hasSize ? 'Size' : 'Weight';
-            const property = hasSize ? 'size' : 'weight';
+          if (!hasSize && !hasWeight) return null;
 
-            return (
-              <div className="space-y-3">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                  {label}: <span className="text-zinc-900 font-black ml-1">
-                    {(() => {
-                        const val = selectedVariant[property as keyof typeof selectedVariant];
-                        return typeof val === 'object' ? (val as any)?.name : (val as string) || (product as any)[property] || 'Default';
-                    })()}
-                  </span>
-                </h3>
-                <div className="flex flex-wrap gap-2">
+          // Prefer Size over Weight if both exist (standard e-commerce)
+          const label = hasSize ? 'Size' : 'Weight';
+          const property = hasSize ? 'size' : 'weight';
+
+          return (
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                {label}: <span className="text-zinc-900 font-black ml-1">
                   {(() => {
-                    const uniqueOptions = new Set<string>();
-                    const currentColor = selectedVariant?.color?.name || product.color?.name || 'Default';
-                    
-                    return activeVariants
-                      .filter(v => (v.color?.name || product.color?.name || 'Default') === currentColor)
-                      .filter(v => {
-                        const val = typeof v[property as keyof typeof v] === 'object' 
-                            ? (v[property as keyof typeof v] as any)?.name 
-                            : (v[property as keyof typeof v] as string) || 'Default';
-                        if (uniqueOptions.has(val)) return false;
-                        uniqueOptions.add(val);
-                        return true;
-                      })
-                      .map((variant) => {
-                        const optionValue = typeof variant[property as keyof typeof variant] === 'object' 
-                            ? (variant[property as keyof typeof variant] as any)?.name 
-                            : (variant[property as keyof typeof variant] as string) || 'Default';
-                        
-                        const isSelected = (typeof selectedVariant[property as keyof typeof selectedVariant] === 'object' 
-                            ? (selectedVariant[property as keyof typeof selectedVariant] as any)?.name 
-                            : (selectedVariant[property as keyof typeof selectedVariant] as string) || 'Default') === optionValue;
-
-                        return (
-                          <button
-                            key={variant.id}
-                            type="button"
-                            onClick={() => onVariantChange(variant.id)}
-                            className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${
-                              isSelected
-                                ? "bg-primary text-white border-primary shadow-sm"
-                                : "bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
-                            }`}
-                          >
-                            {optionValue}
-                          </button>
-                        );
-                      });
+                    const val = selectedVariant[property as keyof typeof selectedVariant];
+                    return typeof val === 'object' ? (val as any)?.name : (val as string) || (product as any)[property] || 'Default';
                   })()}
-                </div>
+                </span>
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {(() => {
+                  const currentColor = selectedVariant?.color?.name || product.color?.name || 'Default';
+
+                  const uniqueOptions = [
+                    ...new Set(
+                      activeVariants.map(v =>
+                        typeof v[property as keyof typeof v] === "object"
+                          ? (v[property as keyof typeof v] as any)?.name
+                          : (v[property as keyof typeof v] as string) || "Default"
+                      )
+                    ),
+                  ];
+
+                  return uniqueOptions.map(optionValue => {
+                    const availableVariant = activeVariants.find(v => {
+                      const color = v.color?.name || product.color?.name || "Default";
+
+                      const value =
+                        typeof v[property as keyof typeof v] === "object"
+                          ? (v[property as keyof typeof v] as any)?.name
+                          : (v[property as keyof typeof v] as string) || "Default";
+
+                      return color === currentColor && value === optionValue;
+                    });
+
+                    const available = !!availableVariant;
+
+                    const selectedValue =
+                      typeof selectedVariant[property as keyof typeof selectedVariant] === "object"
+                        ? (selectedVariant[property as keyof typeof selectedVariant] as any)?.name
+                        : (selectedVariant[property as keyof typeof selectedVariant] as string) || "Default";
+
+                    const isSelected = selectedValue === optionValue;
+
+                    return (
+                      <button
+                        key={optionValue}
+                        type="button"
+                        disabled={!available}
+                        onClick={() => available && onVariantChange(availableVariant!.id)}
+                        className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all ${isSelected
+                            ? "bg-primary text-white border-primary shadow-sm"
+                            : available
+                              ? "bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
+                              : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-50"
+                          }`}
+                      >
+                        {optionValue}
+                      </button>
+                    );
+                  });
+
+                })()}
+
               </div>
-            );
+            </div>
+          );
         })()}
 
         {/* Fallback for generic variants if no color/size/weight */}
         {(!product.color && !product.size && !product.weight && !activeVariants.some(v => v.color || v.size || v.weight)) && (
           <div className="space-y-3">
-             <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Options</h3>
-             <div className="flex flex-wrap gap-2">
-                {activeVariants.map((variant) => (
-                  <button
-                    key={variant.id}
-                    type="button"
-                    onClick={() => onVariantChange(variant.id)}
-                    className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${
-                      selectedVariantId === variant.id
-                        ? "bg-primary text-white border-primary shadow-sm"
-                        : "bg-white border-gray-200 text-gray-600 hover:border-primary"
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Options</h3>
+            <div className="flex flex-wrap gap-2">
+              {activeVariants.map((variant) => (
+                <button
+                  key={variant.id}
+                  type="button"
+                  onClick={() => onVariantChange(variant.id)}
+                  className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${selectedVariantId === variant.id
+                    ? "bg-primary text-white border-primary shadow-sm"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-primary"
                     }`}
-                  >
-                    {variant.variant_name || "Select"}
-                  </button>
-                ))}
-             </div>
+                >
+                  {variant.variant_name || "Select"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

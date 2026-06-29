@@ -25,11 +25,37 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   categories,
 }) => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
   const swiperRef = useRef<any>(null);
 
-  const filteredProducts = activeCategory
-    ? products.filter((p) => p.categories?.some((c) => c.id === activeCategory) ?? false)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('currency_preference');
+      if (stored === 'USD' || stored === 'NPR') setCurrency(stored);
+      const onChange = () => {
+        const val = localStorage.getItem('currency_preference');
+        setCurrency(val === 'USD' ? 'USD' : 'NPR');
+      };
+      window.addEventListener('currency_changed', onChange);
+      return () => window.removeEventListener('currency_changed', onChange);
+    }
+  }, []);
+
+  // Pre-filter: if USD is active, only show products that have international_price set
+  const visibleProducts = currency === 'USD'
+    ? products.filter((p) =>
+        p.variants?.some((v) =>
+          v.international_price !== undefined &&
+          v.international_price !== null &&
+          v.international_price !== '' &&
+          Number(v.international_price) > 0
+        )
+      )
     : products;
+
+  const filteredProducts = activeCategory
+    ? visibleProducts.filter((p) => p.categories?.some((c) => c.id === activeCategory) ?? false)
+    : visibleProducts;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [showRightArrow, setShowRightArrow] = useState(false);

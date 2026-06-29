@@ -146,15 +146,25 @@ export function productToCartLineItem(
   );
 
   // Auto-calculate discount from product/variant discount data if not explicitly provided
-  let discount = options?.discount ?? 0;
+  let activeDiscount = variant.discounts?.find((d) => d.is_active) ?? null;
+  if (!activeDiscount) {
+    activeDiscount = product.discounts?.find((d) => d.is_active) ?? null;
+  }
 
+  // Pre-calculate both NPR and USD prices & discounts
+  const rawPriceNpr = isWholesaler
+    ? (variant.wholesale_price ?? variant.retail_price ?? 0)
+    : (variant.retail_price ?? 0);
+  const basePriceNpr = parseFloat(String(rawPriceNpr));
+  const discountNpr = calculateDiscountAmount(basePriceNpr, activeDiscount, isWholesaler, 'NPR');
+
+  const rawPriceUsd = variant.international_price ?? 0;
+  const basePriceUsd = parseFloat(String(rawPriceUsd));
+  const discountUsd = calculateDiscountAmount(basePriceUsd, activeDiscount, isWholesaler, 'USD');
+
+  let discount = options?.discount ?? 0;
   if (options?.discount === undefined) {
-    // Check variant-level discounts first, then product-level
-    let activeDiscount = variant.discounts?.find((d) => d.is_active) ?? null;
-    if (!activeDiscount) {
-      activeDiscount = product.discounts?.find((d) => d.is_active) ?? null;
-    }
-    discount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
+    discount = isUSD ? discountUsd : discountNpr;
   }
 
   return {
@@ -170,6 +180,14 @@ export function productToCartLineItem(
     moq: variant.moq,
     stock: variant.stock ?? 0,
     currency,
+    prices: {
+      NPR: Number.isFinite(basePriceNpr) ? basePriceNpr : 0,
+      USD: Number.isFinite(basePriceUsd) ? basePriceUsd : 0,
+    },
+    discounts: {
+      NPR: Number.isFinite(discountNpr) ? discountNpr : 0,
+      USD: Number.isFinite(discountUsd) ? discountUsd : 0,
+    },
   };
 }
 

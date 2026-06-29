@@ -205,7 +205,7 @@ export default function AdminTagsPage() {
                        {tag.name}
                     </div>
                   </TableCell>
-                  <TableCell className="px-6 py-4 text-sm text-zinc-500 font-mono">/{tag.slug}</TableCell>
+                  <TableCell className="px-6 py-4 text-sm text-zinc-500 font-mono">{tag.slug}</TableCell>
                   <TableCell className="px-6 py-4 text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => openModal('edit', tag)} className="rounded-full hover:text-purple-600">
                       <Edit2 className="h-4 w-4" />

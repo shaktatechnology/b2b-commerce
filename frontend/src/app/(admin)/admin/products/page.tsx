@@ -837,16 +837,16 @@ export default function AdminProductsPage() {
                         </div>
                         <div>
                           <p className="font-bold text-black/90 text-base">{p.name}</p>
-                          <code className="text-[10px] bg-zinc-100 px-2 py-0.5 rounded-md font-bold text-zinc-500 uppercase tracking-tight">
-                            /{p.slug}
-                          </code>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="space-y-1">
                         <p className="font-black text-[#966FD6] text-lg">
-                          ${p.variants?.[0]?.retail_price || '0'}
+                          Rs.{p.variants?.[0]?.retail_price || '0'}
+                        </p>
+                        <p className="font-black text-[#966FD6] text-lg">
+                          $ {p.variants?.[0]?.international_price || '0'}
                         </p>
                         <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
                           {p.variants?.length || 0} variants

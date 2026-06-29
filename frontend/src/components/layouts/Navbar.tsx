@@ -8,6 +8,8 @@ import {  Menu,  Search,  ShoppingCart,  User,  Globe,  X,  Phone,  ChevronRight
 import { useCartStore } from "@/src/store/use-cart-store";
 import { useAppStore } from "@/src/store/use-app-store";
 import { getAuthToken, fetchProfile, logoutApi } from "@/src/lib/auth";
+import { cn } from "@/src/lib/utils";
+import { getActiveCurrency } from "@/src/lib/product-utils";
 
 interface Category {
   id: string;
@@ -34,6 +36,22 @@ export default function Navbar({
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+
+  useEffect(() => {
+    setCurrency(getActiveCurrency());
+    const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener('currency_changed', handleCurrencyChange);
+    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
+  }, []);
+
+  const handleCurrencyToggle = () => {
+    const next = currency === 'NPR' ? 'USD' : 'NPR';
+    localStorage.setItem('currency_preference', next);
+    setCurrency(next);
+    useCartStore.getState().syncCurrency(next);
+    window.dispatchEvent(new Event('currency_changed'));
+  };
 
   useEffect(() => {
     setIsMounted(true);
@@ -185,7 +203,22 @@ export default function Navbar({
             </div>
 
             {/* cart & auth */}
-            <div className="justify-self-end flex items-center gap-6">
+            <div className="justify-self-end flex items-center gap-4">
+              {/* Currency Toggle */}
+              <button
+                id="currency-toggle-btn"
+                onClick={handleCurrencyToggle}
+                title={`Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-white/20 hover:border-white transition-all duration-200 bg-white/10 text-white cursor-pointer"
+              >
+                <span className={cn(currency === 'NPR' ? 'text-white font-extrabold font-black' : 'text-white/65 font-normal opacity-60')}>Rs.</span>
+                <span className="text-white/35">|</span>
+                <span className={cn(currency === 'USD' ? 'text-white font-extrabold font-black' : 'text-white/65 font-normal opacity-60')}>$</span>
+              </button>
+
+              <div className="text-white duration-200 hover:scale-105">
+              </div>
+
               {/* Auth Logic */}
               {isMounted && user ? (
                 <div className="relative group">
@@ -408,10 +441,18 @@ export default function Navbar({
               <span>Login</span>
             </Link>
           )}
-
-          <div className="flex items-center gap-2 text-sm text-gray-700">
-            <Globe size={16} />
-            <span>NP</span>
+          <div className="flex items-center justify-between border-t pt-4 mt-2">
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-gray-500" />
+              <button
+                onClick={handleCurrencyToggle}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border border-zinc-200 text-zinc-700 bg-background cursor-pointer"
+              >
+                <span className={cn(currency === 'NPR' ? 'text-primary font-bold' : 'text-zinc-400 font-normal')}>Rs.</span>
+                <span className="text-zinc-300">|</span>
+                <span className={cn(currency === 'USD' ? 'text-primary font-bold' : 'text-zinc-400 font-normal')}>$</span>
+              </button>
+            </div>
           </div>
         </div>
 

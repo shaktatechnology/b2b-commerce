@@ -1,27 +1,34 @@
 'use client';
 
 import * as React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { TrendingUp, Star, Clock, ShoppingBag, ChevronRight } from 'lucide-react';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-import { resolveProductImageUrl, getProductPath, productToCartLineItem } from '@/src/lib/product-utils';
+import { resolveProductImageUrl, getProductPath, productToCartLineItem, getActiveCurrency, formatPrice } from '@/src/lib/product-utils';
 import type { StorefrontProduct } from '@/src/types/storefront';
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-function ProductCard({ product }: { product: StorefrontProduct }) {
-  const lineItem = productToCartLineItem(product as any);
+function SuggestionCard({ product, currency }: { product: StorefrontProduct; currency: 'NPR' | 'USD' }) {
+  const activeVariant = (product as any).variants?.[0];
+
+  // If USD and no international price — don't render this product
+  const intlPrice = activeVariant?.international_price;
+  const isInternationalPriceMissing =
+    currency === 'USD' &&
+    (intlPrice === undefined || intlPrice === null || intlPrice === '' || Number(intlPrice) <= 0);
+
+  if (isInternationalPriceMissing) return null;
+
+  const lineItem = productToCartLineItem(product as any, { currency });
   const basePrice = lineItem?.price ?? 0;
   const discountAmount = lineItem?.discount ?? 0;
   const finalPrice = basePrice - discountAmount;
   const hasDiscount = discountAmount > 0;
 
-  const firstImage = product.images?.find(img => img.type === 'image') || product.images?.find(img => !img.type);
+  const firstImage = (product.images as any[])?.find((img: any) => img.type === 'image') || (product.images as any[])?.[0];
   const imgUrl = resolveProductImageUrl(
-    lineItem?.image ?? firstImage?.url ?? product.image_url
+    lineItem?.image ?? firstImage?.url ?? (product as any).image_url
   );
 
   return (
@@ -51,11 +58,11 @@ function ProductCard({ product }: { product: StorefrontProduct }) {
         </p>
         <div className="flex flex-col mt-1">
           <p className="text-[14px] sm:text-[16px] font-bold text-primary leading-none">
-            Rs. {finalPrice.toFixed(0)}
+            {formatPrice(finalPrice, currency, 0)}
           </p>
           {hasDiscount && (
             <p className="text-[11px] text-gray-400 line-through mt-0.5">
-              Rs. {basePrice.toFixed(0)}
+              {formatPrice(basePrice, currency, 0)}
             </p>
           )}
         </div>
@@ -78,6 +85,14 @@ interface Tab {
 
 export default function ProductSuggestions({ products }: { products: StorefrontProduct[] }) {
   const [activeTab, setActiveTab] = React.useState('top_selling');
+  const [currency, setCurrency] = React.useState<'NPR' | 'USD'>('NPR');
+
+  React.useEffect(() => {
+    setCurrency(getActiveCurrency());
+    const onChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener('currency_changed', onChange);
+    return () => window.removeEventListener('currency_changed', onChange);
+  }, []);
 
   // Shuffle deterministically per tab using product id as seed
   const shuffle = (arr: StorefrontProduct[], seed: number) =>
@@ -139,11 +154,10 @@ export default function ProductSuggestions({ products }: { products: StorefrontP
             key={tab.key}
             className={[
               'bg-white transition-all duration-300',
-              // On mobile/tablet only show the active tab; on lg always show all
               activeTab === tab.key ? 'block' : 'hidden lg:block',
             ].join(' ')}
           >
-            {/* Column header with Underline style */}
+            {/* Column header */}
             <div className="relative mb-4 sm:mb-6 pb-2">
               <h3 className="text-[17px] sm:text-[20px] font-medium text-primary">
                 {tab.label}
@@ -155,7 +169,7 @@ export default function ProductSuggestions({ products }: { products: StorefrontP
             {/* Products */}
             <div className="divide-y divide-gray-50">
               {tab.products.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <SuggestionCard key={product.id} product={product} currency={currency} />
               ))}
             </div>
 

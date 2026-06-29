@@ -92,12 +92,12 @@ function resolveProductImage(product: DealProduct): string {
     const u = normalizeUrl(product.image_url);
     if (u) return u;
   }
-  
+
   // Gallery fallback (images only)
   const primary = product.images?.find((i) => i.is_primary && (i as any).type !== 'video');
   const firstImg = product.images?.find((i) => (i as any).type !== 'video');
   const raw = primary?.url || primary?.image_path || firstImg?.url || firstImg?.image_path;
-  
+
   if (raw) {
     const u = normalizeUrl(raw);
     if (u) return u;
@@ -134,14 +134,14 @@ function computePricing(product: DealProduct, isWholesaler: boolean = false, cur
   let discountAmount = 0;
 
   if (isUSD) {
-    const dealV = product.deal_variant_id 
+    const dealV = product.deal_variant_id
       ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
       : product.variants?.[0];
 
     const active =
       dealV?.discounts?.find((d) => d.is_active) ||
       product.discounts?.find((d) => d.is_active);
-      
+
     discountAmount = calculateDiscountAmount(base, active, isWholesaler, currency);
   } else if (isWholesaler) {
     discountAmount = 0;
@@ -153,7 +153,7 @@ function computePricing(product: DealProduct, isWholesaler: boolean = false, cur
     }
   } else {
     // Fallback to variant-level or product-level active discounts
-    const dealV = product.deal_variant_id 
+    const dealV = product.deal_variant_id
       ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
       : product.variants?.[0];
 
@@ -199,14 +199,17 @@ export default function DealOfTheDayCard({ product }: Props) {
     : 0;
   const brandName = typeof product.brand === "string" ? product.brand : product.brand?.name || "";
 
-  const selectedVariant = product.deal_variant_id 
+  const selectedVariant = product.deal_variant_id
     ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
     : product.variants?.[0];
-    
+
   const isUSD = currency === 'USD';
   const isInternationalPriceMissing = isUSD && (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || Number(selectedVariant?.international_price) <= 0);
   const isOutOfStock = (selectedVariant?.stock ?? 0) <= 0;
   const isPurchaseDisabled = isOutOfStock || isInternationalPriceMissing;
+
+  // Don't render this card at all if the active currency has no price
+  if (isInternationalPriceMissing) return null;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -313,9 +316,9 @@ export default function DealOfTheDayCard({ product }: Props) {
                 </>
               )}
             </div>
-            <button 
-              className={cn("deal-card__add-btn", isPurchaseDisabled && "opacity-50 cursor-not-allowed bg-zinc-400")} 
-              onClick={handleAddToCart} 
+            <button
+              className={cn("deal-card__add-btn", isPurchaseDisabled && "opacity-50 cursor-not-allowed bg-zinc-400")}
+              onClick={handleAddToCart}
               disabled={isPurchaseDisabled}
               title={isOutOfStock ? "Out of Stock" : isInternationalPriceMissing ? "Pricing unavailable" : "Add to cart"}
             >

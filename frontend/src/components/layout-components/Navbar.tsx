@@ -139,16 +139,15 @@ export function Navbar() {
 
         {/* Right section */}
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Currency Toggle */}
           <button
             id="currency-toggle-btn"
             onClick={handleCurrencyToggle}
             title={`Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
-            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border border-border hover:border-primary hover:text-primary transition-all duration-200"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-800 hover:border-primary transition-all duration-200 bg-background"
           >
-            {currency === 'NPR' ? 'Rs.' : '$'}
-            <span className="opacity-50">|</span>
-            {currency === 'NPR' ? '$' : 'Rs.'}
+            <span className={cn(currency === 'NPR' ? 'text-primary font-black font-extrabold' : 'text-muted-foreground font-normal opacity-60')}>Rs.</span>
+            <span className="text-zinc-300 dark:text-zinc-700">|</span>
+            <span className={cn(currency === 'USD' ? 'text-primary font-black font-extrabold' : 'text-muted-foreground font-normal opacity-60')}>$</span>
           </button>
           <ThemeToggle />
 

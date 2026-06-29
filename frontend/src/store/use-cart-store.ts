@@ -11,6 +11,7 @@ interface CartState {
   itemCount: () => number;
   subtotal: () => number;
   discountTotal: () => number;
+  syncCurrency: (targetCurrency: 'NPR' | 'USD') => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -58,10 +59,43 @@ export const useCartStore = create<CartState>()(
         get().items.reduce((sum, item) => sum + item.quantity, 0),
 
       subtotal: () =>
-        get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+        get().items.reduce((sum, item) => sum + (item.isUnavailable ? 0 : item.price) * item.quantity, 0),
 
       discountTotal: () =>
-        get().items.reduce((sum, item) => sum + (item.discount ?? 0) * item.quantity, 0),
+        get().items.reduce((sum, item) => sum + (item.isUnavailable ? 0 : (item.discount ?? 0)) * item.quantity, 0),
+
+      syncCurrency: (targetCurrency) => {
+        set((state) => {
+          const updatedItems = state.items.map((item) => {
+            const currentItemCurrency = (item.currency as 'NPR' | 'USD') || 'NPR';
+            let nextPrice = item.price;
+            let nextDiscount = item.discount ?? 0;
+            let isUnavailable = false;
+
+            if (item.prices && item.discounts) {
+              nextPrice = item.prices[targetCurrency] ?? 0;
+              nextDiscount = item.discounts[targetCurrency] ?? 0;
+            }
+
+            if (targetCurrency === 'USD') {
+              const usdVal = item.prices?.USD ?? 0;
+              if (usdVal <= 0) {
+                isUnavailable = true;
+              }
+            }
+
+            return {
+              ...item,
+              price: nextPrice,
+              discount: nextDiscount,
+              currency: targetCurrency,
+              isUnavailable,
+            };
+          });
+
+          return { items: updatedItems };
+        });
+      },
     }),
     { name: 'cart-storage' }
   )

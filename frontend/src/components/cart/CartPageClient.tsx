@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
-import { formatRs } from "@/src/lib/product-utils";
+import { formatPrice, getActiveCurrency } from "@/src/lib/product-utils";
 import { getAuthToken, getUserRole } from "@/src/lib/auth";
 import type { CartProductInput } from "@/src/types/cart";
 import RecommendedProductCard from "./RecommendedProductCard";
@@ -36,10 +36,26 @@ export default function CartPageClient({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [activeCurrency, setActiveCurrency] = useState<'NPR' | 'USD'>('NPR');
 
   useEffect(() => {
     setRole(getUserRole());
+    const cur = getActiveCurrency();
+    setActiveCurrency(cur);
+    useCartStore.getState().syncCurrency(cur);
+
+    const onChange = () => {
+      const updatedCur = getActiveCurrency();
+      setActiveCurrency(updatedCur);
+      useCartStore.getState().syncCurrency(updatedCur);
+    };
+    window.addEventListener('currency_changed', onChange);
+    return () => window.removeEventListener('currency_changed', onChange);
   }, []);
+
+  // Derive cart currency from items (stamped at Add-to-Cart time)
+  const cartCurrency: 'NPR' | 'USD' = (items[0]?.currency as 'NPR' | 'USD') ?? activeCurrency;
+  const fmt = (amount: number) => formatPrice(amount, cartCurrency, 0);
 
   const isWholesaler = role === "wholesaler";
 
@@ -66,6 +82,20 @@ export default function CartPageClient({
       toast.error("Your cart is empty. Add products before checkout.");
       return;
     }
+
+    // Currency safety: cart items must match the active currency toggle
+    const mixedCurrencies = items.some((i) => (i as any).currency && (i as any).currency !== cartCurrency);
+    if (mixedCurrencies) {
+      toast.error("Your cart contains items with mixed currencies. Refreshing prices...");
+      useCartStore.getState().syncCurrency(activeCurrency);
+      return;
+    }
+    if (cartCurrency !== activeCurrency) {
+      toast.error("Updating cart prices to match your currency selection...");
+      useCartStore.getState().syncCurrency(activeCurrency);
+      return;
+    }
+
     for (const item of items) {
       const moq = item.moq ?? 1;
       if (isWholesaler && item.quantity < moq) {
@@ -151,12 +181,12 @@ export default function CartPageClient({
                   </h3>
                   <div className="mt-1 flex items-center gap-2 flex-wrap">
                     <p className="text-primary font-bold text-lg">
-                      Rs. {(item.price - (item.discount ?? 0)).toFixed(0)}
+                      {fmt(item.price - (item.discount ?? 0))}
                     </p>
                     {(item.discount ?? 0) > 0 && (
                       <>
                         <span className="text-gray-400 line-through text-sm">
-                          Rs. {item.price.toFixed(0)}
+                          {fmt(item.price)}
                         </span>
                         <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded font-medium">
                           {Math.round(((item.discount ?? 0) / item.price) * 100)}% off
@@ -254,27 +284,29 @@ export default function CartPageClient({
             Order Summary ({totalItems} {totalItems === 1 ? "item" : "items"})
           </h2>
 
+
+
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-semibold">{formatRs(rawSubtotal)}</span>
+              <span className="font-semibold">{fmt(rawSubtotal)}</span>
             </div>
             {totalDiscount > 0 && (
               <div className="flex justify-between">
                 <span className="text-green-600">Discount</span>
-                <span className="font-semibold text-green-600">-{formatRs(totalDiscount)}</span>
+                <span className="font-semibold text-green-600">-{fmt(totalDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between">
               <span className="text-gray-600">Estimated Shipping</span>
-              <span className="font-semibold">{formatRs(SHIPPING_ESTIMATE)}</span>
+              <span className="font-semibold">{fmt(SHIPPING_ESTIMATE)}</span>
             </div>
           </div>
 
           <div className="border-t border-gray-200 mt-4 pt-4 flex justify-between items-center">
             <span className="font-semibold text-gray-900">Total</span>
             <span className="font-bold text-primary text-lg">
-              {formatRs(totalAmount)}
+              {fmt(totalAmount)}
             </span>
           </div>
 

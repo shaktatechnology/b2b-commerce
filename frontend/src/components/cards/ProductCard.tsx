@@ -8,7 +8,11 @@ import { useCartStore } from "@/src/store/use-cart-store";
 import {
   getProductPath,
   productToCartLineItem,
+  getActiveCurrency,
+  formatPrice,
+  calculateDiscountAmount,
 } from "@/src/lib/product-utils";
+import { getUserRole } from "@/src/lib/auth";
 import type { CartProductInput } from "@/src/types/cart";
 import { cn } from "@/src/lib/utils";
 
@@ -20,20 +24,50 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" }) => {
   const addItem = useCartStore((s) => s.addItem);
   const [mounted, setMounted] = React.useState(false);
+  const [currency, setCurrency] = React.useState<"NPR" | "USD">("NPR");
+  const [role, setRole] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setMounted(true);
+    setRole(getUserRole());
+    setCurrency(getActiveCurrency());
+    const onChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener("currency_changed", onChange);
+    return () => window.removeEventListener("currency_changed", onChange);
   }, []);
 
-  const retailVariant = product.variants?.[0];
-  const retailPrice = parseFloat(String(retailVariant?.retail_price ?? 0));
-  const lineItem = productToCartLineItem(product);
+  const isWholesaler = role === "wholesaler" || role === "wholeseller";
+  const isUSD = currency === "USD";
 
-  const basePrice = lineItem?.price ?? retailPrice;
-  const discountAmount = lineItem?.discount ?? 0;
-  const finalPrice = basePrice - discountAmount;
+  const activeVariant = product.variants?.[0];
+
+  // Choose the correct base price depending on user type + currency
+  const rawBase = isUSD
+    ? (activeVariant?.international_price ?? activeVariant?.retail_price ?? 0)
+    : isWholesaler
+      ? (activeVariant?.wholesale_price ?? activeVariant?.retail_price ?? 0)
+      : (activeVariant?.retail_price ?? 0);
+  const basePrice = parseFloat(String(rawBase));
+
+  // International price missing guard
+  const isInternationalPriceMissing =
+    isUSD &&
+    (activeVariant?.international_price === undefined ||
+      activeVariant?.international_price === null ||
+      activeVariant?.international_price === "" ||
+      Number(activeVariant?.international_price) <= 0);
+
+  // Discount calculation
+  const activeDiscount =
+    (activeVariant as any)?.discounts?.find((d: any) => d.is_active) ??
+    (product as any).discounts?.find((d: any) => d.is_active) ??
+    null;
+  const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
+  const finalPrice = Math.max(0, basePrice - discountAmount);
   const hasDiscount = discountAmount > 0;
   const discountPercent = hasDiscount ? Math.round((discountAmount / basePrice) * 100) : 0;
+
+  const lineItem = productToCartLineItem(product, { currency });
 
   const image = lineItem?.image;
   const category = lineItem?.category ?? "Uncategorized";
@@ -42,6 +76,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (isInternationalPriceMissing) {
+      toast.error("International (USD) pricing is not available for this item.");
+      return;
+    }
     if (!lineItem) {
       toast.error("This product cannot be added to cart.");
       return;
@@ -52,14 +91,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
       return;
     }
 
-    addItem(lineItem);
+    addItem({ ...lineItem, price: basePrice, discount: discountAmount, currency });
     toast.success(`${product.name} added to cart`);
   };
 
   const isOutOfStock = (lineItem?.stock ?? 0) <= 0;
-
+  const isPurchaseDisabled = isOutOfStock || isInternationalPriceMissing;
   const avgRating = Number(product.reviews_avg_rating ?? 0);
   const reviewsCount = product.reviews_count ?? 0;
+
+  // Don't render this card at all if the active currency has no price
+  if (isInternationalPriceMissing) return null;
 
   if (viewMode === "list") {
     return (
@@ -98,31 +140,35 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
 
             <div className="mt-4">
               <div className="flex flex-col">
-                <span className="text-2xl font-bold text-primary">Rs. {finalPrice.toFixed(0)}</span>
-                {hasDiscount && (
+                {isInternationalPriceMissing ? (
+                  <span className="text-sm font-bold text-yellow-600">USD price unavailable</span>
+                ) : (
+                  <span className="text-2xl font-bold text-primary">{formatPrice(finalPrice, currency, 0)}</span>
+                )}
+                {!isInternationalPriceMissing && hasDiscount && (
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">{discountPercent}% off</span>
-                    <span className="text-sm text-gray-400 line-through">Rs. {basePrice.toFixed(0)}</span>
+                    <span className="text-sm text-gray-400 line-through">{formatPrice(basePrice, currency, 0)}</span>
                   </div>
                 )}
               </div>
             </div>
 
             <p className="text-xs text-gray-400 mt-2">
-              By <span className="text-primary font-medium">{product.brand?.name || "Nepal organic"}</span>
+              By <span className="text-primary font-medium">{(product as any).brand?.name || "Nepal organic"}</span>
             </p>
 
             <div className="flex flex-wrap items-center gap-3 mt-4">
               <button
                 onClick={handleAdd}
-                disabled={isOutOfStock}
+                disabled={isPurchaseDisabled}
                 className={cn(
                   "px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer",
-                  isOutOfStock ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
+                  isPurchaseDisabled ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
                 )}
               >
-                {isOutOfStock ? null : <ShoppingCart size={16} />}
-                {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+                {isPurchaseDisabled ? null : <ShoppingCart size={16} />}
+                {isOutOfStock ? "Out of Stock" : isInternationalPriceMissing ? "Unavailable" : "Add to Cart"}
               </button>
               <button
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -152,7 +198,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
               <p className="text-primary font-semibold text-sm">{product.name}</p>
             </div>
           )}
-          {hasDiscount && (
+          {hasDiscount && !isInternationalPriceMissing && (
             <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
               {discountPercent}% OFF
             </div>
@@ -186,33 +232,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
           )}
 
           <div className="mt-auto space-y-0.5">
-            <p className="text-primary font-black text-lg">
-              Rs.{finalPrice.toFixed(0)}/-
-            </p>
-            {hasDiscount && (
+            {isInternationalPriceMissing ? (
+              <p className="text-yellow-600 font-bold text-sm">USD price unavailable</p>
+            ) : (
+              <p className="text-primary font-black text-lg">
+                {formatPrice(finalPrice, currency, 0)}
+              </p>
+            )}
+            {!isInternationalPriceMissing && hasDiscount && (
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-bold text-red-500">{discountPercent}% off</span>
-                <span className="text-[11px] text-gray-400 line-through">Rs.{basePrice.toFixed(0)}</span>
+                <span className="text-[11px] text-gray-400 line-through">{formatPrice(basePrice, currency, 0)}</span>
               </div>
             )}
           </div>
 
           <div className="mt-3 pt-3 flex items-center justify-between border-t border-gray-100">
             <p className="text-[10px] text-gray-400">
-              By <span className="text-primary font-medium">{product.brand?.name || "Store"}</span>
+              By <span className="text-primary font-medium">{(product as any).brand?.name || "Store"}</span>
             </p>
 
             <button
               type="button"
               onClick={handleAdd}
-              disabled={isOutOfStock}
+              disabled={isPurchaseDisabled}
               className={cn(
                 "flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm cursor-pointer",
-                isOutOfStock ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
+                isPurchaseDisabled ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
               )}
             >
-              {isOutOfStock ? null : <ShoppingCart size={14} />}
-              {isOutOfStock ? "Out" : "Add"}
+              {isPurchaseDisabled ? null : <ShoppingCart size={14} />}
+              {isOutOfStock ? "Out" : isInternationalPriceMissing ? "N/A" : "Add"}
             </button>
           </div>
         </div>

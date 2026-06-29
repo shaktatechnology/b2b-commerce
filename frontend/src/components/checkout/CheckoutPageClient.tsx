@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { useAppStore } from "@/src/store/use-app-store";
-import { formatRs, formatPrice } from "@/src/lib/product-utils";
+import { formatRs, formatPrice, getActiveCurrency } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
 import { syncCartToServer, checkoutOrder } from "@/src/lib/cart-api";
 import { initiatePayment } from "@/src/lib/payment-api";
@@ -59,12 +59,39 @@ export default function CheckoutPageClient({
     notes: "",
   });
 
-  const currency = form.country.toLowerCase() === 'nepal' ? 'NPR' : 'USD';
+  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+
+  useEffect(() => {
+    setCurrency(getActiveCurrency());
+    const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener('currency_changed', handleCurrencyChange);
+    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
+  }, []);
+
   const formatCheckoutPrice = (amount: number) => formatPrice(amount, currency);
 
   const [isEditingAddress, setIsEditingAddress] = useState<boolean>(true);
 
-  const activeGateways = paymentSettings.gateways;
+  // eSewa only for NPR, PayPal only for USD, COD for both
+  const activeGateways = paymentSettings.gateways.filter((g) => {
+    if (currency === 'NPR') {
+      return g.id === 'esewa' || g.id === 'cod';
+    } else {
+      return g.id === 'paypal' || g.id === 'cod';
+    }
+  });
+
+  // Make sure we select a valid default gateway whenever activeGateways changes
+  useEffect(() => {
+    const validIds = activeGateways.map((g) => g.id);
+    if (validIds.length > 0 && (!selectedGateway || !validIds.includes(selectedGateway))) {
+      if (paymentSettings.defaultGateway && validIds.includes(paymentSettings.defaultGateway)) {
+        setSelectedGateway(paymentSettings.defaultGateway);
+      } else {
+        setSelectedGateway(validIds[0]);
+      }
+    }
+  }, [currency, activeGateways, selectedGateway, paymentSettings.defaultGateway]);
 
   // Set checkoutItems from cart items as soon as they are loaded
   useEffect(() => {
@@ -84,6 +111,15 @@ export default function CheckoutPageClient({
       try {
         const parsed = JSON.parse(savedAddress);
         setForm((prev) => ({ ...prev, ...parsed }));
+
+        // Sync currency preferences with loaded country
+        if (parsed.country) {
+          const nextCur = parsed.country.toLowerCase() === 'nepal' ? getActiveCurrency() : 'USD';
+          localStorage.setItem('currency_preference', nextCur);
+          useCartStore.getState().syncCurrency(nextCur);
+          window.dispatchEvent(new Event('currency_changed'));
+        }
+
         // Only skip editing if all key required address fields are present
         if (parsed.street?.trim() && parsed.city?.trim() && parsed.state?.trim() && parsed.zip?.trim() && parsed.country?.trim()) {
           setIsEditingAddress(false);
@@ -103,7 +139,19 @@ export default function CheckoutPageClient({
   const activeDiscount = step === "shipping" ? discountTotal() : (orderDiscount > 0 ? orderDiscount : checkoutDiscount);
 
   const handleChange = (field: keyof typeof form, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm((prev) => {
+      const updated = { ...prev, [field]: value };
+      
+      // Auto-set currency & translate cart items based on country selection
+      if (field === 'country') {
+        const nextCur = value.toLowerCase() === 'nepal' ? getActiveCurrency() : 'USD';
+        localStorage.setItem('currency_preference', nextCur);
+        useCartStore.getState().syncCurrency(nextCur);
+        window.dispatchEvent(new Event('currency_changed'));
+      }
+      
+      return updated;
+    });
   };
 
   const getImageUrl = (url?: string | null) => {
