@@ -4,6 +4,12 @@ export interface Discount {
   id?: string;
   type: 'percent' | 'fixed';
   value: number | '';
+  international_type?: 'percent' | 'fixed' | null;
+  international_value?: number | '' | null;
+  wholesale_type?: 'percent' | 'fixed' | null;
+  wholesale_value?: number | '' | null;
+  wholesale_international_type?: 'percent' | 'fixed' | null;
+  wholesale_international_value?: number | '' | null;
   starts_at: string;
   ends_at: string;
   is_active: boolean;
@@ -15,6 +21,7 @@ export interface ProductVariant {
   sku: string;
   retail_price: number;
   wholesale_price: number;
+  international_price?: number | '' | null;
   moq: number;
   stock: number;
   weight?: string | number | null;

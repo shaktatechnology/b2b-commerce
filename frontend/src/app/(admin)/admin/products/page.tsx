@@ -47,6 +47,7 @@ const initialVariant: ProductVariant = {
   sku: '',
   retail_price: 0,
   wholesale_price: 0,
+  international_price: '',
   moq: 1,
   stock: 0,
   weight: '',
@@ -70,7 +71,7 @@ const emptyForm = {
   size_id: '',
   weight: '',
   variants: [
-    { variant_name: 'Regular', sku: '', retail_price: 0, wholesale_price: 0, moq: 1, stock: 0, is_active: true }
+    { variant_name: 'Regular', sku: '', retail_price: 0, wholesale_price: 0, international_price: '' as any, moq: 1, stock: 0, is_active: true }
   ] as ProductVariant[],
   is_popular: false,
   is_top_selling: false,
@@ -264,9 +265,30 @@ export default function AdminProductsPage() {
           ...v,
           color_id: v.color_id || '',
           size_id: v.size_id || '',
-          discount: v.discounts?.[0] || null
+          international_price: v.international_price ?? '',
+          discount: v.discounts?.[0]
+            ? {
+                ...v.discounts[0],
+                international_type: v.discounts[0].international_type || null,
+                international_value: v.discounts[0].international_value ?? '',
+                wholesale_type: v.discounts[0].wholesale_type || null,
+                wholesale_value: v.discounts[0].wholesale_value ?? '',
+                wholesale_international_type: v.discounts[0].wholesale_international_type || null,
+                wholesale_international_value: v.discounts[0].wholesale_international_value ?? '',
+              }
+            : null,
         })),
-        discount: product.discounts?.[0] || null,
+        discount: product.discounts?.[0]
+          ? {
+              ...product.discounts[0],
+              international_type: product.discounts[0].international_type || null,
+              international_value: product.discounts[0].international_value ?? '',
+              wholesale_type: product.discounts[0].wholesale_type || null,
+              wholesale_value: product.discounts[0].wholesale_value ?? '',
+              wholesale_international_type: product.discounts[0].wholesale_international_type || null,
+              wholesale_international_value: product.discounts[0].wholesale_international_value ?? '',
+            }
+          : null,
         images: product.images || []
       });
     } else {
@@ -442,6 +464,21 @@ export default function AdminProductsPage() {
       if (formData.discount && formData.discount.type && formData.discount.value !== '' && formData.discount.starts_at && formData.discount.ends_at) {
         body.append('discount[type]', formData.discount.type);
         body.append('discount[value]', String(formData.discount.value));
+        // International discount
+        if (formData.discount.international_type && formData.discount.international_value !== '') {
+          body.append('discount[international_type]', formData.discount.international_type);
+          body.append('discount[international_value]', String(formData.discount.international_value));
+        }
+        // Wholesale discount
+        if (formData.discount.wholesale_type && formData.discount.wholesale_value !== '') {
+          body.append('discount[wholesale_type]', formData.discount.wholesale_type);
+          body.append('discount[wholesale_value]', String(formData.discount.wholesale_value));
+        }
+        // Wholesale + international discount
+        if (formData.discount.wholesale_international_type && formData.discount.wholesale_international_value !== '') {
+          body.append('discount[wholesale_international_type]', formData.discount.wholesale_international_type);
+          body.append('discount[wholesale_international_value]', String(formData.discount.wholesale_international_value));
+        }
         body.append('discount[starts_at]', formData.discount.starts_at);
         body.append('discount[ends_at]', formData.discount.ends_at);
         body.append('discount[is_active]', formData.discount.is_active ? '1' : '0');
@@ -456,6 +493,7 @@ export default function AdminProductsPage() {
         body.append(`variants[${i}][sku]`, v.sku);
         body.append(`variants[${i}][retail_price]`, String(v.retail_price));
         body.append(`variants[${i}][wholesale_price]`, String(v.wholesale_price));
+        body.append(`variants[${i}][international_price]`, String(v.international_price ?? ''));
         body.append(`variants[${i}][moq]`, String(v.moq));
         body.append(`variants[${i}][stock]`, String(v.stock));
         body.append(`variants[${i}][weight]`, String(v.weight || ''));
@@ -471,6 +509,21 @@ export default function AdminProductsPage() {
         if (v.discount && v.discount.type && v.discount.value !== '' && v.discount.starts_at && v.discount.ends_at) {
           body.append(`variants[${i}][discount][type]`, v.discount.type);
           body.append(`variants[${i}][discount][value]`, String(v.discount.value));
+          // International discount
+          if (v.discount.international_type && v.discount.international_value !== '') {
+            body.append(`variants[${i}][discount][international_type]`, v.discount.international_type);
+            body.append(`variants[${i}][discount][international_value]`, String(v.discount.international_value));
+          }
+          // Wholesale discount
+          if (v.discount.wholesale_type && v.discount.wholesale_value !== '') {
+            body.append(`variants[${i}][discount][wholesale_type]`, v.discount.wholesale_type);
+            body.append(`variants[${i}][discount][wholesale_value]`, String(v.discount.wholesale_value));
+          }
+          // Wholesale + international discount
+          if (v.discount.wholesale_international_type && v.discount.wholesale_international_value !== '') {
+            body.append(`variants[${i}][discount][wholesale_international_type]`, v.discount.wholesale_international_type);
+            body.append(`variants[${i}][discount][wholesale_international_value]`, String(v.discount.wholesale_international_value));
+          }
           body.append(`variants[${i}][discount][starts_at]`, v.discount.starts_at);
           body.append(`variants[${i}][discount][ends_at]`, v.discount.ends_at);
           body.append(`variants[${i}][discount][is_active]`, v.discount.is_active ? '1' : '0');
@@ -1407,8 +1460,9 @@ export default function AdminProductsPage() {
                       </div>
                       {formData.discount && (
                         <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
+                          {/* Retail (standard) */}
                           <div className="space-y-1">
-                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Retail Discount Type</span>
                             <Select
                               value={formData.discount.type}
                               onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, type: val } })}
@@ -1423,9 +1477,82 @@ export default function AdminProductsPage() {
                             </Select>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Retail Discount Value</span>
                             <Input type="number" min="0" value={formData.discount.value} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
                           </div>
+                          {/* International (USD Retail) */}
+                          <div className="col-span-2 border-t border-blue-100 pt-3">
+                            <span className="text-[10px] font-black uppercase text-blue-400">International (USD Retail) Discount</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Type</span>
+                            <Select
+                              value={formData.discount.international_type || ''}
+                              onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, international_type: val || null } })}
+                            >
+                              <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                <SelectValue placeholder="None" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="percent">Percentage (%)</SelectItem>
+                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Value</span>
+                            <Input type="number" min="0" value={formData.discount.international_value ?? ''} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, international_value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                          </div>
+                          {/* Wholesale (NPR Wholesale) */}
+                          <div className="col-span-2 border-t border-amber-100 pt-3">
+                            <span className="text-[10px] font-black uppercase text-amber-500">Wholesale (NPR) Discount</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Type</span>
+                            <Select
+                              value={formData.discount.wholesale_type || ''}
+                              onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, wholesale_type: val || null } })}
+                            >
+                              <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                <SelectValue placeholder="None" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="percent">Percentage (%)</SelectItem>
+                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Value</span>
+                            <Input type="number" min="0" value={formData.discount.wholesale_value ?? ''} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, wholesale_value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                          </div>
+                          {/* Wholesale International (USD Wholesale) */}
+                          <div className="col-span-2 border-t border-green-100 pt-3">
+                            <span className="text-[10px] font-black uppercase text-green-600">Wholesale International (USD) Discount</span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Type</span>
+                            <Select
+                              value={formData.discount.wholesale_international_type || ''}
+                              onValueChange={(val: any) => setFormData({ ...formData, discount: { ...formData.discount!, wholesale_international_type: val || null } })}
+                            >
+                              <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                <SelectValue placeholder="None" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                <SelectItem value="percent">Percentage (%)</SelectItem>
+                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase text-zinc-400">Value</span>
+                            <Input type="number" min="0" value={formData.discount.wholesale_international_value ?? ''} onChange={(e) => setFormData({ ...formData, discount: { ...formData.discount!, wholesale_international_value: e.target.value === '' ? '' : Number(e.target.value) } })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                          </div>
+                          {/* Dates */}
                           <div className="space-y-1">
                             <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
                             <DatePicker
@@ -1483,6 +1610,10 @@ export default function AdminProductsPage() {
                               <div className="space-y-1">
                                 <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price <span className="text-red-500">*</span></span>
                                 <Input type="number" step="0.01" min="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[10px] font-black uppercase text-zinc-400">Intl. Price (USD) <span className="text-blue-400">optional</span></span>
+                                <Input type="number" step="0.01" min="0" value={v.international_price ?? ''} placeholder="e.g. 25.00" onChange={(e) => updateVariant(i, 'international_price', e.target.value === '' ? '' : Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200 border-blue-200" />
                               </div>
                               <div className="space-y-1">
                                 <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock <span className="text-red-500">*</span></span>
@@ -1615,48 +1746,122 @@ export default function AdminProductsPage() {
                               </div>
                               {v.discount && (
                                 <div className="grid grid-cols-2 gap-4 p-4 bg-zinc-50/50 rounded-2xl border border-[#966FD6]/20 animate-in fade-in duration-200">
-                                  <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase text-zinc-400">Discount Type</span>
-                                    <Select
-                                      value={v.discount.type}
-                                      onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, type: val })}
-                                    >
-                                      <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
-                                        <SelectValue placeholder="Select type" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="percent">Percentage (%)</SelectItem>
-                                        <SelectItem value="fixed">Fixed Amount</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                  <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase text-zinc-400">Discount Value</span>
-                                    <Input type="number" min="0" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
-                                    <DatePicker
-                                      date={v.discount.starts_at ? new Date(v.discount.starts_at) : undefined}
-                                      setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' })}
-                                      placeholder="Start Date"
-                                    />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
-                                    <DatePicker
-                                      date={v.discount.ends_at ? new Date(v.discount.ends_at) : undefined}
-                                      setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' })}
-                                      placeholder="End Date"
-                                    />
-                                  </div>
-                                  <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                      <input type="checkbox" checked={v.discount.is_active} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, is_active: e.target.checked })} className="accent-[#966FD6] h-4 w-4" />
-                                      <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
-                                    </label>
-                                  </div>
+                                {/* Retail */}
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Retail Discount Type</span>
+                                  <Select
+                                    value={v.discount.type}
+                                    onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, type: val })}
+                                  >
+                                    <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                      <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="percent">Percentage (%)</SelectItem>
+                                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Retail Discount Value</span>
+                                  <Input type="number" min="0" value={v.discount.value} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                </div>
+                                {/* International */}
+                                <div className="col-span-2 border-t border-blue-100 pt-2">
+                                  <span className="text-[10px] font-black uppercase text-blue-400">International (USD Retail) Discount</span>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Type</span>
+                                  <Select
+                                    value={v.discount.international_type || ''}
+                                    onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, international_type: val || null })}
+                                  >
+                                    <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                      <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="percent">Percentage (%)</SelectItem>
+                                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Value</span>
+                                  <Input type="number" min="0" value={v.discount.international_value ?? ''} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, international_value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                </div>
+                                {/* Wholesale */}
+                                <div className="col-span-2 border-t border-amber-100 pt-2">
+                                  <span className="text-[10px] font-black uppercase text-amber-500">Wholesale (NPR) Discount</span>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Type</span>
+                                  <Select
+                                    value={v.discount.wholesale_type || ''}
+                                    onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, wholesale_type: val || null })}
+                                  >
+                                    <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                      <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="percent">Percentage (%)</SelectItem>
+                                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Value</span>
+                                  <Input type="number" min="0" value={v.discount.wholesale_value ?? ''} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, wholesale_value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                </div>
+                                {/* Wholesale International */}
+                                <div className="col-span-2 border-t border-green-100 pt-2">
+                                  <span className="text-[10px] font-black uppercase text-green-600">Wholesale International (USD) Discount</span>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Type</span>
+                                  <Select
+                                    value={v.discount.wholesale_international_type || ''}
+                                    onValueChange={(val: any) => updateVariant(i, 'discount', { ...v.discount!, wholesale_international_type: val || null })}
+                                  >
+                                    <SelectTrigger className="h-10 rounded-xl border-zinc-200 bg-white text-xs">
+                                      <SelectValue placeholder="None" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">None</SelectItem>
+                                      <SelectItem value="percent">Percentage (%)</SelectItem>
+                                      <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Value</span>
+                                  <Input type="number" min="0" value={v.discount.wholesale_international_value ?? ''} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, wholesale_international_value: e.target.value === '' ? '' : Number(e.target.value) })} className="h-10 rounded-xl bg-white border-zinc-200 text-xs" />
+                                </div>
+                                {/* Dates */}
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
+                                  <DatePicker
+                                    date={v.discount.starts_at ? new Date(v.discount.starts_at) : undefined}
+                                    setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' })}
+                                    placeholder="Start Date"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
+                                  <DatePicker
+                                    date={v.discount.ends_at ? new Date(v.discount.ends_at) : undefined}
+                                    setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' })}
+                                    placeholder="End Date"
+                                  />
+                                </div>
+                                <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={v.discount.is_active} onChange={(e) => updateVariant(i, 'discount', { ...v.discount!, is_active: e.target.checked })} className="accent-[#966FD6] h-4 w-4" />
+                                    <span className="text-[10px] font-black uppercase text-zinc-500">Discount Active</span>
+                                  </label>
+                                </div>
+                              </div>
                               )}
                             </div>
                             <div className="flex items-center justify-end border-t border-zinc-100 pt-4"><label className="flex items-center gap-2 cursor-pointer">

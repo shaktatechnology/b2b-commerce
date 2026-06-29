@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ShoppingCart, Star } from "lucide-react";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { toast } from "sonner";
-import { productToCartLineItem, getProductPath } from "@/src/lib/product-utils";
+import { productToCartLineItem, getProductPath, getActiveCurrency, formatPrice, calculateDiscountAmount } from "@/src/lib/product-utils";
 import { CartProductInput } from "@/src/types/cart";
 import { cn } from "@/src/lib/utils";
 import { getUserRole } from "@/src/lib/auth";
@@ -27,6 +27,7 @@ export interface DealProduct {
     id?: string;
     retail_price: number;
     wholesale_price?: number;
+    international_price?: number;
     moq?: number;
     stock?: number;
     image_url?: string;
@@ -104,21 +105,26 @@ function resolveProductImage(product: DealProduct): string {
   return "/placeholder.png";
 }
 
-function computePricing(product: DealProduct, isWholesaler: boolean = false) {
+function computePricing(product: DealProduct, isWholesaler: boolean = false, currency: string = 'NPR') {
   const variant = product.deal_variant_id && product.variants
     ? product.variants.find((x) => String(x.id) === String(product.deal_variant_id))
     : product.variants?.[0];
 
+  const isUSD = currency === 'USD';
   let basePrice = product.price;
 
   if (variant) {
-    basePrice = isWholesaler ? (variant.wholesale_price ?? variant.retail_price) : variant.retail_price;
+    basePrice = isUSD
+      ? (variant.international_price ?? variant.retail_price)
+      : (isWholesaler ? (variant.wholesale_price ?? variant.retail_price) : variant.retail_price);
   }
 
   if (basePrice == null) {
     const firstV = product.variants?.[0];
     if (firstV) {
-      basePrice = isWholesaler ? (firstV.wholesale_price ?? firstV.retail_price) : firstV.retail_price;
+      basePrice = isUSD
+        ? (firstV.international_price ?? firstV.retail_price)
+        : (isWholesaler ? (firstV.wholesale_price ?? firstV.retail_price) : firstV.retail_price);
     } else {
       basePrice = 0;
     }
@@ -127,8 +133,17 @@ function computePricing(product: DealProduct, isWholesaler: boolean = false) {
   const base = Number(basePrice || 0);
   let discountAmount = 0;
 
-  // Rule: Wholesalers do not get retail discounts
-  if (isWholesaler) {
+  if (isUSD) {
+    const dealV = product.deal_variant_id 
+      ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
+      : product.variants?.[0];
+
+    const active =
+      dealV?.discounts?.find((d) => d.is_active) ||
+      product.discounts?.find((d) => d.is_active);
+      
+    discountAmount = calculateDiscountAmount(base, active, isWholesaler, currency);
+  } else if (isWholesaler) {
     discountAmount = 0;
   } else if (product.deal_discount_value != null) {
     if (product.deal_discount_type === "percentage" || product.deal_discount_type === "percent") {
@@ -164,21 +179,43 @@ function computePricing(product: DealProduct, isWholesaler: boolean = false) {
 export default function DealOfTheDayCard({ product }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const [role, setRole] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
 
   useEffect(() => {
     setRole(getUserRole());
+    setCurrency(getActiveCurrency());
+
+    const handleCurrencyChange = () => {
+      setCurrency(getActiveCurrency());
+    };
+    window.addEventListener('currency_changed', handleCurrencyChange);
+    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
   }, []);
 
   const isWholesaler = role === "wholesaler" || role === "wholeseller";
-  const { basePrice, finalPrice, discountAmount, discountPct, hasDiscount } = computePricing(product, isWholesaler);
+  const { basePrice, finalPrice, discountAmount, discountPct, hasDiscount } = computePricing(product, isWholesaler, currency);
   const rating = product.reviews_count && product.reviews_count > 0
     ? Math.round(product.reviews_avg_rating ?? 0)
     : 0;
   const brandName = typeof product.brand === "string" ? product.brand : product.brand?.name || "";
 
+  const selectedVariant = product.deal_variant_id 
+    ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
+    : product.variants?.[0];
+    
+  const isUSD = currency === 'USD';
+  const isInternationalPriceMissing = isUSD && (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || Number(selectedVariant?.international_price) <= 0);
+  const isOutOfStock = (selectedVariant?.stock ?? 0) <= 0;
+  const isPurchaseDisabled = isOutOfStock || isInternationalPriceMissing;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (isUSD && isInternationalPriceMissing) {
+      toast.error("International pricing not available for this item.");
+      return;
+    }
 
     // Use the deal variant if available
     let variant = product.variants?.[0];
@@ -204,6 +241,7 @@ export default function DealOfTheDayCard({ product }: Props) {
         variantId: String(variant.id),
         seller: brandName || "Store",
         discount: discountAmount,
+        currency,
       }
     );
 
@@ -224,12 +262,6 @@ export default function DealOfTheDayCard({ product }: Props) {
   if (product.deal_variant_id) {
     productPath += `?variant=${product.deal_variant_id}`;
   }
-
-  const selectedVariant = product.deal_variant_id 
-    ? product.variants?.find(v => String(v.id) === String(product.deal_variant_id))
-    : product.variants?.[0];
-    
-  const isOutOfStock = (selectedVariant?.stock ?? 0) <= 0;
 
   return (
     <Link href={productPath} className="deal-card group block overflow-hidden rounded-2xl">
@@ -266,23 +298,29 @@ export default function DealOfTheDayCard({ product }: Props) {
           {brandName && <p className="deal-card__brand">By <span>{brandName}</span></p>}
 
           <div className="deal-card__footer mt-auto">
-            <div className="deal-card__price-wrap">
-              <span className="deal-card__price">Rs.{finalPrice.toLocaleString()}</span>
-              {hasDiscount && (
-                <div className="deal-card__discount-info">
-                  <span className="deal-card__discount-pct">{discountPct}% OFF</span>
-                  <span className="deal-card__original-price">Rs.{basePrice.toLocaleString()}</span>
-                </div>
+            <div className="deal-card__price-wrap flex flex-col">
+              {isInternationalPriceMissing ? (
+                <span className="text-[10px] uppercase font-bold text-destructive">Pricing unavailable</span>
+              ) : (
+                <>
+                  <span className="deal-card__price">{formatPrice(finalPrice, currency)}</span>
+                  {hasDiscount && (
+                    <div className="deal-card__discount-info">
+                      <span className="deal-card__discount-pct">{discountPct}% OFF</span>
+                      <span className="deal-card__original-price">{formatPrice(basePrice, currency)}</span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <button 
-              className={cn("deal-card__add-btn", isOutOfStock && "opacity-50 cursor-not-allowed bg-zinc-400")} 
+              className={cn("deal-card__add-btn", isPurchaseDisabled && "opacity-50 cursor-not-allowed bg-zinc-400")} 
               onClick={handleAddToCart} 
-              disabled={isOutOfStock}
-              title={isOutOfStock ? "Out of Stock" : "Add to cart"}
+              disabled={isPurchaseDisabled}
+              title={isOutOfStock ? "Out of Stock" : isInternationalPriceMissing ? "Pricing unavailable" : "Add to cart"}
             >
-              {isOutOfStock ? null : <ShoppingCart size={14} />}
-              {isOutOfStock ? "Out" : "Add"}
+              {isPurchaseDisabled ? null : <ShoppingCart size={14} />}
+              {isOutOfStock ? "Out" : isInternationalPriceMissing ? "N/A" : "Add"}
             </button>
           </div>
         </div>

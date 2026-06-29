@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { useAppStore } from "@/src/store/use-app-store";
-import { formatRs } from "@/src/lib/product-utils";
+import { formatRs, formatPrice } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
 import { syncCartToServer, checkoutOrder } from "@/src/lib/cart-api";
 import { initiatePayment } from "@/src/lib/payment-api";
@@ -58,6 +58,9 @@ export default function CheckoutPageClient({
     country: "Nepal",
     notes: "",
   });
+
+  const currency = form.country.toLowerCase() === 'nepal' ? 'NPR' : 'USD';
+  const formatCheckoutPrice = (amount: number) => formatPrice(amount, currency);
 
   const [isEditingAddress, setIsEditingAddress] = useState<boolean>(true);
 
@@ -182,6 +185,7 @@ export default function CheckoutPageClient({
           country: form.country.trim(),
         },
         notes: form.notes || undefined,
+        currency,
       });
 
       const order = res.data;
@@ -547,15 +551,15 @@ export default function CheckoutPageClient({
                       {item.name}
                     </h4>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">
-                      Qty: {item.quantity} × {formatRs(item.price)}
+                      Qty: {item.quantity} × {formatCheckoutPrice(item.price)}
                     </p>
                     {item.discount > 0 && (
                       <p className="text-xs text-green-600 font-medium">
-                        Discount: -{formatRs(item.discount)} each
+                        Discount: -{formatCheckoutPrice(item.discount)} each
                       </p>
                     )}
                     <p className="text-xs font-bold text-primary mt-1">
-                      Total: {formatRs((item.price - (item.discount ?? 0)) * item.quantity)}
+                      Total: {formatCheckoutPrice((item.price - (item.discount ?? 0)) * item.quantity)}
                     </p>
                   </div>
                 </div>
@@ -568,8 +572,8 @@ export default function CheckoutPageClient({
               <span>Total Gross:</span>
               <span>
                 {step === "payment" && orderSubtotal > 0
-                  ? formatRs(orderSubtotal)
-                  : formatRs(total)}
+                  ? formatCheckoutPrice(orderSubtotal)
+                  : formatCheckoutPrice(total)}
               </span>
             </div>
             
@@ -577,7 +581,7 @@ export default function CheckoutPageClient({
               <div className="flex justify-between text-sm text-green-600 font-medium">
                 <span>Discount:</span>
                 <span>
-                  - {formatRs(activeDiscount)}
+                  - {formatCheckoutPrice(activeDiscount)}
                 </span>
               </div>
             ) : null}
@@ -586,8 +590,8 @@ export default function CheckoutPageClient({
               <span>Amount to be Paid</span>
               <span>
                 {step === "payment" && orderTotal > 0
-                  ? formatRs(orderTotal)
-                  : formatRs(total - activeDiscount)}
+                  ? formatCheckoutPrice(orderTotal)
+                  : formatCheckoutPrice(total - activeDiscount)}
               </span>
             </div>
           </div>

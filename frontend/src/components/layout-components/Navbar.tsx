@@ -19,6 +19,7 @@ import { getSettingsByGroup } from '@/src/lib/settings';
 import { getAuthToken, logoutApi, fetchProfile } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
 import type { AuthUser } from '@/src/types';
+import { getActiveCurrency } from '@/src/lib/product-utils';
 
 const navItems = [
   { name: 'Home', href: '/' },
@@ -34,18 +35,31 @@ export function Navbar() {
   const [profileUser, setProfileUser] = React.useState<AuthUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [currency, setCurrency] = React.useState<'NPR' | 'USD'>('NPR');
 
   const pathname = usePathname();
   const router = useRouter();
   const storeUser = useAppStore((s) => s.user);
   const storeLogout = useAppStore((s) => s.logout);
 
-  // Fetch settings
+  // Fetch settings + currency preference
   React.useEffect(() => {
     getSettingsByGroup('general')
       .then((res) => setSettings(res.data))
       .catch((err) => console.error('Failed to fetch navbar settings:', err));
+
+    setCurrency(getActiveCurrency());
+    const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener('currency_changed', handleCurrencyChange);
+    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
   }, []);
+
+  const handleCurrencyToggle = () => {
+    const next = currency === 'NPR' ? 'USD' : 'NPR';
+    localStorage.setItem('currency_preference', next);
+    setCurrency(next);
+    window.dispatchEvent(new Event('currency_changed'));
+  };
 
   // Scroll handler
   React.useEffect(() => {
@@ -125,6 +139,17 @@ export function Navbar() {
 
         {/* Right section */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Currency Toggle */}
+          <button
+            id="currency-toggle-btn"
+            onClick={handleCurrencyToggle}
+            title={`Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border border-border hover:border-primary hover:text-primary transition-all duration-200"
+          >
+            {currency === 'NPR' ? 'Rs.' : '$'}
+            <span className="opacity-50">|</span>
+            {currency === 'NPR' ? '$' : 'Rs.'}
+          </button>
           <ThemeToggle />
 
           {/* --- Auth: Profile Dropdown or Login Button --- */}

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
-import { productToCartLineItem } from "@/src/lib/product-utils";
+import { productToCartLineItem, getActiveCurrency, formatPrice, calculateDiscountAmount, getDiscountDefinition } from "@/src/lib/product-utils";
 import { getUserRole } from "@/src/lib/auth";
 import type { StorefrontProduct } from "@/src/types/storefront";
 import type { CartProductInput } from "@/src/types/cart";
@@ -42,9 +42,17 @@ export default function ProductPurchasePanel({
 
   const [quantity, setQuantity] = useState(1);
   const [role, setRole] = useState<string | null>(null);
+  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
 
   useEffect(() => {
     setRole(getUserRole());
+    setCurrency(getActiveCurrency());
+
+    const handleCurrencyChange = () => {
+      setCurrency(getActiveCurrency());
+    };
+    window.addEventListener('currency_changed', handleCurrencyChange);
+    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
   }, []);
 
   const selectedVariant =
@@ -65,9 +73,14 @@ export default function ProductPurchasePanel({
     }
   }, [isWholesaler, selectedVariant]);
 
-  const rawBasePrice = isWholesaler
-    ? (selectedVariant?.wholesale_price ?? selectedVariant?.retail_price ?? 0)
-    : (selectedVariant?.retail_price ?? 0);
+  const isUSD = currency === 'USD';
+  const isInternationalPriceMissing = isUSD && (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || selectedVariant?.international_price === '');
+
+  const rawBasePrice = isUSD
+    ? (selectedVariant?.international_price ?? selectedVariant?.retail_price ?? 0)
+    : (isWholesaler
+      ? (selectedVariant?.wholesale_price ?? selectedVariant?.retail_price ?? 0)
+      : (selectedVariant?.retail_price ?? 0));
   const basePrice = parseFloat(String(rawBasePrice));
   
   // Calculate discount for all users (variant discount takes precedence over product discount)
@@ -79,26 +92,18 @@ export default function ProductPurchasePanel({
       activeDiscount = product.discounts.find(d => d.is_active);
   }
 
-  // Rule: Wholesalers do not get retail discounts
-  if (isWholesaler) {
-    activeDiscount = null;
-  }
+  const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
+  const price = basePrice - discountAmount;
+  const compareAt = discountAmount > 0 ? basePrice : 0;
 
-  let price = basePrice;
-  let compareAt = 0;
   let discountPct = 0;
-
-  if (activeDiscount) {
-      const discountValue = Number(activeDiscount.value);
-      if (activeDiscount.type === 'percent') {
-          price = basePrice - (basePrice * (discountValue / 100));
-          compareAt = basePrice;
-          discountPct = Math.round(discountValue);
-      } else if (activeDiscount.type === 'fixed') {
-          price = Math.max(0, basePrice - discountValue);
-          compareAt = basePrice;
-          discountPct = basePrice > 0 ? Math.round((discountValue / basePrice) * 100) : 0;
-      }
+  if (discountAmount > 0 && basePrice > 0) {
+    const def = getDiscountDefinition(activeDiscount, isWholesaler, currency);
+    if (def.type === 'percent') {
+      discountPct = Math.round(def.value ?? 0);
+    } else {
+      discountPct = Math.round((discountAmount / basePrice) * 100);
+    }
   }
 
   const cartInput: CartProductInput = {
@@ -114,7 +119,8 @@ export default function ProductPurchasePanel({
     productToCartLineItem(cartInput, {
       variantId: selectedVariant?.id,
       quantity,
-      discount: Math.max(0, basePrice - price),
+      discount: discountAmount,
+      currency,
     });
 
   const handleAddToCart = () => {

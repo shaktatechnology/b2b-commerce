@@ -26,6 +26,7 @@ export interface CheckoutPayload {
     country: string;
   };
   notes?: string;
+  currency?: string;
 }
 
 export interface PlacedOrder {

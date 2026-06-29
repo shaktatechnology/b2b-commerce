@@ -10,11 +10,18 @@ export interface CartLineItem {
   seller: string;
   moq?: number;
   stock?: number;
+  currency?: string;
 }
 
 export interface CartDiscount {
   type: 'percent' | 'fixed';
   value: number | '';
+  international_type?: 'percent' | 'fixed' | null;
+  international_value?: number | '' | null;
+  wholesale_type?: 'percent' | 'fixed' | null;
+  wholesale_value?: number | '' | null;
+  wholesale_international_type?: 'percent' | 'fixed' | null;
+  wholesale_international_value?: number | '' | null;
   is_active: boolean;
 }
 
@@ -34,6 +41,7 @@ export interface CartProductInput {
     id: string;
     retail_price: string | number;
     wholesale_price?: string | number;
+    international_price?: string | number;
     moq?: number;
     stock?: number;
     variant_name?: string;
