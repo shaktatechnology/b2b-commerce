@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\DailySalesReport;
+use App\Models\Discount;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -18,6 +19,8 @@ class AnalyticsService
     public function dashboardStatistics(): array
     {
         $now = now();
+        $today = $now->toDateString();
+        $currencyCounts = $this->currencyCounts();
 
         return [
             'total_revenue' => $this->revenue(),
@@ -25,8 +28,23 @@ class AnalyticsService
             'monthly_revenue' => $this->revenue($now->copy()->startOfMonth(), $now->copy()->endOfMonth()),
             'total_orders' => Order::count(),
             'pending_orders' => Order::where('status', 'pending')->count(),
+            'paid_orders' => Order::where('payment_status', 'paid')->count(),
             'completed_orders' => Order::where('status', 'delivered')->count(),
             'total_customers' => User::where('role', 'customer')->count(),
+            'settled_today' => Payment::where('status', 'completed')
+                ->whereDate('paid_at', $today)
+                ->count(),
+            'settled_today_amount' => $this->money(Payment::where('status', 'completed')
+                ->whereDate('paid_at', $today)
+                ->sum('amount')),
+            'pending_collections' => $this->money(Order::where('payment_status', 'unpaid')
+                ->where('status', '!=', 'cancelled')
+                ->sum('total')),
+            'total_discount_amount' => $this->money(Order::where('status', '!=', 'cancelled')->sum('discount_amount')),
+            'active_discounts' => $this->activeDiscountsQuery($now)->count(),
+            'discount_time_left' => $this->discountTimeLeft($now),
+            'npr_count' => $currencyCounts['NPR'],
+            'usd_count' => $currencyCounts['USD'],
             'top_selling_products' => $this->topSellingProducts(),
             'low_stock_products' => $this->lowStockProducts(),
         ];
@@ -176,6 +194,43 @@ class AnalyticsService
         }
 
         return $query;
+    }
+
+    private function activeDiscountsQuery(CarbonInterface $now): Builder
+    {
+        return Discount::query()
+            ->where('is_active', true)
+            ->where('starts_at', '<=', $now)
+            ->where('ends_at', '>=', $now);
+    }
+
+    private function discountTimeLeft(CarbonInterface $now): ?array
+    {
+        $discount = $this->activeDiscountsQuery($now)
+            ->orderBy('ends_at')
+            ->first();
+
+        if (! $discount) {
+            return null;
+        }
+
+        return [
+            'discount_id' => $discount->id,
+            'ends_at' => $discount->ends_at?->toISOString(),
+            'seconds_remaining' => max(0, (int) $now->diffInSeconds($discount->ends_at, false)),
+        ];
+    }
+
+    private function currencyCounts(): array
+    {
+        return [
+            'NPR' => Payment::where('status', 'completed')
+                ->where('gateway', 'esewa')
+                ->count(),
+            'USD' => Payment::where('status', 'completed')
+                ->where('gateway', 'paypal')
+                ->count(),
+        ];
     }
 
     private function asDate(CarbonInterface|string $date): Carbon
