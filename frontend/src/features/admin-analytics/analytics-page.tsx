@@ -55,10 +55,21 @@ import {
   Loader2,
   Calendar,
   AlertTriangle,
+  Users,
+  Activity,
+  Package,
+  UserCheck,
+  UserPlus,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Truck,
 } from 'lucide-react';
 import { fetchAllPaymentsAdmin } from '@/src/lib/payments-api';
 import { fetchDashboardStatistics } from '@/src/lib/dashboard-api';
+import { fetchAllOrdersAdmin } from '@/src/lib/orders-api';
 import type { Payment } from '@/src/types/payments';
+import type { Order } from '@/src/types/orders';
 import type { DashboardStatistics } from '@/src/types/dashboard';
 import * as XLSX from 'xlsx';
 
@@ -66,6 +77,7 @@ import * as XLSX from 'xlsx';
 
 type ViewMode = 'table' | 'line' | 'bar' | 'pie' | 'numbers';
 type PaymentMethodFilter = 'all' | 'cod' | 'paypal';
+type AnalyticsCategory = 'revenue' | 'users' | 'orders';
 
 interface MonthlyData {
   month: string;        // "Jan", "Feb", etc.
@@ -388,6 +400,8 @@ export function AnalyticsPage() {
   const [selectedYear, setSelectedYear] = React.useState(currentYear);
   const [methodFilter, setMethodFilter] = React.useState<PaymentMethodFilter>('all');
   const [viewMode, setViewMode] = React.useState<ViewMode>('table');
+  const [analyticsCategory, setAnalyticsCategory] = React.useState<AnalyticsCategory>('revenue');
+  const [allOrders, setAllOrders] = React.useState<Order[]>([]);
 
   // Available years from payment data
   const [availableYears, setAvailableYears] = React.useState<number[]>([currentYear]);
@@ -435,6 +449,23 @@ export function AnalyticsPage() {
       );
       setAvailableYears(sortedYears);
 
+      // Also fetch all orders for order/user analytics
+      try {
+        let allOrdersFetched: Order[] = [];
+        let oPage = 1;
+        let oHasMore = true;
+        while (oHasMore) {
+          const oRes = await fetchAllOrdersAdmin({ page: oPage });
+          allOrdersFetched = [...allOrdersFetched, ...oRes.orders];
+          oHasMore = oPage < oRes.lastPage;
+          oPage++;
+          if (oPage > 50) break;
+        }
+        setAllOrders(allOrdersFetched);
+      } catch {
+        // Non-critical
+      }
+
       // Also fetch dashboard stats for additional context
       try {
         const dashRes = await fetchDashboardStatistics();
@@ -460,6 +491,105 @@ export function AnalyticsPage() {
     () => aggregatePayments(payments, selectedYear, methodFilter),
     [payments, selectedYear, methodFilter]
   );
+
+  // Compute order analytics
+  const orderAnalytics = React.useMemo(() => {
+    const yearOrders = allOrders.filter(o => {
+      const d = new Date(o.created_at || '');
+      return d.getFullYear() === selectedYear;
+    });
+    const statusCounts: Record<string, number> = {};
+    const paymentStatusCounts: Record<string, number> = {};
+    const monthlyOrders = MONTH_NAMES.map((name, i) => ({ month: name, monthIndex: i, orders: 0, revenue: 0 }));
+    let totalRev = 0;
+
+    yearOrders.forEach(o => {
+      const s = o.status || 'unknown';
+      statusCounts[s] = (statusCounts[s] || 0) + 1;
+      const ps = o.payment_status || 'unknown';
+      paymentStatusCounts[ps] = (paymentStatusCounts[ps] || 0) + 1;
+      const dt = new Date(o.created_at || '');
+      const mi = dt.getMonth();
+      monthlyOrders[mi].orders += 1;
+      const amt = Number(o.total) || Number(o.total_amount) || 0;
+      monthlyOrders[mi].revenue += amt;
+      totalRev += amt;
+    });
+
+    return {
+      total: yearOrders.length,
+      totalRevenue: totalRev,
+      avgOrderValue: yearOrders.length > 0 ? totalRev / yearOrders.length : 0,
+      statusCounts,
+      paymentStatusCounts,
+      monthlyOrders,
+      retailOrders: yearOrders.filter(o => o.user_type === 'retail').length,
+      wholesaleOrders: yearOrders.filter(o => o.user_type === 'wholesale').length,
+    };
+  }, [allOrders, selectedYear]);
+
+  // Compute user analytics
+  const userAnalytics = React.useMemo(() => {
+    const yearOrders = allOrders.filter(o => {
+      const d = new Date(o.created_at || '');
+      return d.getFullYear() === selectedYear;
+    });
+    const uniqueUsers = new Map<string, { name: string; email: string; type: string; orderCount: number; totalSpent: number; firstOrder: string }>();
+    const monthlyNewUsers = MONTH_NAMES.map((name, i) => ({ month: name, monthIndex: i, newUsers: 0, activeUsers: 0 }));
+    const seenByMonth = MONTH_NAMES.map(() => new Set<string>());
+
+    yearOrders.forEach(o => {
+      const uid = o.user_id || o.user?.id || '';
+      if (!uid) return;
+      const amt = Number(o.total) || Number(o.total_amount) || 0;
+      const dt = new Date(o.created_at || '');
+      const mi = dt.getMonth();
+      seenByMonth[mi].add(uid);
+
+      if (uniqueUsers.has(uid)) {
+        const u = uniqueUsers.get(uid)!;
+        u.orderCount += 1;
+        u.totalSpent += amt;
+        if (o.created_at && o.created_at < u.firstOrder) u.firstOrder = o.created_at;
+      } else {
+        uniqueUsers.set(uid, {
+          name: o.user?.name || o.customer || 'Unknown',
+          email: o.user?.email || '',
+          type: o.user_type || 'retail',
+          orderCount: 1,
+          totalSpent: amt,
+          firstOrder: o.created_at || '',
+        });
+      }
+    });
+
+    // Track new users per month (first appearance)
+    const firstSeenMonth = new Map<string, number>();
+    yearOrders.sort((a, b) => new Date(a.created_at || '').getTime() - new Date(b.created_at || '').getTime()).forEach(o => {
+      const uid = o.user_id || o.user?.id || '';
+      if (!uid) return;
+      if (!firstSeenMonth.has(uid)) {
+        const mi = new Date(o.created_at || '').getMonth();
+        firstSeenMonth.set(uid, mi);
+        monthlyNewUsers[mi].newUsers += 1;
+      }
+    });
+    seenByMonth.forEach((s, i) => { monthlyNewUsers[i].activeUsers = s.size; });
+
+    const topCustomers = Array.from(uniqueUsers.values()).sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 10);
+    const retailUsers = Array.from(uniqueUsers.values()).filter(u => u.type === 'retail').length;
+    const wholesaleUsers = Array.from(uniqueUsers.values()).filter(u => u.type === 'wholesale').length;
+
+    return {
+      totalUniqueUsers: uniqueUsers.size,
+      retailUsers,
+      wholesaleUsers,
+      avgOrdersPerUser: uniqueUsers.size > 0 ? yearOrders.length / uniqueUsers.size : 0,
+      avgSpendPerUser: uniqueUsers.size > 0 ? Array.from(uniqueUsers.values()).reduce((s, u) => s + u.totalSpent, 0) / uniqueUsers.size : 0,
+      monthlyNewUsers,
+      topCustomers,
+    };
+  }, [allOrders, selectedYear]);
 
   const clearFilters = () => {
     setSelectedYear(currentYear);
@@ -532,6 +662,36 @@ export function AnalyticsPage() {
         </div>
       </PageHeader>
 
+      {/* ─── Analytics Category Tabs ──────────────────────────────────────── */}
+      <div className="flex items-center gap-1 bg-zinc-100/80 p-1.5 rounded-2xl w-fit">
+        {([
+          { key: 'revenue' as AnalyticsCategory, icon: DollarSign, label: 'Revenue', color: '#10B981' },
+          { key: 'users' as AnalyticsCategory, icon: Users, label: 'Users', color: '#966FD6' },
+          { key: 'orders' as AnalyticsCategory, icon: Package, label: 'Orders', color: '#3B82F6' },
+        ]).map(tab => {
+          const isActive = analyticsCategory === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setAnalyticsCategory(tab.key)}
+              className={`
+                inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-black tracking-wide transition-all duration-300
+                ${isActive
+                  ? 'bg-white text-zinc-900 shadow-lg shadow-black/5 scale-[1.02]'
+                  : 'text-zinc-500 hover:text-zinc-700 hover:bg-white/50'
+                }
+              `}
+            >
+              <tab.icon className="size-4" style={isActive ? { color: tab.color } : {}} />
+              {tab.label}
+              {isActive && (
+                <span className="ml-1 h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: tab.color }} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ─── Filters & View Mode Toolbar ────────────────────────────────────── */}
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
         {/* Filters */}
@@ -550,19 +710,21 @@ export function AnalyticsPage() {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <CreditCard className="size-4 text-zinc-400" />
-            <Select value={methodFilter} onValueChange={(v: any) => setMethodFilter(v)}>
-              <SelectTrigger className="w-[150px] h-11 rounded-xl border-zinc-200 bg-white font-bold text-zinc-600 focus:ring-[#966FD6]/30">
-                <SelectValue placeholder="Payment Method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="cod">COD Only</SelectItem>
-                <SelectItem value="paypal">PayPal Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {analyticsCategory === 'revenue' && (
+            <div className="flex items-center gap-2">
+              <CreditCard className="size-4 text-zinc-400" />
+              <Select value={methodFilter} onValueChange={(v: any) => setMethodFilter(v)}>
+                <SelectTrigger className="w-[150px] h-11 rounded-xl border-zinc-200 bg-white font-bold text-zinc-600 focus:ring-[#966FD6]/30">
+                  <SelectValue placeholder="Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="cod">COD Only</SelectItem>
+                  <SelectItem value="paypal">PayPal Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {hasActiveFilters && (
             <Button
@@ -586,6 +748,8 @@ export function AnalyticsPage() {
         </div>
       </div>
 
+      {/* ═══════════════════ REVENUE CATEGORY ═══════════════════ */}
+      {analyticsCategory === 'revenue' && (<>
       {/* ─── Summary Stats Strip ────────────────────────────────────────────── */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -994,6 +1158,285 @@ export function AnalyticsPage() {
           )}
         </>
       )}
+      </>)}
+
+      {/* ═══════════════════ USERS CATEGORY ═══════════════════ */}
+      {analyticsCategory === 'users' && (<>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-zinc-100 p-6">
+                <Skeleton className="h-3 w-24 mb-3" />
+                <Skeleton className="h-8 w-20 mb-4" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        ) : (<>
+          {/* User Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatNumberCard title="Unique Customers" value={formatNumber(userAnalytics.totalUniqueUsers)} subtitle={`${selectedYear} active buyers`} icon={Users} color="#966FD6" trend="up" />
+            <StatNumberCard title="Retail Users" value={formatNumber(userAnalytics.retailUsers)} subtitle={`${userAnalytics.totalUniqueUsers > 0 ? ((userAnalytics.retailUsers / userAnalytics.totalUniqueUsers) * 100).toFixed(0) : 0}% of total`} icon={UserCheck} color="#10B981" />
+            <StatNumberCard title="Wholesale Users" value={formatNumber(userAnalytics.wholesaleUsers)} subtitle={`${userAnalytics.totalUniqueUsers > 0 ? ((userAnalytics.wholesaleUsers / userAnalytics.totalUniqueUsers) * 100).toFixed(0) : 0}% of total`} icon={UserPlus} color="#3B82F6" />
+            <StatNumberCard title="Avg Orders/User" value={userAnalytics.avgOrdersPerUser.toFixed(1)} subtitle={`Avg spend: ${formatCurrency(userAnalytics.avgSpendPerUser)}`} icon={Activity} color="#F59E0B" />
+          </div>
+
+          {/* User Charts */}
+          {(viewMode === 'line' || viewMode === 'bar') && (
+            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                <CardTitle className="text-xl font-black text-black flex items-center gap-2">
+                  <Users className="size-5 text-[#966FD6]" />
+                  Customer Activity Trend
+                </CardTitle>
+                <CardDescription className="text-zinc-400 mt-1">{selectedYear} new & active customers by month</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 h-[500px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  {viewMode === 'line' ? (
+                    <LineChart data={userAnalytics.monthlyNewUsers}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: 20, fontSize: 13, fontWeight: 700 }} />
+                      <Line type="monotone" dataKey="activeUsers" name="Active Users" stroke="#966FD6" strokeWidth={3} dot={{ r: 5, fill: '#966FD6' }} activeDot={{ r: 7 }} />
+                      <Line type="monotone" dataKey="newUsers" name="New Users" stroke="#10B981" strokeWidth={2} dot={{ r: 4, fill: '#10B981' }} strokeDasharray="5 5" />
+                    </LineChart>
+                  ) : (
+                    <BarChart data={userAnalytics.monthlyNewUsers} barGap={4}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: 20, fontSize: 13, fontWeight: 700 }} />
+                      <Bar dataKey="activeUsers" name="Active Users" fill="#966FD6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="newUsers" name="New Users" fill="#10B981" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {viewMode === 'pie' && (
+            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                <CardTitle className="text-xl font-black text-black flex items-center gap-2"><PieChartIcon className="size-5 text-[#966FD6]" /> User Type Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 h-[420px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={[{ name: 'Retail', value: userAnalytics.retailUsers }, { name: 'Wholesale', value: userAnalytics.wholesaleUsers }].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
+                      <Cell fill="#10B981" />
+                      <Cell fill="#3B82F6" />
+                    </Pie>
+                    <Tooltip formatter={(value: number) => [value, 'Users']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} />
+                    <Legend wrapperStyle={{ fontSize: 13, fontWeight: 700, paddingTop: 10 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {(viewMode === 'table' || viewMode === 'numbers') && (
+            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                <CardTitle className="text-xl font-black text-black flex items-center gap-2"><Users className="size-5 text-[#966FD6]" /> Top Customers</CardTitle>
+                <CardDescription className="text-zinc-400 mt-1">{selectedYear} • By total spend</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table className="w-full">
+                    <TableHeader>
+                      <TableRow className="bg-zinc-50/30">
+                        <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">#</TableHead>
+                        <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">Customer</TableHead>
+                        <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#966FD6]">Type</TableHead>
+                        <TableHead className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-[#966FD6]">Orders</TableHead>
+                        <TableHead className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-[#966FD6]">Total Spent</TableHead>
+                        <TableHead className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-[#966FD6]">Avg Order</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {userAnalytics.topCustomers.length === 0 ? (
+                        <TableRow><TableCell colSpan={6} className="px-6 py-12 text-center text-zinc-400 font-bold">No customer data for {selectedYear}</TableCell></TableRow>
+                      ) : userAnalytics.topCustomers.map((c, i) => (
+                        <TableRow key={i} className="hover:bg-zinc-50/50 transition-colors">
+                          <TableCell className="px-6 py-5 font-black text-zinc-400">{i + 1}</TableCell>
+                          <TableCell className="px-6 py-5"><span className="font-bold text-zinc-900">{c.name}</span>{c.email && <span className="block text-xs text-zinc-400">{c.email}</span>}</TableCell>
+                          <TableCell className="px-6 py-5"><span className={`inline-flex px-3 py-1 rounded-full text-xs font-black ${c.type === 'wholesale' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'}`}>{c.type}</span></TableCell>
+                          <TableCell className="px-6 py-5 text-right font-bold text-zinc-600">{c.orderCount}</TableCell>
+                          <TableCell className="px-6 py-5 text-right font-black text-zinc-900">{formatCurrency(c.totalSpent)}</TableCell>
+                          <TableCell className="px-6 py-5 text-right font-bold text-zinc-500">{formatCurrency(c.orderCount > 0 ? c.totalSpent / c.orderCount : 0)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>)}
+      </>)}
+
+      {/* ═══════════════════ ORDERS CATEGORY ═══════════════════ */}
+      {analyticsCategory === 'orders' && (<>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-zinc-100 p-6">
+                <Skeleton className="h-3 w-24 mb-3" />
+                <Skeleton className="h-8 w-20 mb-4" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))}
+          </div>
+        ) : (<>
+          {/* Order Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatNumberCard title="Total Orders" value={formatNumber(orderAnalytics.total)} subtitle={`${selectedYear} orders placed`} icon={Package} color="#3B82F6" trend="up" />
+            <StatNumberCard title="Order Revenue" value={formatCurrency(orderAnalytics.totalRevenue)} subtitle={`Avg: ${formatCurrency(orderAnalytics.avgOrderValue)}`} icon={DollarSign} color="#10B981" />
+            <StatNumberCard title="Completed" value={formatNumber(orderAnalytics.statusCounts['delivered'] || 0)} subtitle={`${orderAnalytics.total > 0 ? (((orderAnalytics.statusCounts['delivered'] || 0) / orderAnalytics.total) * 100).toFixed(0) : 0}% completion rate`} icon={CheckCircle2} color="#10B981" trend="up" />
+            <StatNumberCard title="Pending" value={formatNumber((orderAnalytics.statusCounts['pending'] || 0) + (orderAnalytics.statusCounts['processing'] || 0) + (orderAnalytics.statusCounts['confirmed'] || 0))} subtitle="Awaiting fulfillment" icon={Clock} color="#F59E0B" />
+          </div>
+
+          {/* Order Status Breakdown */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { status: 'pending', label: 'Pending', icon: Clock, color: 'bg-amber-50 text-amber-700 border-amber-100' },
+              { status: 'confirmed', label: 'Confirmed', icon: CheckCircle2, color: 'bg-blue-50 text-blue-700 border-blue-100' },
+              { status: 'processing', label: 'Processing', icon: Activity, color: 'bg-purple-50 text-purple-700 border-purple-100' },
+              { status: 'shipped', label: 'Shipped', icon: Truck, color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+              { status: 'delivered', label: 'Delivered', icon: CheckCircle2, color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+              { status: 'cancelled', label: 'Cancelled', icon: XCircle, color: 'bg-red-50 text-red-700 border-red-100' },
+            ].map(s => (
+              <div key={s.status} className={`flex items-center gap-3 rounded-2xl border p-4 ${s.color} transition-all hover:shadow-md`}>
+                <s.icon className="size-5 shrink-0" />
+                <div>
+                  <p className="text-lg font-black">{orderAnalytics.statusCounts[s.status] || 0}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{s.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Order Charts */}
+          {(viewMode === 'line' || viewMode === 'bar') && (
+            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                <CardTitle className="text-xl font-black text-black flex items-center gap-2"><Package className="size-5 text-[#3B82F6]" /> Order Volume Trend</CardTitle>
+                <CardDescription className="text-zinc-400 mt-1">{selectedYear} monthly orders & revenue</CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 h-[500px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  {viewMode === 'line' ? (
+                    <LineChart data={orderAnalytics.monthlyOrders}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} dy={10} />
+                      <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
+                      <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: 20, fontSize: 13, fontWeight: 700 }} />
+                      <Line yAxisId="left" type="monotone" dataKey="orders" name="Orders" stroke="#3B82F6" strokeWidth={3} dot={{ r: 5, fill: '#3B82F6' }} activeDot={{ r: 7 }} />
+                      <Line yAxisId="right" type="monotone" dataKey="revenue" name="Revenue" stroke="#10B981" strokeWidth={2} dot={{ r: 4, fill: '#10B981' }} strokeDasharray="5 5" />
+                    </LineChart>
+                  ) : (
+                    <BarChart data={orderAnalytics.monthlyOrders} barGap={4}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#888' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend wrapperStyle={{ paddingTop: 20, fontSize: 13, fontWeight: 700 }} />
+                      <Bar dataKey="orders" name="Orders" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {viewMode === 'pie' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+                <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                  <CardTitle className="text-xl font-black text-black flex items-center gap-2"><PieChartIcon className="size-5 text-[#3B82F6]" /> Order Status</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={Object.entries(orderAnalytics.statusCounts).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })).filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
+                        {Object.entries(orderAnalytics.statusCounts).filter(([, v]) => v > 0).map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} />
+                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 700, paddingTop: 10 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+                <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                  <CardTitle className="text-xl font-black text-black flex items-center gap-2"><PieChartIcon className="size-5 text-[#3B82F6]" /> Payment Status</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 h-[420px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={Object.entries(orderAnalytics.paymentStatusCounts).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })).filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
+                        {Object.entries(orderAnalytics.paymentStatusCounts).filter(([, v]) => v > 0).map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[(i + 3) % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} />
+                      <Legend wrapperStyle={{ fontSize: 13, fontWeight: 700, paddingTop: 10 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {(viewMode === 'table' || viewMode === 'numbers') && (
+            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl overflow-hidden bg-white">
+              <CardHeader className="border-b border-zinc-50 px-6 py-5">
+                <CardTitle className="text-xl font-black text-black flex items-center gap-2"><TableIcon className="size-5 text-[#3B82F6]" /> Monthly Order Breakdown</CardTitle>
+                <CardDescription className="text-zinc-400 mt-1">{selectedYear} • All order statuses</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table className="w-full">
+                    <TableHeader>
+                      <TableRow className="bg-zinc-50/30">
+                        <TableHead className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-[#3B82F6]">Month</TableHead>
+                        <TableHead className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-[#3B82F6]">Orders</TableHead>
+                        <TableHead className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-[#3B82F6]">Revenue</TableHead>
+                        <TableHead className="px-6 py-4 text-right text-xs font-black uppercase tracking-widest text-zinc-500">Avg / Order</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orderAnalytics.monthlyOrders.map(m => (
+                        <TableRow key={m.month} className="hover:bg-zinc-50/50 transition-colors">
+                          <TableCell className="px-6 py-5 font-bold text-zinc-900">{m.month} {selectedYear}</TableCell>
+                          <TableCell className="px-6 py-5 text-right font-black text-zinc-900">{m.orders}</TableCell>
+                          <TableCell className="px-6 py-5 text-right font-bold text-zinc-600">{formatCurrency(m.revenue)}</TableCell>
+                          <TableCell className="px-6 py-5 text-right font-bold text-zinc-500">{m.orders > 0 ? formatCurrency(m.revenue / m.orders) : '–'}</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-[#3B82F6]/5 border-t-2 border-[#3B82F6]/20">
+                        <TableCell className="px-6 py-5 font-black text-[#3B82F6] text-sm uppercase tracking-wider">Total</TableCell>
+                        <TableCell className="px-6 py-5 text-right font-black text-[#3B82F6]">{orderAnalytics.total}</TableCell>
+                        <TableCell className="px-6 py-5 text-right font-black text-[#3B82F6]">{formatCurrency(orderAnalytics.totalRevenue)}</TableCell>
+                        <TableCell className="px-6 py-5 text-right font-black text-zinc-500">{formatCurrency(orderAnalytics.avgOrderValue)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </>)}
+      </>)}
 
       {/* ─── Print Styles ───────────────────────────────────────────────────── */}
       <style dangerouslySetInnerHTML={{ __html: `
