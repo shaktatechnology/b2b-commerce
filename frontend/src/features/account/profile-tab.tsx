@@ -115,7 +115,7 @@ export function ProfileTab({ user, onRefresh }: ProfileTabProps) {
           </CardContent>
         </Card>
 
-        {/* Security & Settings Card */}
+        {/* Security & Settings Card
         <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-3xl p-6 bg-white">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3 text-zinc-800">
@@ -146,7 +146,7 @@ export function ProfileTab({ user, onRefresh }: ProfileTabProps) {
               </div>
             )}
           </div>
-        </Card>
+        </Card> */}
       </div>
 
       {/* RIGHT COLUMN: Profile Information / Edit Form */}
