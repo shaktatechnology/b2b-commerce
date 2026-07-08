@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\Offer\OfferController;
 use App\Http\Controllers\Api\Discount\DiscountController;
 use App\Http\Controllers\Api\Cart\CartController;
 use App\Http\Controllers\Api\Order\OrderController;
+use App\Http\Controllers\Api\CouponController;
+use App\Http\Controllers\Admin\CouponController as AdminCouponController;
 use App\Http\Controllers\Api\Payment\PaymentController;
 use App\Http\Controllers\Api\Payment\PayPalController;
 use App\Http\Controllers\Api\Payment\EsewaController;
@@ -64,6 +66,7 @@ Route::get('/offers/{id}',          [OfferController::class, 'show']);
 // Discounts
 Route::get('/discounts',            [DiscountController::class, 'index']);
 Route::get('/discounts/{id}',       [DiscountController::class, 'show']);
+Route::post('/coupons/validate', [CouponController::class, 'validate']);
 
 // ── Authenticated Routes (auth:sanctum) ────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -162,6 +165,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/discounts',             [DiscountController::class, 'store']);
         Route::put('/discounts/{id}',         [DiscountController::class, 'update']);
         Route::delete('/discounts/{id}',      [DiscountController::class, 'destroy']);
+
+        // Coupons
+        Route::get('/coupons',                [AdminCouponController::class, 'index']);
+        Route::post('/coupons',               [AdminCouponController::class, 'store']);
+        Route::get('/coupons/{id}',           [AdminCouponController::class, 'show']);
+        Route::put('/coupons/{id}',           [AdminCouponController::class, 'update']);
+        Route::delete('/coupons/{id}',        [AdminCouponController::class, 'destroy']);
+        Route::patch('/coupons/{id}/status',  [AdminCouponController::class, 'status']);
+        Route::post('/coupons/generate-code', [AdminCouponController::class, 'generateCode']);
+        Route::get('/coupons/{id}/redemptions', [AdminCouponController::class, 'redemptions']);
 
         // Orders
         Route::get('/orders',                 [OrderController::class, 'adminIndex']);
