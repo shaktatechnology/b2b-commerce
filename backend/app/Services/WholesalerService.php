@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Interfaces\WholesalerServiceInterface;
 use App\Interfaces\UserRepositoryInterface;
+use App\Notifications\WholesalerStatusNotification;
 
 class WholesalerService implements WholesalerServiceInterface
 {
@@ -26,11 +27,25 @@ class WholesalerService implements WholesalerServiceInterface
 
     public function approveWholesaler(string $id)
     {
-        return $this->userRepository->update($id, ['wholeseller_status' => 'approved']);
+        $user = $this->userRepository->update($id, [
+            'wholeseller_status' => 'approved',
+            'is_verified' => true
+        ]);
+
+        $user->notify(new WholesalerStatusNotification('approved'));
+
+        return $user;
     }
 
     public function rejectWholesaler(string $id)
     {
-        return $this->userRepository->update($id, ['wholeseller_status' => 'rejected']);
+        $user = $this->userRepository->update($id, [
+            'wholeseller_status' => 'rejected',
+            'is_verified' => false
+        ]);
+
+        $user->notify(new WholesalerStatusNotification('rejected'));
+
+        return $user;
     }
 }

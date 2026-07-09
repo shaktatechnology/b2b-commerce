@@ -52,11 +52,12 @@ class WholesalerController extends Controller
      */
     public function approve(string $id): JsonResponse
     {
-        $this->wholesalerService->approveWholesaler($id);
+        $user = $this->wholesalerService->approveWholesaler($id);
 
         return response()->json([
             'success' => true,
             'message' => 'Wholesaler approved successfully',
+            'data' => $user,
         ]);
     }
 
@@ -65,11 +66,12 @@ class WholesalerController extends Controller
      */
     public function reject(string $id): JsonResponse
     {
-        $this->wholesalerService->rejectWholesaler($id);
+        $user = $this->wholesalerService->rejectWholesaler($id);
 
         return response()->json([
             'success' => true,
             'message' => 'Wholesaler rejected successfully',
+            'data' => $user,
         ]);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
+use App\Notifications\WelcomeNotification;
 
 class AuthService implements AuthServiceInterface
 {
@@ -25,6 +26,10 @@ class AuthService implements AuthServiceInterface
         $data['password'] = Hash::make($data['password']);
         $user = $this->userRepository->create($data);
         $user->refresh();
+
+        // Send welcome email (logs it)
+        $user->notify(new WelcomeNotification($user));
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return [

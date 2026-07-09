@@ -105,6 +105,7 @@ export default async function HomePage() {
         metaDescription={settingsData?.data?.general?.meta_description || ""}
         socialLinks={settingsData?.data?.social || []}
         categories={categoryData?.data || []}
+        site_name={settingsData?.data?.general?.site_name || ""}
       />
     </div>
   );

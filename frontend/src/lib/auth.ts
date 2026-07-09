@@ -70,6 +70,25 @@ export async function fetchProfile(token: string): Promise<AuthUser> {
   return res.data;
 }
 
+export async function forgotPasswordApi(email: string): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPasswordApi(payload: {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function updateProfile(payload: {
   name: string;
   email: string;

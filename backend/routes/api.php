@@ -31,10 +31,8 @@ Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
 Route::get('/reset-password/{token}', function ($token) {
-    return response()->json([
-        'message' => 'Please reset password via frontend',
-        'token' => $token,
-    ]);
+    $frontendUrl = config('app.frontend_url');
+    return redirect("{$frontendUrl}/reset-password/{$token}");
 })->name('password.reset');
 
 // ── Public Read-only APIs ──────────────────────────────────────────────────
