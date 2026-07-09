@@ -63,7 +63,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, string $currency = 'NPR', ?string $couponCode = null): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -228,30 +228,11 @@ class OrderService implements OrderServiceInterface
                     throw new \Exception("Insufficient stock for '{$variant->variant_name}'. Only {$variant->stock} left.");
                 }
 
-                $unitPrice = ($userType === 'wholesale') ? $variant->wholesale_price : $variant->retail_price;
-
-                // Find active discount
-                $now      = now();
-                $discount = Discount::where('is_active', true)
-                    ->where('starts_at', '<=', $now)
-                    ->where('ends_at', '>=', $now)
-                    ->where(function ($q) use ($variant) {
-                        $q->where('variant_id', $variant->id)
-                          ->orWhere(function ($q2) use ($variant) {
-                              $q2->where('product_id', $variant->product_id)
-                                 ->whereNull('variant_id');
-                          });
-                    })
-                    ->orderBy('variant_id', 'desc')
-                    ->first();
-
-                $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
-                    $unitDiscount = $discount->type === 'percent'
-                        ? round($unitPrice * ($discount->value / 100), 2)
-                        : $discount->value;
-                    $unitDiscount = min($unitDiscount, $unitPrice);
-                }
+                $unitPrice = $this->unitPriceFor($variant, $userType, $currency);
+                $discount = $this->activeDiscountFor($variant);
+                $unitDiscount = $discount
+                    ? $discount->calculateAmountFor($unitPrice, $userType, $currency)
+                    : 0.00;
 
                 $lineTotal = ($unitPrice - $unitDiscount) * $item['quantity'];
 
@@ -334,5 +315,60 @@ class OrderService implements OrderServiceInterface
 
             return $order;
         });
+    }
+
+    private function orderUserType(User $user): string
+    {
+        return $this->isApprovedWholesaler($user) ? 'wholesale' : 'retail';
+    }
+
+    private function isApprovedWholesaler(User $user): bool
+    {
+        return ($user->role === 'wholesaler' || $user->role === 'wholeseller')
+            && $user->wholeseller_status === 'approved';
+    }
+
+    private function normalizeCurrency(string $currency): string
+    {
+        return strtoupper($currency) === 'USD' ? 'USD' : 'NPR';
+    }
+
+    private function unitPriceFor(ProductVariant $variant, string $userType, string $currency): float
+    {
+        if ($currency === 'USD') {
+            if ($userType === 'wholesale') {
+                $price = $variant->international_wholesale_price ?? $variant->international_price;
+            } else {
+                $price = $variant->international_price;
+            }
+
+            if ($price === null || $price === '') {
+                throw new \Exception("International price is unavailable for '{$variant->variant_name}'.");
+            }
+
+            return (float) $price;
+        }
+
+        return (float) ($userType === 'wholesale'
+            ? $variant->wholesale_price
+            : $variant->retail_price);
+    }
+
+    private function activeDiscountFor(ProductVariant $variant): ?Discount
+    {
+        $now = now();
+
+        return Discount::where('is_active', true)
+            ->where('starts_at', '<=', $now)
+            ->where('ends_at', '>=', $now)
+            ->where(function ($q) use ($variant) {
+                $q->where('variant_id', $variant->id)
+                    ->orWhere(function ($q2) use ($variant) {
+                        $q2->where('product_id', $variant->product_id)
+                            ->whereNull('variant_id');
+                    });
+            })
+            ->orderBy('variant_id', 'desc')
+            ->first();
     }
 }

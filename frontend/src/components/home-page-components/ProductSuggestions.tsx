@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { TrendingUp, Star, Clock, ShoppingBag, ChevronRight } from 'lucide-react';
 
 import { resolveProductImageUrl, getProductPath, productToCartLineItem, getActiveCurrency, formatPrice } from '@/src/lib/product-utils';
+import { getUserRole } from '@/src/lib/auth';
 import type { StorefrontProduct } from '@/src/types/storefront';
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
@@ -13,7 +14,12 @@ function SuggestionCard({ product, currency }: { product: StorefrontProduct; cur
   const activeVariant = (product as any).variants?.[0];
 
   // If USD and no international price — don't render this product
-  const intlPrice = activeVariant?.international_price;
+  const role = getUserRole();
+  const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
+  const intlPrice = isWholesaler
+    ? (activeVariant?.international_wholesale_price ?? activeVariant?.international_price)
+    : activeVariant?.international_price;
+
   const isInternationalPriceMissing =
     currency === 'USD' &&
     (intlPrice === undefined || intlPrice === null || intlPrice === '' || Number(intlPrice) <= 0);

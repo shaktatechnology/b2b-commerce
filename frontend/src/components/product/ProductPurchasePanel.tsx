@@ -74,10 +74,17 @@ export default function ProductPurchasePanel({
   }, [isWholesaler, selectedVariant]);
 
   const isUSD = currency === 'USD';
-  const isInternationalPriceMissing = isUSD && (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || selectedVariant?.international_price === '');
+  const isInternationalPriceMissing = isUSD && (
+    isWholesaler
+      ? (selectedVariant?.international_wholesale_price === undefined || selectedVariant?.international_wholesale_price === null || selectedVariant?.international_wholesale_price === '') &&
+        (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || selectedVariant?.international_price === '')
+      : (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || selectedVariant?.international_price === '')
+  );
 
   const rawBasePrice = isUSD
-    ? (selectedVariant?.international_price ?? selectedVariant?.retail_price ?? 0)
+    ? (isWholesaler
+      ? (selectedVariant?.international_wholesale_price ?? selectedVariant?.international_price ?? selectedVariant?.retail_price ?? 0)
+      : (selectedVariant?.international_price ?? selectedVariant?.retail_price ?? 0))
     : (isWholesaler
       ? (selectedVariant?.wholesale_price ?? selectedVariant?.retail_price ?? 0)
       : (selectedVariant?.retail_price ?? 0));

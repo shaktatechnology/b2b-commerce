@@ -119,6 +119,7 @@ class CatalogTest extends TestCase
                     'retail_price' => 2.50,
                     'wholesale_price' => 1.80,
                     'international_price' => 3.25,
+                    'international_wholesale_price' => 2.50,
                     'moq' => 10,
                     'stock' => 100,
                 ],
@@ -140,9 +141,11 @@ class CatalogTest extends TestCase
 
         $this->assertDatabaseHas('products', ['name' => 'Premium Potato Chips']);
         $response->assertJsonPath('data.variants.0.international_price', '3.25');
+        $response->assertJsonPath('data.variants.0.international_wholesale_price', '2.50');
         $this->assertDatabaseHas('product_variants', [
             'sku' => 'CHIPS-100G',
             'international_price' => 3.25,
+            'international_wholesale_price' => 2.50,
         ]);
         $this->assertDatabaseHas('product_variants', ['sku' => 'CHIPS-250G']);
     }
@@ -169,15 +172,18 @@ class CatalogTest extends TestCase
                     'retail_price' => 2.20,
                     'wholesale_price' => 1.60,
                     'international_price' => 2.80,
+                    'international_wholesale_price' => 2.10,
                 ]
             ]
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonPath('data.variants.0.international_price', '2.80');
+            ->assertJsonPath('data.variants.0.international_price', '2.80')
+            ->assertJsonPath('data.variants.0.international_wholesale_price', '2.10');
         $this->assertDatabaseHas('product_variants', [
             'id' => $variant->id,
             'international_price' => 2.80,
+            'international_wholesale_price' => 2.10,
         ]);
 
         // Trying to create or update another variant with an already taken SKU should fail

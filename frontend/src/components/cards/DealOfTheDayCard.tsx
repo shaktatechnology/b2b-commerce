@@ -28,6 +28,7 @@ export interface DealProduct {
     retail_price: number;
     wholesale_price?: number;
     international_price?: number;
+    international_wholesale_price?: number;
     moq?: number;
     stock?: number;
     image_url?: string;
@@ -115,7 +116,7 @@ function computePricing(product: DealProduct, isWholesaler: boolean = false, cur
 
   if (variant) {
     basePrice = isUSD
-      ? (variant.international_price ?? variant.retail_price)
+      ? (isWholesaler ? (variant.international_wholesale_price ?? variant.international_price ?? variant.retail_price) : (variant.international_price ?? variant.retail_price))
       : (isWholesaler ? (variant.wholesale_price ?? variant.retail_price) : variant.retail_price);
   }
 
@@ -123,7 +124,7 @@ function computePricing(product: DealProduct, isWholesaler: boolean = false, cur
     const firstV = product.variants?.[0];
     if (firstV) {
       basePrice = isUSD
-        ? (firstV.international_price ?? firstV.retail_price)
+        ? (isWholesaler ? (firstV.international_wholesale_price ?? firstV.international_price ?? firstV.retail_price) : (firstV.international_price ?? firstV.retail_price))
         : (isWholesaler ? (firstV.wholesale_price ?? firstV.retail_price) : firstV.retail_price);
     } else {
       basePrice = 0;
@@ -204,7 +205,12 @@ export default function DealOfTheDayCard({ product }: Props) {
     : product.variants?.[0];
 
   const isUSD = currency === 'USD';
-  const isInternationalPriceMissing = isUSD && (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || Number(selectedVariant?.international_price) <= 0);
+  const isInternationalPriceMissing = isUSD && (
+    isWholesaler
+      ? (selectedVariant?.international_wholesale_price === undefined || selectedVariant?.international_wholesale_price === null || Number(selectedVariant?.international_wholesale_price) <= 0) &&
+        (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || Number(selectedVariant?.international_price) <= 0)
+      : (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || Number(selectedVariant?.international_price) <= 0)
+  );
   const isOutOfStock = (selectedVariant?.stock ?? 0) <= 0;
   const isPurchaseDisabled = isOutOfStock || isInternationalPriceMissing;
 

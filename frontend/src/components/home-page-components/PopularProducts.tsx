@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { ChevronRight, ChevronLeft, ShoppingBag } from "lucide-react";
 import ProductCard from "../cards/ProductCard";
 import type { CartProductInput } from "@/src/types/cart";
+import { getUserRole } from "@/src/lib/auth";
 
 interface Category {
   id: string;
@@ -42,13 +43,15 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   }, []);
 
   // Pre-filter: if USD is active, only show products that have international_price set
+  const role = getUserRole();
+  const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
   const visibleProducts = currency === 'USD'
     ? products.filter((p) =>
         p.variants?.some((v) =>
-          v.international_price !== undefined &&
-          v.international_price !== null &&
-          v.international_price !== '' &&
-          Number(v.international_price) > 0
+          isWholesaler
+            ? ((v.international_wholesale_price !== undefined && v.international_wholesale_price !== null && v.international_wholesale_price !== '' && Number(v.international_wholesale_price) > 0) ||
+               (v.international_price !== undefined && v.international_price !== null && v.international_price !== '' && Number(v.international_price) > 0))
+            : (v.international_price !== undefined && v.international_price !== null && v.international_price !== '' && Number(v.international_price) > 0)
         )
       )
     : products;

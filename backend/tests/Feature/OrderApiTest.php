@@ -458,4 +458,40 @@ class OrderApiTest extends TestCase
             'payment_status' => 'paid',
         ]);
     }
+
+    /** @test */
+    public function international_approved_wholesaler_checkout_uses_international_wholesale_price()
+    {
+        $this->variant1->update([
+            'international_wholesale_price' => 95.00,
+        ]);
+
+        $cart = Cart::create(['user_id' => $this->wholesaler->id]);
+        $cart->items()->create(['variant_id' => $this->variant1->id, 'quantity' => 1]);
+
+        $response = $this->actingAs($this->wholesaler, 'sanctum')->postJson('/api/orders', [
+            'currency' => 'USD',
+            'shipping_address' => [
+                'street' => 'Wholesale Global',
+                'city' => 'Chicago',
+                'state' => 'IL',
+                'zip' => '60601',
+                'country' => 'USA',
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.user_type', 'wholesale')
+            ->assertJsonPath('data.currency', 'USD')
+            ->assertJsonPath('data.subtotal', '95.00')
+            ->assertJsonPath('data.total', '95.00');
+
+        $order = Order::first();
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'variant_id' => $this->variant1->id,
+            'unit_price' => 95.00,
+            'line_total' => 95.00,
+        ]);
+    }
 }

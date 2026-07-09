@@ -51,6 +51,7 @@ export interface CartProductInput {
     retail_price: string | number;
     wholesale_price?: string | number;
     international_price?: string | number;
+    international_wholesale_price?: string | number;
     moq?: number;
     stock?: number;
     variant_name?: string;

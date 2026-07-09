@@ -992,7 +992,7 @@ export function AnalyticsPage() {
                         outerRadius={140}
                         paddingAngle={3}
                         dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                         labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
                       >
                         <Cell fill={CHART_COLORS.cod} />
@@ -1000,7 +1000,7 @@ export function AnalyticsPage() {
                         {aggregated.otherRevenue > 0 && <Cell fill={CHART_COLORS.other} />}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => [`Rs ${value.toLocaleString()}`, 'Revenue']}
+                        formatter={(value: any) => [`Rs ${(Number(value) || 0).toLocaleString()}`, 'Revenue']}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}
                       />
                       <Legend wrapperStyle={{ fontSize: 13, fontWeight: 700, paddingTop: 10 }} />
@@ -1030,7 +1030,7 @@ export function AnalyticsPage() {
                         paddingAngle={2}
                         dataKey="revenue"
                         nameKey="month"
-                        label={({ month, percent }) => `${month} ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                         labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
                       >
                         {aggregated.monthlyData.filter(m => m.revenue > 0).map((_, i) => (
@@ -1038,7 +1038,7 @@ export function AnalyticsPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => [`Rs ${value.toLocaleString()}`, 'Revenue']}
+                        formatter={(value: any) => [`Rs ${(Number(value) || 0).toLocaleString()}`, 'Revenue']}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}
                       />
                       <Legend wrapperStyle={{ fontSize: 13, fontWeight: 700, paddingTop: 10 }} />

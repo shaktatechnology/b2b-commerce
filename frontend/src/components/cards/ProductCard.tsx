@@ -46,7 +46,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Choose the correct base price depending on user type + currency
   const rawBase = isUSD
-    ? (activeVariant?.international_price ?? activeVariant?.retail_price ?? 0)
+    ? (isWholesaler
+      ? (activeVariant?.international_wholesale_price ?? activeVariant?.international_price ?? activeVariant?.retail_price ?? 0)
+      : (activeVariant?.international_price ?? activeVariant?.retail_price ?? 0))
     : isWholesaler
       ? (activeVariant?.wholesale_price ?? activeVariant?.retail_price ?? 0)
       : (activeVariant?.retail_price ?? 0);
@@ -55,10 +57,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
   // International price missing guard
   const isInternationalPriceMissing =
     isUSD &&
-    (activeVariant?.international_price === undefined ||
-      activeVariant?.international_price === null ||
-      activeVariant?.international_price === "" ||
-      Number(activeVariant?.international_price) <= 0);
+    (isWholesaler
+      ? (activeVariant?.international_wholesale_price === undefined ||
+        activeVariant?.international_wholesale_price === null ||
+        activeVariant?.international_wholesale_price === "" ||
+        Number(activeVariant?.international_wholesale_price) <= 0) &&
+        (activeVariant?.international_price === undefined ||
+        activeVariant?.international_price === null ||
+        activeVariant?.international_price === "" ||
+        Number(activeVariant?.international_price) <= 0)
+      : (activeVariant?.international_price === undefined ||
+        activeVariant?.international_price === null ||
+        activeVariant?.international_price === "" ||
+        Number(activeVariant?.international_price) <= 0));
 
   // Discount calculation
   const activeDiscount =

@@ -53,6 +53,7 @@ const initialVariant: ProductVariant = {
   retail_price: 0,
   wholesale_price: 0,
   international_price: '',
+  international_wholesale_price: '',
   moq: 1,
   stock: 0,
   weight: '',
@@ -76,7 +77,7 @@ const emptyForm = {
   size_id: '',
   weight: '',
   variants: [
-    { variant_name: 'Regular', sku: '', retail_price: 0, wholesale_price: 0, international_price: '' as any, moq: 1, stock: 0, is_active: true }
+    { variant_name: 'Regular', sku: '', retail_price: 0, wholesale_price: 0, international_price: '' as any, international_wholesale_price: '' as any, moq: 1, stock: 0, is_active: true }
   ] as ProductVariant[],
   is_popular: false,
   is_top_selling: false,
@@ -271,6 +272,7 @@ export default function AdminProductsPage() {
           color_id: v.color_id || '',
           size_id: v.size_id || '',
           international_price: v.international_price ?? '',
+          international_wholesale_price: v.international_wholesale_price ?? '',
           discount: v.discounts?.[0]
             ? {
                 ...v.discounts[0],
@@ -499,6 +501,7 @@ export default function AdminProductsPage() {
         body.append(`variants[${i}][retail_price]`, String(v.retail_price));
         body.append(`variants[${i}][wholesale_price]`, String(v.wholesale_price));
         body.append(`variants[${i}][international_price]`, String(v.international_price ?? ''));
+        body.append(`variants[${i}][international_wholesale_price]`, String(v.international_wholesale_price ?? ''));
         body.append(`variants[${i}][moq]`, String(v.moq));
         body.append(`variants[${i}][stock]`, String(v.stock));
         body.append(`variants[${i}][weight]`, String(v.weight || ''));
@@ -1616,10 +1619,14 @@ export default function AdminProductsPage() {
                                 <span className="text-[10px] font-black uppercase text-zinc-400">Wholesale Price <span className="text-red-500">*</span></span>
                                 <Input type="number" step="0.01" min="0.01" value={v.wholesale_price} onChange={(e) => updateVariant(i, 'wholesale_price', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />
                               </div>
-                              <div className="space-y-1">
-                                <span className="text-[10px] font-black uppercase text-zinc-400">Intl. Price (USD) <span className="text-blue-400">optional</span></span>
-                                <Input type="number" step="0.01" min="0" value={v.international_price ?? ''} placeholder="e.g. 25.00" onChange={(e) => updateVariant(i, 'international_price', e.target.value === '' ? '' : Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200 border-blue-200" />
-                              </div>
+                               <div className="space-y-1">
+                                 <span className="text-[10px] font-black uppercase text-zinc-400">Intl. Price (USD) <span className="text-blue-400">optional</span></span>
+                                 <Input type="number" step="0.01" min="0" value={v.international_price ?? ''} placeholder="e.g. 25.00" onChange={(e) => updateVariant(i, 'international_price', e.target.value === '' ? '' : Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200 border-blue-200" />
+                               </div>
+                               <div className="space-y-1">
+                                 <span className="text-[10px] font-black uppercase text-zinc-400">Intl. Wholesale Price (USD) <span className="text-blue-400">optional</span></span>
+                                 <Input type="number" step="0.01" min="0" value={v.international_wholesale_price ?? ''} placeholder="e.g. 20.00" onChange={(e) => updateVariant(i, 'international_wholesale_price', e.target.value === '' ? '' : Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200 border-blue-200" />
+                               </div>
                               <div className="space-y-1">
                                 <span className="text-[10px] font-black uppercase text-zinc-400">Inventory Stock <span className="text-red-500">*</span></span>
                                 <Input type="number" value={v.stock} onChange={(e) => updateVariant(i, 'stock', Number(e.target.value))} className="h-10 rounded-xl bg-white border-zinc-200" required />

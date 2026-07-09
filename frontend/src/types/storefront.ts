@@ -14,6 +14,7 @@ export interface StorefrontProductVariant {
   retail_price: string | number;
   wholesale_price?: string | number;
   international_price?: string | number;
+  international_wholesale_price?: string | number;
   stock?: number;
   weight?: string | number;
   image_url?: string | null;

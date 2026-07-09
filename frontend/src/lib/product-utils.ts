@@ -131,7 +131,9 @@ export function productToCartLineItem(
   const isUSD = currency.toUpperCase() === 'USD';
 
   const rawPrice = isUSD
-    ? (variant.international_price ?? variant.retail_price ?? 0)
+    ? (isWholesaler
+      ? ((variant as any).international_wholesale_price ?? variant.international_price ?? variant.retail_price ?? 0)
+      : (variant.international_price ?? variant.retail_price ?? 0))
     : (isWholesaler
       ? (variant.wholesale_price ?? variant.retail_price ?? 0)
       : (variant.retail_price ?? 0));
@@ -158,7 +160,9 @@ export function productToCartLineItem(
   const basePriceNpr = parseFloat(String(rawPriceNpr));
   const discountNpr = calculateDiscountAmount(basePriceNpr, activeDiscount, isWholesaler, 'NPR');
 
-  const rawPriceUsd = variant.international_price ?? 0;
+  const rawPriceUsd = isWholesaler
+    ? ((variant as any).international_wholesale_price ?? variant.international_price ?? 0)
+    : (variant.international_price ?? 0);
   const basePriceUsd = parseFloat(String(rawPriceUsd));
   const discountUsd = calculateDiscountAmount(basePriceUsd, activeDiscount, isWholesaler, 'USD');
 

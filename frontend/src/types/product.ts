@@ -22,6 +22,7 @@ export interface ProductVariant {
   retail_price: number;
   wholesale_price: number;
   international_price?: number | '' | null;
+  international_wholesale_price?: number | '' | null;
   moq: number;
   stock: number;
   weight?: string | number | null;
