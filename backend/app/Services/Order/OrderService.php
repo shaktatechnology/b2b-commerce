@@ -62,7 +62,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null, ?string $paymentMethod = null): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -73,17 +73,16 @@ class OrderService implements OrderServiceInterface
         $user = User::findOrFail($userId);
         $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
 
-        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode) {
+        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode, $paymentMethod) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;
             $discountAmount = 0;
             $total = 0;
             $orderItemsData = [];
-            $couponId = null;
-            $couponDiscount = 0.00;
             $couponSubtotal = 0.00;
             $couponItems = [];
+            $couponRedemptions = [];
 
             foreach ($cart->items as $item) {
                 $variant = $item->variant;
@@ -151,27 +150,41 @@ class OrderService implements OrderServiceInterface
                     'product_id' => $variant->product_id,
                     'brand_id' => $variant->product?->brand_id,
                     'category_ids' => $variant->product ? $variant->product->categories->pluck('id')->all() : [],
+                    'quantity' => $item->quantity,
+                    'unit_price' => max(0, $unitPrice - $unitDiscount),
+                    'line_total' => $lineTotal,
                 ];
             }
 
-            if ($couponCode) {
-                $couponSubtotal = $total;
-                $validation = $this->couponValidationService->validateCoupon([
-                    'code' => $couponCode,
-                    'subtotal' => $couponSubtotal,
-                    'shipping_address' => $shippingAddress,
-                    'items' => $couponItems,
-                ], $user);
+            $couponSubtotal = $total;
+            $promotionPayload = [
+                'subtotal' => $couponSubtotal,
+                'shipping_address' => $shippingAddress,
+                'items' => $couponItems,
+                'payment_method' => $paymentMethod,
+            ];
+            $manualCouponValidation = null;
 
-                if (!($validation['success'] ?? false)) {
-                    throw new \Exception($validation['message'] ?? 'Coupon validation failed.');
+            if ($couponCode) {
+                $manualCouponValidation = $this->couponValidationService->validateCoupon(array_merge($promotionPayload, [
+                    'code' => $couponCode,
+                ]), $user);
+
+                if (!($manualCouponValidation['success'] ?? false)) {
+                    throw new \Exception($manualCouponValidation['message'] ?? 'Coupon validation failed.');
                 }
 
-                $couponId = $validation['data']['coupon_id'];
-                $couponDiscount = (float) $validation['data']['discount_amount'];
-                $couponCurrency = $validation['data']['applied_rule']['currency'] ?? 'USD';
-                $discountAmount += $couponDiscount;
-                $total = max(0, $total - $couponDiscount);
+                $couponRedemptions[] = $this->applyValidatedCouponDiscount($manualCouponValidation, $couponSubtotal, $total, $discountAmount);
+            }
+
+            $autoPromotionValidation = $this->couponValidationService->validateBestAutoPromotion(
+                $promotionPayload,
+                $user,
+                $manualCouponValidation['data']['coupon_id'] ?? null
+            );
+
+            if ($this->shouldApplyAutoPromotion($manualCouponValidation, $autoPromotionValidation)) {
+                $couponRedemptions[] = $this->applyValidatedCouponDiscount($autoPromotionValidation, $couponSubtotal, $total, $discountAmount);
             }
 
             // Create Order
@@ -194,14 +207,14 @@ class OrderService implements OrderServiceInterface
                 $order->items()->create($itemData);
             }
 
-            if ($couponId) {
+            foreach (array_filter($couponRedemptions) as $couponRedemption) {
                 CouponRedemption::create([
-                    'coupon_id' => $couponId,
+                    'coupon_id' => $couponRedemption['coupon_id'],
                     'user_id' => $userId,
                     'order_id' => $order->id,
-                    'currency' => $couponCurrency ?? 'USD',
-                    'subtotal' => $couponSubtotal,
-                    'discount_amount' => $couponDiscount,
+                    'currency' => $couponRedemption['currency'],
+                    'subtotal' => $couponRedemption['subtotal'],
+                    'discount_amount' => $couponRedemption['discount_amount'],
                     'redeemed_at' => now(),
                 ]);
             }
@@ -211,6 +224,38 @@ class OrderService implements OrderServiceInterface
 
             return $order->load(['items.variant.product']);
         });
+    }
+
+    protected function applyValidatedCouponDiscount(array $validation, float $couponSubtotal, float &$total, float &$discountAmount): ?array
+    {
+        if (!isset($validation['data']['coupon_id'])) {
+            return null;
+        }
+
+        $couponDiscount = min((float) ($validation['data']['discount_amount'] ?? 0), max(0, $total));
+        $discountAmount += $couponDiscount;
+        $total = max(0, $total - $couponDiscount);
+
+        return [
+            'coupon_id' => $validation['data']['coupon_id'],
+            'currency' => $validation['data']['applied_rule']['currency'] ?? 'USD',
+            'subtotal' => $couponSubtotal,
+            'discount_amount' => $couponDiscount,
+        ];
+    }
+
+    protected function shouldApplyAutoPromotion(?array $manualCouponValidation, array $autoPromotionValidation): bool
+    {
+        if (!($autoPromotionValidation['success'] ?? false)) {
+            return false;
+        }
+
+        if ($manualCouponValidation === null) {
+            return true;
+        }
+
+        return (bool) ($manualCouponValidation['data']['stackable'] ?? false)
+            && (bool) ($autoPromotionValidation['data']['stackable'] ?? false);
     }
 
     /**
