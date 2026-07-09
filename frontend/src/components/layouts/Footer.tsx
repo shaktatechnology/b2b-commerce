@@ -9,7 +9,6 @@ import {
   FaLinkedin,
   FaTiktok,
 } from "react-icons/fa6";
-import { Send } from "lucide-react";
 
 interface Category {
   id: string;
@@ -32,11 +31,13 @@ interface FooterProps {
   metaDescription?: string;
   socialLinks?: SocialLinks;
   categories?: Category[];
+  site_name?: string;
 }
 
 export default function Footer({
   logo,
   metaDescription,
+  site_name,
   socialLinks = {},
   categories = [],
 }: FooterProps) {
@@ -44,18 +45,23 @@ export default function Footer({
     <footer className="bg-gradient-to-r from-primary to-primary/80 text-white">
       <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
         {/* logo */}
-        <div>
-          {logo ? (
-            <img src={logo} alt="logo" className="h-10 mb-4" />
-          ) : (
-            <div className="bg-gray-200 text-black w-[120px] text-center py-1 font-semibold mb-4">
-              LOGO
-            </div>
-          )}
+        <div className="flex flex-col items-center text-center">
+          <div className="flex ites-center gap-3 mb-4">
+            {logo ? (
+              <img src={logo} alt="logo" className="h-10 mb-4" />
+            ) : (
+              <div className="bg-gray-200 text-black w-[120px] text-center py-1 font-semibold mb-4">
+                LOGO
+              </div>
+            )}
+            <h2 className="text-xl font-bold text-white">
+              {site_name || "Commerce Platform"}
+            </h2>
+          </div>
 
-          <p className="text-sm leading-6 text-white/90">
-            {metaDescription || "Your trusted B2B platform."}
-          </p>
+            <p className="text-sm leading-6 text-white/90">
+              {metaDescription || "Your trusted B2B platform."}
+            </p>
         </div>
 
         

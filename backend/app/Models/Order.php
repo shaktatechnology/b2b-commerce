@@ -8,6 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string $id
+ * @property string $user_id
+ * @property string $order_number
+ * @property string $user_type
+ * @property string $subtotal
+ * @property string $discount_amount
+ * @property string $total
+ * @property string $status
+ * @property string $payment_status
+ * @property array $shipping_address
+ * @property string|null $address_id
+ */
 class Order extends Model
 {
     use HasFactory, HasUuids;

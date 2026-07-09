@@ -53,7 +53,7 @@ class OrderController extends Controller
         try {
             $order = $this->orderService->createOrderFromCart(
                 $request->user()->id,
-                $request->input('shipping_address'),
+                $request->input('shipping_address', []),
                 $request->input('notes'),
                 $request->input('address_id'),
                 $request->input('currency', 'NPR')

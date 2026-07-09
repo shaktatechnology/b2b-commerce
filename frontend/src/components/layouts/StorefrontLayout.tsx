@@ -26,6 +26,7 @@ export default function StorefrontLayout({
         metaDescription={settings.metaDescription}
         socialLinks={settings.socialLinks}
         categories={categories}
+        site_name={settings.site_name ?? ''}
       />
     </div>
   );

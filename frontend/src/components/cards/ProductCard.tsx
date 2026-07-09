@@ -21,7 +21,10 @@ interface ProductCardProps {
   viewMode?: "grid" | "list";
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" }) => {
+const ProductCard: React.FC<ProductCardProps> = ({
+  product,
+  viewMode = "grid",
+}) => {
   const addItem = useCartStore((s) => s.addItem);
   const [mounted, setMounted] = React.useState(false);
   const [currency, setCurrency] = React.useState<"NPR" | "USD">("NPR");
@@ -62,10 +65,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
     (activeVariant as any)?.discounts?.find((d: any) => d.is_active) ??
     (product as any).discounts?.find((d: any) => d.is_active) ??
     null;
-  const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
+  const discountAmount = calculateDiscountAmount(
+    basePrice,
+    activeDiscount,
+    isWholesaler,
+    currency,
+  );
   const finalPrice = Math.max(0, basePrice - discountAmount);
   const hasDiscount = discountAmount > 0;
-  const discountPercent = hasDiscount ? Math.round((discountAmount / basePrice) * 100) : 0;
+  const discountPercent = hasDiscount
+    ? Math.round((discountAmount / basePrice) * 100)
+    : 0;
 
   const lineItem = productToCartLineItem(product, { currency });
 
@@ -78,7 +88,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
     e.stopPropagation();
 
     if (isInternationalPriceMissing) {
-      toast.error("International (USD) pricing is not available for this item.");
+      toast.error(
+        "International (USD) pricing is not available for this item.",
+      );
       return;
     }
     if (!lineItem) {
@@ -91,7 +103,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
       return;
     }
 
-    addItem({ ...lineItem, price: basePrice, discount: discountAmount, currency });
+    addItem({
+      ...lineItem,
+      price: basePrice,
+      discount: discountAmount,
+      currency,
+    });
     toast.success(`${product.name} added to cart`);
   };
 
@@ -109,17 +126,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
         <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all flex gap-6 items-center h-full">
           <div className="w-40 h-40 shrink-0 bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center p-2">
             {image ? (
-              <img src={image} alt={product.name} className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" />
+              <img
+                src={image}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+              />
             ) : (
               <div className="text-center px-2">
-                <p className="text-primary font-semibold text-sm">{product.name}</p>
+                <p className="text-primary font-semibold text-sm">
+                  {product.name}
+                </p>
               </div>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
             <p className="text-xs text-primary font-medium mb-1">{category}</p>
-            <h3 className="text-xl font-bold text-gray-800 hover:text-primary transition-colors line-clamp-2">{product.name}</h3>
+            <h3 className="text-xl font-bold text-gray-800 hover:text-primary transition-colors line-clamp-2">
+              {product.name}
+            </h3>
 
             {avgRating > 0 && (
               <div className="flex items-center gap-1 my-2">
@@ -134,28 +159,41 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
                     }
                   />
                 ))}
-                <span className="text-xs text-gray-400 ml-1">({reviewsCount} reviews)</span>
+                <span className="text-xs text-gray-400 ml-1">
+                  ({reviewsCount} reviews)
+                </span>
               </div>
             )}
 
             <div className="mt-4">
               <div className="flex flex-col">
                 {isInternationalPriceMissing ? (
-                  <span className="text-sm font-bold text-yellow-600">USD price unavailable</span>
+                  <span className="text-sm font-bold text-yellow-600">
+                    USD price unavailable
+                  </span>
                 ) : (
-                  <span className="text-2xl font-bold text-primary">{formatPrice(finalPrice, currency, 0)}</span>
+                  <span className="text-2xl font-bold text-primary">
+                    {formatPrice(finalPrice, currency, 0)}
+                  </span>
                 )}
                 {!isInternationalPriceMissing && hasDiscount && (
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">{discountPercent}% off</span>
-                    <span className="text-sm text-gray-400 line-through">{formatPrice(basePrice, currency, 0)}</span>
+                    <span className="text-xs font-bold bg-red-100 text-red-600 px-1.5 py-0.5 rounded">
+                      {discountPercent}% off
+                    </span>
+                    <span className="text-sm text-gray-400 line-through">
+                      {formatPrice(basePrice, currency, 0)}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
 
             <p className="text-xs text-gray-400 mt-2">
-              By <span className="text-primary font-medium">{(product as any).brand?.name || "Nepal organic"}</span>
+              By{" "}
+              <span className="text-primary font-medium">
+                {(product as any).brand?.name || "Nepal organic"}
+              </span>
             </p>
 
             <div className="flex flex-wrap items-center gap-3 mt-4">
@@ -164,14 +202,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
                 disabled={isPurchaseDisabled}
                 className={cn(
                   "px-5 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer",
-                  isPurchaseDisabled ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
+                  isPurchaseDisabled
+                    ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                    : "bg-primary text-white hover:bg-primary/90",
                 )}
               >
                 {isPurchaseDisabled ? null : <ShoppingCart size={16} />}
-                {isOutOfStock ? "Out of Stock" : isInternationalPriceMissing ? "Unavailable" : "Add to Cart"}
+                {isOutOfStock
+                  ? "Out of Stock"
+                  : isInternationalPriceMissing
+                    ? "Unavailable"
+                    : "Add to Cart"}
               </button>
               <button
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 className="px-5 py-2 border border-primary text-primary rounded-lg text-sm font-bold hover:bg-primary/5 transition-all cursor-pointer"
               >
                 Become Whole Seller
@@ -195,7 +242,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
             />
           ) : (
             <div className="text-center px-2">
-              <p className="text-primary font-semibold text-sm">{product.name}</p>
+              <p className="text-primary font-semibold text-sm">
+                {product.name}
+              </p>
             </div>
           )}
           {hasDiscount && !isInternationalPriceMissing && (
@@ -206,7 +255,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
         </div>
 
         <div className="p-4 flex flex-col flex-1">
-          <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">{category}</p>
+          <p className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1">
+            {category}
+          </p>
 
           <h3 className="text-[15px] font-bold text-gray-800 line-clamp-2 hover:text-primary transition-colors min-h-[40px]">
             {product.name}
@@ -226,14 +277,18 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
                 />
               ))}
               {reviewsCount > 0 && (
-                <span className="text-[10px] text-gray-400 ml-1">({reviewsCount})</span>
+                <span className="text-[10px] text-gray-400 ml-1">
+                  ({reviewsCount})
+                </span>
               )}
             </div>
           )}
 
-          <div className="mt-auto space-y-0.5">
+          <div className="mt-auto h-12 flex flex-col justify-end">
             {isInternationalPriceMissing ? (
-              <p className="text-yellow-600 font-bold text-sm">USD price unavailable</p>
+              <p className="text-yellow-600 font-bold text-sm">
+                USD price unavailable
+              </p>
             ) : (
               <p className="text-primary font-black text-lg">
                 {formatPrice(finalPrice, currency, 0)}
@@ -241,15 +296,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
             )}
             {!isInternationalPriceMissing && hasDiscount && (
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-red-500">{discountPercent}% off</span>
-                <span className="text-[11px] text-gray-400 line-through">{formatPrice(basePrice, currency, 0)}</span>
+                <span className="text-[10px] font-bold text-red-500">
+                  {discountPercent}% off
+                </span>
+                <span className="text-[11px] text-gray-400 line-through">
+                  {formatPrice(basePrice, currency, 0)}
+                </span>
               </div>
             )}
           </div>
 
           <div className="mt-3 pt-3 flex items-center justify-between border-t border-gray-100">
             <p className="text-[10px] text-gray-400">
-              By <span className="text-primary font-medium">{(product as any).brand?.name || "Store"}</span>
+              By{" "}
+              <span className="text-primary font-medium">
+                {(product as any).brand?.name || "Store"}
+              </span>
             </p>
 
             <button
@@ -258,11 +320,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, viewMode = "grid" })
               disabled={isPurchaseDisabled}
               className={cn(
                 "flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all shadow-sm cursor-pointer",
-                isPurchaseDisabled ? "bg-zinc-200 text-zinc-400 cursor-not-allowed" : "bg-primary text-white hover:bg-primary/90"
+                isPurchaseDisabled
+                  ? "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                  : "bg-primary text-white hover:bg-primary/90",
               )}
             >
               {isPurchaseDisabled ? null : <ShoppingCart size={14} />}
-              {isOutOfStock ? "Out" : isInternationalPriceMissing ? "N/A" : "Add"}
+              {isOutOfStock
+                ? "Out"
+                : isInternationalPriceMissing
+                  ? "N/A"
+                  : "Add"}
             </button>
           </div>
         </div>

@@ -8,6 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property string $id
+ * @property string $product_id
+ * @property string $variant_name
+ * @property string $sku
+ * @property string $retail_price
+ * @property string $wholesale_price
+ * @property int $stock
+ * @property bool $is_active
+ */
 class ProductVariant extends Model
 {
     use HasFactory, HasUuids;

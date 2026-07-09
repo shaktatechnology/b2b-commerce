@@ -65,4 +65,6 @@ export interface StorefrontSettings {
   contactPhone: string;
   metaDescription: string;
   socialLinks: Record<string, string | null>;
+  site_name?: string;
 }
+

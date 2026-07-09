@@ -9,6 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property string $id
+ * @property string $name
+ * @property string $slug
+ * @property string|null $brand_id
+ * @property bool $is_active
+ */
 class Product extends Model
 {
     use HasFactory, HasUuids;

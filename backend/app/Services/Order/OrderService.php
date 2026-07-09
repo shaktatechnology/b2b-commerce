@@ -5,7 +5,9 @@ namespace App\Services\Order;
 use App\Interfaces\Order\OrderRepositoryInterface;
 use App\Interfaces\Order\OrderServiceInterface;
 use App\Interfaces\Cart\CartServiceInterface;
+use App\Services\Coupon\CouponValidationService;
 use App\Models\Order;
+use App\Models\CouponRedemption;
 use App\Models\User;
 use App\Models\Discount;
 use App\Models\ProductVariant;
@@ -16,11 +18,17 @@ class OrderService implements OrderServiceInterface
 {
     protected $orderRepository;
     protected $cartService;
+    protected $couponValidationService;
 
-    public function __construct(OrderRepositoryInterface $orderRepository, CartServiceInterface $cartService)
+    public function __construct(
+        OrderRepositoryInterface $orderRepository,
+        CartServiceInterface $cartService,
+        CouponValidationService $couponValidationService
+    )
     {
         $this->orderRepository = $orderRepository;
         $this->cartService = $cartService;
+        $this->couponValidationService = $couponValidationService;
     }
 
     /**
@@ -55,7 +63,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, string $currency = 'NPR'): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -67,13 +75,17 @@ class OrderService implements OrderServiceInterface
         $userType = $this->orderUserType($user);
         $currency = $this->normalizeCurrency($currency);
 
-        return DB::transaction(function () use ($userId, $cart, $userType, $currency, $shippingAddress, $notes, $addressId) {
+        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;
             $discountAmount = 0;
             $total = 0;
             $orderItemsData = [];
+            $couponId = null;
+            $couponDiscount = 0.00;
+            $couponSubtotal = 0.00;
+            $couponItems = [];
 
             foreach ($cart->items as $item) {
                 $variant = $item->variant;
@@ -114,6 +126,32 @@ class OrderService implements OrderServiceInterface
                     'discount_amount' => $unitDiscount,
                     'line_total' => $lineTotal,
                 ];
+
+                $couponItems[] = [
+                    'product_id' => $variant->product_id,
+                    'brand_id' => $variant->product?->brand_id,
+                    'category_ids' => $variant->product ? $variant->product->categories->pluck('id')->all() : [],
+                ];
+            }
+
+            if ($couponCode) {
+                $couponSubtotal = $total;
+                $validation = $this->couponValidationService->validateCoupon([
+                    'code' => $couponCode,
+                    'subtotal' => $couponSubtotal,
+                    'shipping_address' => $shippingAddress,
+                    'items' => $couponItems,
+                ], $user);
+
+                if (!($validation['success'] ?? false)) {
+                    throw new \Exception($validation['message'] ?? 'Coupon validation failed.');
+                }
+
+                $couponId = $validation['data']['coupon_id'];
+                $couponDiscount = (float) $validation['data']['discount_amount'];
+                $couponCurrency = $validation['data']['applied_rule']['currency'] ?? 'USD';
+                $discountAmount += $couponDiscount;
+                $total = max(0, $total - $couponDiscount);
             }
 
             // Create Order
@@ -135,6 +173,18 @@ class OrderService implements OrderServiceInterface
             // Save order items
             foreach ($orderItemsData as $itemData) {
                 $order->items()->create($itemData);
+            }
+
+            if ($couponId) {
+                CouponRedemption::create([
+                    'coupon_id' => $couponId,
+                    'user_id' => $userId,
+                    'order_id' => $order->id,
+                    'currency' => $couponCurrency ?? 'USD',
+                    'subtotal' => $couponSubtotal,
+                    'discount_amount' => $couponDiscount,
+                    'redeemed_at' => now(),
+                ]);
             }
 
             // Clear the cart
@@ -178,11 +228,30 @@ class OrderService implements OrderServiceInterface
                     throw new \Exception("Insufficient stock for '{$variant->variant_name}'. Only {$variant->stock} left.");
                 }
 
-                $unitPrice = $this->unitPriceFor($variant, $userType, $currency);
-                $discount = $this->activeDiscountFor($variant);
-                $unitDiscount = $discount
-                    ? $discount->calculateAmountFor($unitPrice, $userType, $currency)
-                    : 0.00;
+                $unitPrice = ($userType === 'wholesale') ? $variant->wholesale_price : $variant->retail_price;
+
+                // Find active discount
+                $now      = now();
+                $discount = Discount::where('is_active', true)
+                    ->where('starts_at', '<=', $now)
+                    ->where('ends_at', '>=', $now)
+                    ->where(function ($q) use ($variant) {
+                        $q->where('variant_id', $variant->id)
+                          ->orWhere(function ($q2) use ($variant) {
+                              $q2->where('product_id', $variant->product_id)
+                                 ->whereNull('variant_id');
+                          });
+                    })
+                    ->orderBy('variant_id', 'desc')
+                    ->first();
+
+                $unitDiscount = 0.00;
+                if ($userType !== 'wholesale' && $discount) {
+                    $unitDiscount = $discount->type === 'percent'
+                        ? round($unitPrice * ($discount->value / 100), 2)
+                        : $discount->value;
+                    $unitDiscount = min($unitDiscount, $unitPrice);
+                }
 
                 $lineTotal = ($unitPrice - $unitDiscount) * $item['quantity'];
 
@@ -265,54 +334,5 @@ class OrderService implements OrderServiceInterface
 
             return $order;
         });
-    }
-
-    private function orderUserType(User $user): string
-    {
-        return $this->isApprovedWholesaler($user) ? 'wholesale' : 'retail';
-    }
-
-    private function isApprovedWholesaler(User $user): bool
-    {
-        return $user->role === 'wholesaler'
-            && $user->wholeseller_status === 'approved';
-    }
-
-    private function normalizeCurrency(string $currency): string
-    {
-        return strtoupper($currency) === 'USD' ? 'USD' : 'NPR';
-    }
-
-    private function unitPriceFor(ProductVariant $variant, string $userType, string $currency): float
-    {
-        if ($currency === 'USD') {
-            if ($variant->international_price === null) {
-                throw new \Exception("International price is unavailable for '{$variant->variant_name}'.");
-            }
-
-            return (float) $variant->international_price;
-        }
-
-        return (float) ($userType === 'wholesale'
-            ? $variant->wholesale_price
-            : $variant->retail_price);
-    }
-
-    private function activeDiscountFor(ProductVariant $variant): ?Discount
-    {
-        $now = now();
-
-        return Discount::where('is_active', true)
-            ->where('starts_at', '<=', $now)
-            ->where('ends_at', '>=', $now)
-            ->where(function ($q) use ($variant) {
-                $q->where('variant_id', $variant->id)
-                    ->orWhere(function ($q2) use ($variant) {
-                        $q2->where('product_id', $variant->product_id)
-                            ->whereNull('variant_id');
-                    });
-            })
-            ->orderBy('variant_id', 'desc')
-            ->first();
     }
 }

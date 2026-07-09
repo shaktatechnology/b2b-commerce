@@ -11,6 +11,14 @@ use Laravel\Sanctum\HasApiTokens;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
+/**
+ * @property string $id
+ * @property string $name
+ * @property string $email
+ * @property string $role
+ * @property bool $is_verified
+ * @property string|null $wholeseller_status
+ */
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

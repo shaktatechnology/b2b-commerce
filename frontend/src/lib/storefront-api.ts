@@ -104,6 +104,7 @@ export async function fetchAllSettings(): Promise<{
       contactPhone: general.contact_phone ?? '',
       metaDescription: general.meta_description ?? '',
       socialLinks: grouped.social ?? {},
+      site_name: general.site_name ?? '',
     },
     payment: parsePaymentSettings(allSettingsFlat),
   };
