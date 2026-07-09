@@ -5,7 +5,7 @@ import { AuthUser } from '@/src/types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/src/components/ui/card';
-import { Shield } from 'lucide-react';
+import { Shield, CheckCircle2, User, Mail, Phone, Building, MapPin, Edit3, Key, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateProfile } from '@/src/lib/auth';
 
@@ -27,6 +27,19 @@ export function ProfileTab({ user, onRefresh }: ProfileTabProps) {
     password: '',
     password_confirmation: '',
   });
+
+  // Sync state if user changes
+  React.useEffect(() => {
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      company_name: user.company_name || '',
+      address: user.address || '',
+      password: '',
+      password_confirmation: '',
+    });
+  }, [user]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,95 +71,196 @@ export function ProfileTab({ user, onRefresh }: ProfileTabProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Sidebar Cards */}
+      {/* LEFT COLUMN: Sidebar Info Cards */}
       <div className="space-y-6">
-        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden rounded-3xl">
-          <div className="h-24 bg-gradient-to-r from-[#966FD6] to-[#7c52c9]" />
-          <CardContent className="pt-0 -mt-12 text-center">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white shadow-xl border-4 border-white mb-4">
-              <span className="text-3xl font-black text-[#966FD6]">
-                {user.name.slice(0, 2).toUpperCase()}
-              </span>
+        {/* Partnership / Wholesale Status Card */}
+        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.02)] overflow-hidden rounded-3xl bg-white relative">
+          <div className="h-2 bg-gradient-to-r from-[#966FD6] to-[#b196ea]" />
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-4 text-[#966FD6]">
+              <div className="w-8 h-8 rounded-xl bg-[#966FD6]/10 flex items-center justify-center shrink-0">
+                <Building className="w-4 h-4" />
+              </div>
+              <h3 className="font-black text-xs uppercase tracking-widest">Partner Portal</h3>
             </div>
-            <h2 className="text-xl font-black text-black mb-1">{user.name}</h2>
-            <p className="text-zinc-400 text-sm font-bold uppercase tracking-widest">{user.role || 'Member'}</p>
+
+            <div className="space-y-4">
+              <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100/50">
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Account Tier</p>
+                <p className="font-black text-black">
+                  {user.wholeseller_status === 'approved' ? 'Wholesale Partner' : 'Standard Member'}
+                </p>
+              </div>
+
+              <div className="bg-zinc-50 rounded-2xl p-4 border border-zinc-100/50">
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Order Benefits</p>
+                <ul className="text-xs text-zinc-500 font-medium space-y-1.5 mt-1">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Bulk volume pricing</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>Priority order fulfilment</span>
+                  </li>
+                  {user.wholeseller_status === 'approved' && (
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span>Dedicated Account Manager</span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3 text-[#966FD6]">
-              <Shield className="w-5 h-5" />
-              <h3 className="font-black text-sm uppercase tracking-widest">Security</h3>
+        {/* Security & Settings Card
+        <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.02)] rounded-3xl p-6 bg-white">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3 text-zinc-800">
+              <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center shrink-0">
+                <Shield className="w-4 h-4 text-zinc-500" />
+              </div>
+              <h3 className="font-black text-xs uppercase tracking-widest">Security</h3>
             </div>
             {!isEditing && (
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setIsEditing(true)}
-                className="text-[10px] font-black uppercase tracking-widest text-[#966FD6] hover:bg-[#966FD6]/5 h-8"
+                className="text-[10px] font-black uppercase tracking-widest text-[#966FD6] hover:bg-[#966FD6]/5 h-8 rounded-lg cursor-pointer flex items-center gap-1"
               >
-                Settings
+                <Edit3 className="w-3 h-3" /> Edit
               </Button>
             )}
           </div>
-          <p className="text-xs text-zinc-400 font-medium leading-relaxed">
-            Your account is protected. Last activity logged {user.updated_at ? new Date(user.updated_at).toLocaleDateString() : '—'}.
-          </p>
-        </Card>
+          <div className="space-y-3">
+            <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+              Your personal information is secure. To update your password or edit account parameters, click the edit button.
+            </p>
+            {user.updated_at && (
+              <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-bold uppercase tracking-wide bg-zinc-50 px-3 py-1.5 rounded-xl border border-zinc-100/50 w-fit">
+                <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Updated: {new Date(user.updated_at).toLocaleDateString()}</span>
+              </div>
+            )}
+          </div>
+        </Card> */}
       </div>
 
-      {/* Profile Form/Info */}
+      {/* RIGHT COLUMN: Profile Information / Edit Form */}
       <div className="lg:col-span-2">
         {isEditing ? (
-          <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[2.5rem] overflow-hidden bg-white">
-            <CardHeader className="bg-zinc-50/50 px-8 py-8 border-b border-zinc-100">
-              <CardTitle className="text-xl font-black text-black">Edit Information</CardTitle>
+          <Card className="border border-zinc-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)] rounded-[2.5rem] overflow-hidden bg-white">
+            <CardHeader className="bg-zinc-50/50 px-8 py-6 border-b border-zinc-100">
+              <CardTitle className="text-lg font-black text-black uppercase tracking-wider">Update Profile Information</CardTitle>
             </CardHeader>
             <CardContent className="p-8">
               <form onSubmit={handleUpdate} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Full Name</label>
-                    <Input value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="h-12 rounded-xl bg-zinc-50/50" required />
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <Input 
+                        value={formData.name} 
+                        onChange={(e) => setFormData({...formData, name: e.target.value})} 
+                        className="h-12 rounded-xl bg-zinc-50/50 pl-11 border-zinc-200/60 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30 font-medium transition-all" 
+                        required 
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Email</label>
-                    <Input value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="h-12 rounded-xl bg-zinc-50/50" required />
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">Email Address</label>
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <Input 
+                        value={formData.email} 
+                        onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                        className="h-12 rounded-xl bg-zinc-50/50 pl-11 border-zinc-200/60 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30 font-medium transition-all" 
+                        required 
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Phone</label>
-                    <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="h-12 rounded-xl bg-zinc-50/50" />
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">Phone Number</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <Input 
+                        value={formData.phone} 
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                        className="h-12 rounded-xl bg-zinc-50/50 pl-11 border-zinc-200/60 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30 font-medium transition-all" 
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Company Name</label>
-                    <Input value={formData.company_name} onChange={(e) => setFormData({...formData, company_name: e.target.value})} className="h-12 rounded-xl bg-zinc-50/50" />
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">Company Name</label>
+                    <div className="relative">
+                      <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                      <Input 
+                        value={formData.company_name} 
+                        onChange={(e) => setFormData({...formData, company_name: e.target.value})} 
+                        className="h-12 rounded-xl bg-zinc-50/50 pl-11 border-zinc-200/60 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30 font-medium transition-all" 
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Address</label>
-                  <textarea value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full p-4 rounded-xl bg-zinc-50/50 border border-zinc-100 outline-none h-24 resize-none" />
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">Shipping & Billing Address</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-4 w-4 h-4 text-zinc-400" />
+                    <textarea 
+                      value={formData.address} 
+                      onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                      className="w-full pl-11 pr-4 py-3 rounded-xl bg-zinc-50/50 border border-zinc-200/60 hover:border-zinc-300 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30 outline-none h-24 resize-none text-sm font-medium transition-all" 
+                    />
+                  </div>
                 </div>
                 
-                <div className="pt-4 border-t border-zinc-100">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Change Password (leave blank to keep current)</p>
+                <div className="pt-6 border-t border-zinc-100">
+                  <p className="text-[10px] font-black text-[#966FD6] uppercase tracking-widest mb-4 flex items-center gap-1.5">
+                    <Key className="w-3.5 h-3.5" />
+                    Change Password (leave blank to keep current)
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">New Password</label>
-                      <Input type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} className="h-12 rounded-xl bg-zinc-50/50" />
+                      <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">New Password</label>
+                      <Input 
+                        type="password" 
+                        value={formData.password} 
+                        onChange={(e) => setFormData({...formData, password: e.target.value})} 
+                        className="h-12 rounded-xl bg-zinc-50/50 border-zinc-200/60 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30" 
+                      />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Confirm Password</label>
-                      <Input type="password" value={formData.password_confirmation} onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})} className="h-12 rounded-xl bg-zinc-50/50" />
+                      <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">Confirm New Password</label>
+                      <Input 
+                        type="password" 
+                        value={formData.password_confirmation} 
+                        onChange={(e) => setFormData({...formData, password_confirmation: e.target.value})} 
+                        className="h-12 rounded-xl bg-zinc-50/50 border-zinc-200/60 focus:border-[#966FD6] focus:ring-1 focus:ring-[#966FD6]/30" 
+                      />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-6">
-                  <Button type="button" variant="ghost" onClick={() => setIsEditing(false)} className="rounded-xl font-black text-[10px] uppercase">Cancel</Button>
-                  <Button type="submit" disabled={isSaving} className="rounded-xl bg-black text-white px-8 font-black text-[10px] uppercase tracking-widest">
+                <div className="flex items-center justify-end gap-3 pt-6 border-t border-zinc-50">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={() => setIsEditing(false)} 
+                    className="rounded-xl font-black text-[10px] uppercase tracking-widest cursor-pointer text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isSaving} 
+                    className="rounded-xl bg-black text-white hover:bg-zinc-900 px-8 font-black text-[10px] uppercase tracking-widest cursor-pointer shadow-md transition-all duration-300 disabled:opacity-50"
+                  >
                     {isSaving ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </div>
@@ -154,31 +268,75 @@ export function ProfileTab({ user, onRefresh }: ProfileTabProps) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 bg-white">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Display Name</p>
-                  <p className="text-lg font-bold text-black">{user.name}</p>
+          <div className="space-y-6">
+            {/* Grid display of details cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Card: Display Name */}
+              <div className="bg-white border border-zinc-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-start gap-4 hover:shadow-[0_12px_45px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 group">
+                <div className="w-10 h-10 rounded-2xl bg-[#966FD6]/10 flex items-center justify-center shrink-0 text-[#966FD6] group-hover:scale-105 transition-transform">
+                  <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Email Address</p>
-                  <p className="text-lg font-bold text-black">{user.email}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Contact</p>
-                  <p className="text-lg font-bold text-black">{user.phone || '—'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Company</p>
-                  <p className="text-lg font-bold text-black">{user.company_name || '—'}</p>
-                </div>
-                <div className="md:col-span-2">
-                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Default Address</p>
-                  <p className="text-lg font-bold text-black leading-relaxed">{user.address || '—'}</p>
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Display Name</p>
+                  <p className="font-bold text-black text-base leading-tight">{user.name}</p>
                 </div>
               </div>
-            </Card>
+
+              {/* Card: Email */}
+              <div className="bg-white border border-zinc-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-start gap-4 hover:shadow-[0_12px_45px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 group">
+                <div className="w-10 h-10 rounded-2xl bg-[#966FD6]/10 flex items-center justify-center shrink-0 text-[#966FD6] group-hover:scale-105 transition-transform">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Email Address</p>
+                  <p className="font-bold text-black text-base leading-tight truncate">{user.email}</p>
+                </div>
+              </div>
+
+              {/* Card: Phone */}
+              <div className="bg-white border border-zinc-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-start gap-4 hover:shadow-[0_12px_45px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 group">
+                <div className="w-10 h-10 rounded-2xl bg-[#966FD6]/10 flex items-center justify-center shrink-0 text-[#966FD6] group-hover:scale-105 transition-transform">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Contact Number</p>
+                  <p className="font-bold text-black text-base leading-tight">{user.phone || 'Not provided'}</p>
+                </div>
+              </div>
+
+              {/* Card: Company */}
+              <div className="bg-white border border-zinc-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-start gap-4 hover:shadow-[0_12px_45px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 group">
+                <div className="w-10 h-10 rounded-2xl bg-[#966FD6]/10 flex items-center justify-center shrink-0 text-[#966FD6] group-hover:scale-105 transition-transform">
+                  <Building className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Company Name</p>
+                  <p className="font-bold text-black text-base leading-tight">{user.company_name || 'Not provided'}</p>
+                </div>
+              </div>
+
+              {/* Card: Default Address */}
+              <div className="bg-white border border-zinc-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex items-start gap-4 hover:shadow-[0_12px_45px_rgb(0,0,0,0.04)] hover:-translate-y-0.5 transition-all duration-300 group md:col-span-2">
+                <div className="w-10 h-10 rounded-2xl bg-[#966FD6]/10 flex items-center justify-center shrink-0 text-[#966FD6] group-hover:scale-105 transition-transform">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-0.5">Default Shipping Address</p>
+                  <p className="font-bold text-black text-sm leading-relaxed">{user.address || 'Address is currently blank. Please edit your profile to add a shipping address.'}</p>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button 
+                onClick={() => setIsEditing(true)}
+                className="rounded-xl bg-black text-white hover:bg-zinc-900 px-6 h-12 font-black text-[10px] uppercase tracking-widest gap-2 flex items-center shadow-lg shadow-zinc-100 cursor-pointer hover:shadow-xl transition-all"
+              >
+                <Edit3 className="w-3.5 h-3.5" /> Edit Profile Details
+              </Button>
+            </div>
           </div>
         )}
       </div>

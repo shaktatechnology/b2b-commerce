@@ -93,3 +93,22 @@ export async function updateReview(
   );
   return res.data;
 }
+
+export async function destroyReview(
+  productSlugOrId: string,
+  reviewId: string
+): Promise<{ message: string }> {
+  const token = getAuthToken();
+  if (!token) throw new Error('Please log in to delete your review.');
+
+  const identifier = encodeURIComponent(decodeURIComponent(productSlugOrId));
+  const res = await apiFetch<{ message: string }>(
+    `/products/${identifier}/reviews/${reviewId}`,
+    {
+      method: 'DELETE',
+      token,
+    }
+  );
+  return res;
+}
+
