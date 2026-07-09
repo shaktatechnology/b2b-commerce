@@ -75,7 +75,7 @@ class OrderService implements OrderServiceInterface
         $userType = $this->orderUserType($user);
         $currency = $this->normalizeCurrency($currency);
 
-        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode) {
+        return DB::transaction(function () use ($userId, $user, $cart, $userType, $currency, $shippingAddress, $notes, $addressId, $couponCode) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;

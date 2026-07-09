@@ -1227,11 +1227,11 @@ export function AnalyticsPage() {
               <CardContent className="p-6 h-[420px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={[{ name: 'Retail', value: userAnalytics.retailUsers }, { name: 'Wholesale', value: userAnalytics.wholesaleUsers }].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
+                    <Pie data={[{ name: 'Retail', value: userAnalytics.retailUsers }, { name: 'Wholesale', value: userAnalytics.wholesaleUsers }].filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
                       <Cell fill="#10B981" />
                       <Cell fill="#3B82F6" />
                     </Pie>
-                    <Tooltip formatter={(value: number) => [value, 'Users']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} />
+                    <Tooltip formatter={(value: any) => [value, 'Users']} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }} />
                     <Legend wrapperStyle={{ fontSize: 13, fontWeight: 700, paddingTop: 10 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -1365,7 +1365,7 @@ export function AnalyticsPage() {
                 <CardContent className="p-6 h-[420px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={Object.entries(orderAnalytics.statusCounts).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })).filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
+                      <Pie data={Object.entries(orderAnalytics.statusCounts).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })).filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
                         {Object.entries(orderAnalytics.statusCounts).filter(([, v]) => v > 0).map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}
@@ -1383,7 +1383,7 @@ export function AnalyticsPage() {
                 <CardContent className="p-6 h-[420px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={Object.entries(orderAnalytics.paymentStatusCounts).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })).filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
+                      <Pie data={Object.entries(orderAnalytics.paymentStatusCounts).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1), value: v })).filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={70} outerRadius={140} paddingAngle={3} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}>
                         {Object.entries(orderAnalytics.paymentStatusCounts).filter(([, v]) => v > 0).map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[(i + 3) % PIE_COLORS.length]} />
                         ))}
