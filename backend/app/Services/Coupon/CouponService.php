@@ -35,6 +35,8 @@ class CouponService implements CouponServiceInterface
                 'customer_code' => $data['customer_code'] ?? null,
                 'description' => $data['description'] ?? null,
                 'status' => $data['status'] ?? 'active',
+                'promotion_type' => $data['promotion_type'] ?? 'standard',
+                'auto_apply' => $data['auto_apply'] ?? false,
                 'starts_at' => $data['starts_at'] ?? null,
                 'expires_at' => $data['expires_at'] ?? null,
                 'usage_limit' => $data['usage_limit'] ?? null,
@@ -42,6 +44,9 @@ class CouponService implements CouponServiceInterface
                 'stackable' => $data['stackable'] ?? false,
                 'first_order_only' => $data['first_order_only'] ?? false,
                 'customer_type' => $data['customer_type'] ?? null,
+                'payment_methods' => $data['payment_methods'] ?? null,
+                'bogo_config' => $data['bogo_config'] ?? null,
+                'tier_config' => $data['tier_config'] ?? null,
                 'created_by' => $creator->id,
             ]);
 
@@ -65,6 +70,8 @@ class CouponService implements CouponServiceInterface
                 'customer_code',
                 'description',
                 'status',
+                'promotion_type',
+                'auto_apply',
                 'starts_at',
                 'expires_at',
                 'usage_limit',
@@ -72,6 +79,9 @@ class CouponService implements CouponServiceInterface
                 'stackable',
                 'first_order_only',
                 'customer_type',
+                'payment_methods',
+                'bogo_config',
+                'tier_config',
             ];
 
             $coupon = $this->couponRepository->update(

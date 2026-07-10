@@ -11,7 +11,6 @@ import { RelationPicker } from './RelationPicker';
 import {
   createCoupon,
   generateCouponCode,
-  getBrandOptions,
   getCategoryOptions,
   getProductOptions,
   getUserOptions,
@@ -70,7 +69,6 @@ export function CouponFormModal({
     customer_type: '',
     product_ids: [],
     category_ids: [],
-    brand_ids: [],
     user_ids: [],
     region_rules: [{ ...defaultRegionRule }],
   });
@@ -92,7 +90,6 @@ export function CouponFormModal({
         customer_type: coupon.customer_type ?? '',
         product_ids: coupon.product_ids ?? [],
         category_ids: coupon.category_ids ?? [],
-        brand_ids: coupon.brand_ids ?? [],
         user_ids: coupon.user_ids ?? [],
         region_rules:
           coupon.region_rules && coupon.region_rules.length > 0
@@ -114,7 +111,6 @@ export function CouponFormModal({
         customer_type: '',
         product_ids: [],
         category_ids: [],
-        brand_ids: [],
         user_ids: [],
         region_rules: [{ ...defaultRegionRule }],
       });
@@ -156,7 +152,6 @@ export function CouponFormModal({
       expires_at: form.expires_at || null,
       product_ids: form.product_ids?.length ? form.product_ids : null,
       category_ids: form.category_ids?.length ? form.category_ids : null,
-      brand_ids: form.brand_ids?.length ? form.brand_ids : null,
       user_ids: form.user_ids?.length ? form.user_ids : null,
     };
 
@@ -436,13 +431,6 @@ export function CouponFormModal({
                   setForm((f) => ({ ...f, category_ids }))
                 }
                 fetchOptions={getCategoryOptions}
-              />
-              <RelationPicker
-                label="Brands"
-                placeholder="Search brands…"
-                value={form.brand_ids ?? []}
-                onChange={(brand_ids) => setForm((f) => ({ ...f, brand_ids }))}
-                fetchOptions={getBrandOptions}
               />
               <RelationPicker
                 label="Users"

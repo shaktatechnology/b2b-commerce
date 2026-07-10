@@ -17,11 +17,16 @@ use Illuminate\Support\Str;
  * @property string $secure_code
  * @property string|null $description
  * @property string $status
+ * @property string $promotion_type
+ * @property bool $auto_apply
  * @property int|null $usage_limit
  * @property int|null $usage_per_user
  * @property bool $stackable
  * @property bool $first_order_only
  * @property string|null $customer_type
+ * @property array|null $payment_methods
+ * @property array|null $bogo_config
+ * @property array|null $tier_config
  * @property string $created_by
  */
 class Coupon extends Model
@@ -32,12 +37,15 @@ class Coupon extends Model
     public const CUSTOMER_CODE_LENGTH = 10;
     public const SECURE_CODE_LENGTH = 16;
     public const CUSTOMER_TYPE_MAX_LENGTH = 32;
+    public const PROMOTION_TYPES = ['standard', 'bogo', 'tiered', 'payment_specific', 'auto'];
 
     protected $fillable = [
         'name',
         'customer_code',
         'description',
         'status',
+        'promotion_type',
+        'auto_apply',
         'starts_at',
         'expires_at',
         'usage_limit',
@@ -45,16 +53,23 @@ class Coupon extends Model
         'stackable',
         'first_order_only',
         'customer_type',
+        'payment_methods',
+        'bogo_config',
+        'tier_config',
         'created_by',
     ];
 
     protected $casts = [
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
+        'auto_apply' => 'boolean',
         'usage_limit' => 'integer',
         'usage_per_user' => 'integer',
         'stackable' => 'boolean',
         'first_order_only' => 'boolean',
+        'payment_methods' => 'array',
+        'bogo_config' => 'array',
+        'tier_config' => 'array',
     ];
 
     protected $hidden = [

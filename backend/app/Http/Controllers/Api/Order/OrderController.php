@@ -56,8 +56,8 @@ class OrderController extends Controller
                 $request->input('shipping_address', []),
                 $request->input('notes'),
                 $request->input('address_id'),
-                $request->input('currency', 'NPR'),
-                $request->input('coupon_code')
+                $request->input('coupon_code'),
+                $request->input('payment_method')
             );
 
             return response()->json([

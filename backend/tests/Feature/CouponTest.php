@@ -362,6 +362,220 @@ class CouponTest extends TestCase
     }
 
     /** @test */
+    public function bogo_promotions_discount_eligible_backend_priced_items()
+    {
+        $coupon = $this->makeCoupon([
+            'name' => 'Buy One Get One',
+            'promotion_type' => 'bogo',
+            'bogo_config' => [
+                'buy_quantity' => 1,
+                'get_quantity' => 1,
+                'discount_type' => 'free',
+            ],
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'fixed',
+            'discount_value' => 0,
+        ], [
+            'product_ids' => [$this->product->id],
+        ]);
+
+        $result = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 400,
+            'shipping_address' => ['country' => 'USA'],
+            'items' => [[
+                'product_id' => $this->product->id,
+                'brand_id' => $this->brand->id,
+                'category_ids' => [$this->category->id],
+                'quantity' => 2,
+                'unit_price' => 200,
+            ]],
+        ], $this->customer);
+
+        $tooFewItems = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 200,
+            'shipping_address' => ['country' => 'USA'],
+            'items' => [[
+                'product_id' => $this->product->id,
+                'brand_id' => $this->brand->id,
+                'category_ids' => [$this->category->id],
+                'quantity' => 1,
+                'unit_price' => 200,
+            ]],
+        ], $this->customer);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('200.00', $result['data']['discount_amount']);
+        $this->assertSame('bogo', $result['data']['applied_promotion']['discount_strategy']);
+        $this->assertFalse($tooFewItems['success']);
+        $this->assertSame('Cart does not contain the required eligible items for this promotion.', $tooFewItems['message']);
+    }
+
+    /** @test */
+    public function tiered_discounts_apply_the_highest_eligible_subtotal_tier()
+    {
+        $coupon = $this->makeCoupon([
+            'name' => 'Tiered Coupon',
+            'promotion_type' => 'tiered',
+            'tier_config' => [
+                ['minimum_subtotal' => 1000, 'discount_type' => 'percentage', 'discount_value' => 5],
+                ['minimum_subtotal' => 5000, 'discount_type' => 'percentage', 'discount_value' => 10],
+                ['minimum_subtotal' => 10000, 'discount_type' => 'percentage', 'discount_value' => 15],
+            ],
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'fixed',
+            'discount_value' => 0,
+        ]);
+
+        $result = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 6000,
+            'shipping_address' => ['country' => 'USA'],
+            'items' => $this->couponItems(),
+        ], $this->customer);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('600.00', $result['data']['discount_amount']);
+        $this->assertSame('5000.00', $result['data']['applied_promotion']['config']['minimum_subtotal']);
+    }
+
+    /** @test */
+    public function payment_specific_coupons_only_validate_for_allowed_payment_methods()
+    {
+        $coupon = $this->makeCoupon([
+            'name' => 'Esewa Coupon',
+            'promotion_type' => 'payment_specific',
+            'payment_methods' => ['esewa'],
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+        ]);
+
+        $paypalResult = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 400,
+            'shipping_address' => ['country' => 'USA'],
+            'payment_method' => 'paypal',
+            'items' => $this->couponItems(),
+        ], $this->customer);
+
+        $esewaResult = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 400,
+            'shipping_address' => ['country' => 'USA'],
+            'payment_method' => 'esewa',
+            'items' => $this->couponItems(),
+        ], $this->customer);
+
+        $this->assertFalse($paypalResult['success']);
+        $this->assertSame('Coupon is not valid for the selected payment method.', $paypalResult['message']);
+        $this->assertTrue($esewaResult['success']);
+        $this->assertSame('40.00', $esewaResult['data']['discount_amount']);
+    }
+
+    /** @test */
+    public function product_restrictions_still_gate_coupon_validation()
+    {
+        $otherBrand = Brand::create([
+            'name' => 'Other Brand',
+            'slug' => 'other-brand',
+        ]);
+        $otherCategory = Category::create([
+            'name' => 'Other Category',
+            'slug' => 'other-category',
+        ]);
+        $otherProduct = Product::create([
+            'name' => 'Other Product',
+            'slug' => 'other-product',
+            'brand_id' => $otherBrand->id,
+        ]);
+        $otherProduct->categories()->attach($otherCategory->id);
+
+        $coupon = $this->makeCoupon([
+            'name' => 'Restricted Coupon',
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+        ], [
+            'product_ids' => [$this->product->id],
+        ]);
+
+        $blockedResult = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 200,
+            'shipping_address' => ['country' => 'USA'],
+            'items' => [[
+                'product_id' => $otherProduct->id,
+                'brand_id' => $otherBrand->id,
+                'category_ids' => [$otherCategory->id],
+                'quantity' => 1,
+                'unit_price' => 200,
+            ]],
+        ], $this->customer);
+
+        $allowedResult = $this->validationService->validateCoupon([
+            'code' => $coupon->customer_code,
+            'subtotal' => 200,
+            'shipping_address' => ['country' => 'USA'],
+            'items' => $this->couponItems(),
+        ], $this->customer);
+
+        $this->assertFalse($blockedResult['success']);
+        $this->assertSame('Coupon is not applicable to the selected items.', $blockedResult['message']);
+        $this->assertTrue($allowedResult['success']);
+    }
+
+    /** @test */
+    public function admin_can_create_edit_and_delete_advanced_coupons()
+    {
+        $createResponse = $this->actingAs($this->admin, 'sanctum')->postJson('/api/admin/coupons', [
+            'name' => 'Admin Tiered Coupon',
+            'customer_code' => 'ADMINTIER',
+            'promotion_type' => 'tiered',
+            'tier_config' => [
+                ['minimum_subtotal' => 1000, 'discount_type' => 'percentage', 'discount_value' => 5],
+            ],
+            'region_rules' => [[
+                'market' => 'INT',
+                'currency' => 'USD',
+                'discount_type' => 'fixed',
+                'discount_value' => 0,
+            ]],
+        ]);
+
+        $couponId = $createResponse->json('data.id');
+
+        $createResponse->assertStatus(201)
+            ->assertJsonPath('data.name', 'Admin Tiered Coupon')
+            ->assertJsonPath('data.customer_code', 'ADMINTIER')
+            ->assertJsonPath('data.promotion_type', 'tiered');
+
+        $updateResponse = $this->actingAs($this->admin, 'sanctum')->putJson("/api/admin/coupons/{$couponId}", [
+            'description' => 'Updated from admin',
+            'auto_apply' => true,
+        ]);
+
+        $updateResponse->assertStatus(200)
+            ->assertJsonPath('data.description', 'Updated from admin')
+            ->assertJsonPath('data.auto_apply', true);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson("/api/admin/coupons/{$couponId}")
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('coupons', ['id' => $couponId]);
+    }
+
+    /** @test */
     public function admin_partial_updates_preserve_existing_coupon_fields()
     {
         $coupon = $this->makeCoupon([
@@ -478,6 +692,99 @@ class CouponTest extends TestCase
             'order_id' => $order->id,
             'discount_amount' => 25.00,
         ]);
+    }
+
+    /** @test */
+    public function checkout_rechecks_payment_specific_coupons_against_the_selected_payment_method()
+    {
+        $coupon = $this->makeCoupon([
+            'name' => 'Checkout Payment Coupon',
+            'promotion_type' => 'payment_specific',
+            'payment_methods' => ['esewa'],
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+        ]);
+
+        $cart = Cart::create(['user_id' => $this->customer->id]);
+        $cart->items()->create([
+            'variant_id' => $this->variant->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson('/api/orders', [
+            'shipping_address' => [
+                'street' => '123 Market Street',
+                'city' => 'New York',
+                'state' => 'NY',
+                'zip' => '10001',
+                'country' => 'USA',
+            ],
+            'coupon_code' => $coupon->customer_code,
+            'payment_method' => 'paypal',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('message', 'Coupon is not valid for the selected payment method.');
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertDatabaseCount('coupon_redemptions', 0);
+    }
+
+    /** @test */
+    public function checkout_auto_applies_the_highest_discount_eligible_promotion()
+    {
+        $this->makeCoupon([
+            'name' => 'Smaller Auto Coupon',
+            'auto_apply' => true,
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'fixed',
+            'discount_value' => 25,
+        ]);
+
+        $bestCoupon = $this->makeCoupon([
+            'name' => 'Best Auto Coupon',
+            'auto_apply' => true,
+        ], [
+            'market' => 'INT',
+            'currency' => 'USD',
+            'discount_type' => 'percentage',
+            'discount_value' => 20,
+        ]);
+
+        $cart = Cart::create(['user_id' => $this->customer->id]);
+        $cart->items()->create([
+            'variant_id' => $this->variant->id,
+            'quantity' => 2,
+        ]);
+
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson('/api/orders', [
+            'shipping_address' => [
+                'street' => '123 Market Street',
+                'city' => 'New York',
+                'state' => 'NY',
+                'zip' => '10001',
+                'country' => 'USA',
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.subtotal', '400.00')
+            ->assertJsonPath('data.discount_amount', '80.00')
+            ->assertJsonPath('data.total', '320.00');
+
+        $order = Order::first();
+        $this->assertDatabaseHas('coupon_redemptions', [
+            'coupon_id' => $bestCoupon->id,
+            'user_id' => $this->customer->id,
+            'order_id' => $order->id,
+            'discount_amount' => 80.00,
+        ]);
+        $this->assertDatabaseCount('coupon_redemptions', 1);
     }
 
     /** @test */
@@ -608,6 +915,8 @@ class CouponTest extends TestCase
             'customer_code' => null,
             'description' => 'Test coupon',
             'status' => 'active',
+            'promotion_type' => 'standard',
+            'auto_apply' => false,
             'starts_at' => now()->subDay(),
             'expires_at' => now()->addDay(),
             'usage_limit' => null,
@@ -615,6 +924,9 @@ class CouponTest extends TestCase
             'stackable' => false,
             'first_order_only' => false,
             'customer_type' => null,
+            'payment_methods' => null,
+            'bogo_config' => null,
+            'tier_config' => null,
             'created_by' => $this->admin->id,
         ], $couponOverrides));
 
@@ -655,6 +967,9 @@ class CouponTest extends TestCase
             'product_id' => $this->product->id,
             'brand_id' => $this->brand->id,
             'category_ids' => [$this->category->id],
+            'quantity' => 1,
+            'unit_price' => 200,
+            'line_total' => 200,
         ]];
     }
 

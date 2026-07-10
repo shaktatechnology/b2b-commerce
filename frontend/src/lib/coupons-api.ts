@@ -187,11 +187,41 @@ export async function validateCoupon(params: {
   return { message: data?.message ?? 'Coupon is valid', valid: true };
 }
 
-/* ── Relation option fetchers (for the product/category/brand/user pickers)
-   Adjust the paths and field mapping below to match your real admin
-   list endpoints if they differ. ─────────────────────────────────────── */
+/* ── Relation option fetchers (for the product/category/user pickers) ───
+   Products & categories: your admin routes turned out to require POST
+   (admin/products errored "GET not supported"), so these use the public
+   storefront endpoints instead (GET, no auth, same shape as
+   storefront-api.ts's fetchProducts/fetchCategories) — safe for populating
+   a picker list either way.
 
-async function fetchOptionList(
+   Users: still assumed to be GET /admin/users, mirroring the working
+   GET /admin/orders pattern in orders-api.ts. If this 405s the same way
+   products did, it likely needs the same POST-with-body treatment —
+   paste whichever file has the real admin users list call and I'll fix it.
+
+   Brands: left out. Sidebar.tsx has Brands (and Colors/Sizes) commented
+   out of nav, so there's probably no brands resource on the backend yet.
+   Say the word if there is one and I'll add getBrandOptions + the picker
+   back into CouponFormModal. ─────────────────────────────────────────── */
+
+async function fetchPublicOptionList(
+  path: string,
+  labelKey: string = 'name'
+): Promise<RelationOption[]> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch options: ${res.status}`);
+  const data = await res.json();
+  const list = extractArray(data);
+  return list.map((item) => ({
+    id: item.id,
+    label: item[labelKey] ?? item.name ?? item.title ?? item.id,
+  }));
+}
+
+async function fetchAdminOptionList(
   path: string,
   labelKey: string = 'name'
 ): Promise<RelationOption[]> {
@@ -212,11 +242,9 @@ async function fetchOptionList(
   }));
 }
 
-export const getProductOptions = () => fetchOptionList('/admin/products', 'name');
+export const getProductOptions = () => fetchPublicOptionList('/products', 'name');
 
 export const getCategoryOptions = () =>
-  fetchOptionList('/admin/categories', 'name');
+  fetchPublicOptionList('/categories', 'name');
 
-export const getBrandOptions = () => fetchOptionList('/admin/brands', 'name');
-
-export const getUserOptions = () => fetchOptionList('/admin/users', 'name');
+export const getUserOptions = () => fetchAdminOptionList('/admin/users', 'name');
