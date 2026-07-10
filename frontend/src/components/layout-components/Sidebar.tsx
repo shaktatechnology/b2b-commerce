@@ -46,6 +46,7 @@ const navItems = [
 
   { name: 'Payments', icon: CreditCard, href: '/admin/payments' },
   { name: 'Offers', icon: Tag, href: '/admin/offers' },
+  { name: 'Coupons', icon: Tag, href: '/admin/coupons' },
   { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
   { name: 'Users', icon: Users, href: '/admin/users' },
   { name: 'Wholesalers', icon: Briefcase, href: '/admin/wholesalers' },
