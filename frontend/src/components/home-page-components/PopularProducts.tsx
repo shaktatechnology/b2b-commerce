@@ -45,8 +45,14 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   // Pre-filter: if USD is active, only show products that have international_price set
   const role = getUserRole();
   const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
+
+  // Exclude products where no active variant has stock > 0
+  const inStockProducts = products.filter((p) =>
+    p.variants?.some((v: any) => v.is_active && (v.stock ?? 0) > 0)
+  );
+
   const visibleProducts = currency === 'USD'
-    ? products.filter((p) =>
+    ? inStockProducts.filter((p) =>
         p.variants?.some((v) =>
           isWholesaler
             ? ((v.international_wholesale_price !== undefined && v.international_wholesale_price !== null && v.international_wholesale_price !== '' && Number(v.international_wholesale_price) > 0) ||
@@ -54,7 +60,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
             : (v.international_price !== undefined && v.international_price !== null && v.international_price !== '' && Number(v.international_price) > 0)
         )
       )
-    : products;
+    : inStockProducts;
 
   const filteredProducts = activeCategory
     ? visibleProducts.filter((p) => p.categories?.some((c) => c.id === activeCategory) ?? false)

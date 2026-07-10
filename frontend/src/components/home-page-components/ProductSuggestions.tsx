@@ -104,7 +104,12 @@ export default function ProductSuggestions({ products }: { products: StorefrontP
   const shuffle = (arr: StorefrontProduct[], seed: number) =>
     [...arr].sort((a, b) => ((Number(String(a.id).replace(/\D/g, '')) * seed) % 7) - ((Number(String(b.id).replace(/\D/g, '')) * seed) % 7));
 
-  const display = products.slice(0, 20); // cap to 20
+  // Exclude products where no active variant has stock > 0
+  const inStockProducts = products.filter((p) =>
+    (p as any).variants?.some((v: any) => v.is_active && (v.stock ?? 0) > 0)
+  );
+
+  const display = inStockProducts.slice(0, 20); // cap to 20
 
   const tabs: Tab[] = [
     {

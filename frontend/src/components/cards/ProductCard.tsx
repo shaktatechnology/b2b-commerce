@@ -42,7 +42,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const isWholesaler = role === "wholesaler" || role === "wholeseller";
   const isUSD = currency === "USD";
 
-  const activeVariant = product.variants?.[0];
+  // Find the first active variant with stock > 0 for pricing; fall back to first variant for price display
+  const activeVariant =
+    product.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ??
+    product.variants?.[0];
+
+  // A product is out of stock when no active variant has stock > 0
+  const allVariantsOutOfStock = !product.variants?.some(
+    (v: any) => v.is_active && (v.stock ?? 0) > 0
+  );
 
   // Choose the correct base price depending on user type + currency
   const rawBase = isUSD
@@ -123,7 +131,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toast.success(`${product.name} added to cart`);
   };
 
-  const isOutOfStock = (lineItem?.stock ?? 0) <= 0;
+  const isOutOfStock = allVariantsOutOfStock || (lineItem?.stock ?? 0) <= 0;
   const isPurchaseDisabled = isOutOfStock || isInternationalPriceMissing;
   const avgRating = Number(product.reviews_avg_rating ?? 0);
   const reviewsCount = product.reviews_count ?? 0;
@@ -249,7 +257,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <img
               src={image}
               alt={product.name}
-              className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+              className={cn(
+                "max-h-full max-w-full object-contain group-hover:scale-105 transition-transform",
+                isOutOfStock && "opacity-40"
+              )}
             />
           ) : (
             <div className="text-center px-2">
@@ -258,7 +269,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </p>
             </div>
           )}
-          {hasDiscount && !isInternationalPriceMissing && (
+          {isOutOfStock && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="bg-gray-800/75 text-white text-[11px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                Out of Stock
+              </span>
+            </div>
+          )}
+          {!isOutOfStock && hasDiscount && !isInternationalPriceMissing && (
             <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
               {discountPercent}% OFF
             </div>
