@@ -42,6 +42,20 @@ import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import PreviewPage from '@/src/app/preview/page';
 import { ConfirmDialog } from '@/src/components/modals/confirm-dialog';
 
+// `date.toISOString().split('T')[0]` converts to UTC first, which shifts
+// the date backward a day in positive-UTC-offset timezones (e.g. Nepal,
+// UTC+5:45) — a date picked at local midnight rolls back to the previous
+// day once converted to UTC. These helpers work entirely in local time,
+// so what you click is what gets saved and reloaded.
+const toDateOnlyString = (date: Date): string => format(date, 'yyyy-MM-dd');
+
+const fromDateOnlyString = (value?: string | null): Date | undefined => {
+  if (!value) return undefined;
+  const [y, m, d] = value.split('-').map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+};
+
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_STORAGE_URL ||
   process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
@@ -719,7 +733,7 @@ export default function AdminProductsPage() {
                   date={dateFrom}
                   setDate={setDateFrom}
                   placeholder="Start Date"
-                  disabled={dateTo ? { after: dateTo } : undefined}
+                  maxDate={dateTo}
                 />
               </div>
             </div>
@@ -730,7 +744,7 @@ export default function AdminProductsPage() {
                   date={dateTo}
                   setDate={setDateTo}
                   placeholder="End Date"
-                  disabled={dateFrom ? { before: dateFrom } : undefined}
+                  minDate={dateFrom}
                 />
               </div>
             </div>
@@ -1453,7 +1467,7 @@ export default function AdminProductsPage() {
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" checked={!!formData.discount} onChange={(e) => {
                             if (e.target.checked) {
-                              setFormData({ ...formData, discount: { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true } });
+                              setFormData({ ...formData, discount: { type: 'percent', value: 10, starts_at: toDateOnlyString(new Date()), ends_at: toDateOnlyString(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), is_active: true } });
                             } else {
                               // When disabling parent discount, also clear all variant discounts
                               setFormData({
@@ -1564,17 +1578,19 @@ export default function AdminProductsPage() {
                           <div className="space-y-1">
                             <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
                             <DatePicker
-                              date={formData.discount.starts_at ? new Date(formData.discount.starts_at) : undefined}
-                              setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' } })}
+                              date={fromDateOnlyString(formData.discount.starts_at)}
+                              setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, starts_at: date ? toDateOnlyString(date) : '' } })}
                               placeholder="Start Date"
+                              maxDate={fromDateOnlyString(formData.discount.ends_at)}
                             />
                           </div>
                           <div className="space-y-1">
                             <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
                             <DatePicker
-                              date={formData.discount.ends_at ? new Date(formData.discount.ends_at) : undefined}
-                              setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' } })}
+                              date={fromDateOnlyString(formData.discount.ends_at)}
+                              setDate={(date) => setFormData({ ...formData, discount: { ...formData.discount!, ends_at: date ? toDateOnlyString(date) : '' } })}
                               placeholder="End Date"
+                              minDate={fromDateOnlyString(formData.discount.starts_at)}
                             />
                           </div>
                           <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">
@@ -1748,7 +1764,7 @@ export default function AdminProductsPage() {
                                 <label className="flex items-center gap-2 cursor-pointer">
                                   <input type="checkbox" checked={!!v.discount} onChange={(e) => {
                                     if (e.target.checked) {
-                                      updateVariant(i, 'discount', { type: 'percent', value: 10, starts_at: new Date().toISOString().split('T')[0], ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], is_active: true });
+                                      updateVariant(i, 'discount', { type: 'percent', value: 10, starts_at: toDateOnlyString(new Date()), ends_at: toDateOnlyString(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), is_active: true });
                                     } else {
                                       updateVariant(i, 'discount', null);
                                     }
@@ -1854,17 +1870,19 @@ export default function AdminProductsPage() {
                                 <div className="space-y-1">
                                   <span className="text-[10px] font-black uppercase text-zinc-400">Starts At</span>
                                   <DatePicker
-                                    date={v.discount.starts_at ? new Date(v.discount.starts_at) : undefined}
-                                    setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? date.toISOString().split('T')[0] : '' })}
+                                    date={fromDateOnlyString(v.discount.starts_at)}
+                                    setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, starts_at: date ? toDateOnlyString(date) : '' })}
                                     placeholder="Start Date"
+                                    maxDate={fromDateOnlyString(v.discount.ends_at)}
                                   />
                                 </div>
                                 <div className="space-y-1">
                                   <span className="text-[10px] font-black uppercase text-zinc-400">Ends At</span>
                                   <DatePicker
-                                    date={v.discount.ends_at ? new Date(v.discount.ends_at) : undefined}
-                                    setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? date.toISOString().split('T')[0] : '' })}
+                                    date={fromDateOnlyString(v.discount.ends_at)}
+                                    setDate={(date) => updateVariant(i, 'discount', { ...v.discount!, ends_at: date ? toDateOnlyString(date) : '' })}
                                     placeholder="End Date"
+                                    minDate={fromDateOnlyString(v.discount.starts_at)}
                                   />
                                 </div>
                                 <div className="col-span-2 flex items-center justify-end border-t border-zinc-100 pt-3">

@@ -34,14 +34,60 @@ export function DatePicker({
   setDate,
   placeholder = 'Pick a date',
   disabled,
+  minDate,
+  maxDate,
 }: {
   date?: Date;
   setDate: (date?: Date) => void;
   placeholder?: string;
+  /** Any extra matcher(s) to disable, merged with minDate/maxDate below. */
   disabled?: Matcher | Matcher[];
+  /**
+   * Dates strictly before this are disabled.
+   * Pass the "start date" here when rendering the "end date" picker,
+   * so the end date can never precede the start date.
+   */
+  minDate?: Date;
+  /**
+   * Dates strictly after this are disabled.
+   * Pass the "end date" here when rendering the "start date" picker,
+   * so the start date can never exceed the end date.
+   */
+  maxDate?: Date;
 }) {
+  // The calendar needs to know which month to open on. Without this it
+  // always defaults to the current month, so editing a date from a
+  // different month made the existing selection look like it had
+  // vanished (it was just off-screen, one or more months away).
+  const [month, setMonth] = React.useState<Date>(date ?? minDate ?? new Date());
+
+  // Keep the visible month in sync whenever the selected date changes
+  // from outside (e.g. opening the edit form for a different discount).
+  React.useEffect(() => {
+    if (date) setMonth(date);
+  }, [date]);
+
+  // Merge caller-supplied `disabled` matchers with the min/max range
+  // constraints so start/end date pairs stay valid without every
+  // consumer having to hand-roll { before } / { after } matchers.
+  const mergedDisabled = React.useMemo<Matcher[]>(() => {
+    const matchers: Matcher[] = [];
+    if (disabled) {
+      if (Array.isArray(disabled)) matchers.push(...disabled);
+      else matchers.push(disabled);
+    }
+    if (minDate) matchers.push({ before: minDate });
+    if (maxDate) matchers.push({ after: maxDate });
+    return matchers;
+  }, [disabled, minDate, maxDate]);
+
   return (
-    <Popover>
+    <Popover
+      onOpenChange={(open) => {
+        // Re-sync on every open too, in case `date` changed while closed.
+        if (open) setMonth(date ?? minDate ?? new Date());
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -61,11 +107,13 @@ export function DatePicker({
             mode="single"
             selected={date}
             onSelect={setDate}
+            month={month}
+            onMonthChange={setMonth}
             captionLayout="dropdown"
             fromYear={2000}
             toYear={2050}
             hideNavigation
-            disabled={disabled}
+            disabled={mergedDisabled.length ? mergedDisabled : undefined}
             classNames={{
               root:          'w-full',
               months:        'flex flex-col',
