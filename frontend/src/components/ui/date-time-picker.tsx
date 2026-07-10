@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { format, setHours, setMinutes } from 'date-fns';
-import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { DayPicker, Matcher } from 'react-day-picker';
 import { cn } from '@/src/lib/utils';
 import { Button } from '@/src/components/ui/button';
@@ -29,197 +29,151 @@ const PopoverContent = React.forwardRef<
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
 
+/**
+ * Note: this no longer picks a time — it now has the exact same UI and
+ * behavior as `DatePicker` (date-picker.tsx). Kept as `DateTimePicker`
+ * so existing imports don't need to change. If you need hour/minute
+ * selection again, restore the time panel that used to live here.
+ */
 export function DateTimePicker({
   date,
   setDate,
-  placeholder = 'Pick date and time',
+  placeholder = 'Pick a date',
   disabled,
+  minDate,
+  maxDate,
 }: {
   date?: Date;
   setDate: (date?: Date) => void;
   placeholder?: string;
+  /** Any extra matcher(s) to disable, merged with minDate/maxDate below. */
   disabled?: Matcher | Matcher[];
+  /**
+   * Dates strictly before this are disabled.
+   * Pass the "start" date here when rendering the "end" picker,
+   * so the end date can never precede the start.
+   */
+  minDate?: Date;
+  /**
+   * Dates strictly after this are disabled.
+   * Pass the "end" date here when rendering the "start" picker,
+   * so the start date can never exceed the end.
+   */
+  maxDate?: Date;
 }) {
+  // The calendar needs to know which month to open on. Without this it
+  // always defaults to the current month, so editing a date from a
+  // different month made the existing selection look like it had
+  // vanished (it was just off-screen, one or more months away).
+  const [month, setMonth] = React.useState<Date>(date ?? minDate ?? new Date());
 
-  const handleTimeChange = (type: 'hours' | 'minutes', value: number) => {
-    if (!date) {
-      const now = new Date();
-      const newDate = type === 'hours' ? setHours(now, value) : setMinutes(now, value);
-      setDate(newDate);
-      return;
+  // Keep the visible month in sync whenever the selected date changes
+  // from outside (e.g. opening the edit form for a different record).
+  React.useEffect(() => {
+    if (date) setMonth(date);
+  }, [date]);
+
+  // Merge caller-supplied `disabled` matchers with the min/max range
+  // constraints so start/end date pairs stay valid without every
+  // consumer having to hand-roll { before } / { after } matchers.
+  const mergedDisabled = React.useMemo<Matcher[]>(() => {
+    const matchers: Matcher[] = [];
+    if (disabled) {
+      if (Array.isArray(disabled)) matchers.push(...disabled);
+      else matchers.push(disabled);
     }
-    const newDate = type === 'hours' ? setHours(date, value) : setMinutes(date, value);
-    setDate(newDate);
-  };
+    if (minDate) matchers.push({ before: minDate });
+    if (maxDate) matchers.push({ after: maxDate });
+    return matchers;
+  }, [disabled, minDate, maxDate]);
 
   return (
-    <Popover>
+    <Popover
+      onOpenChange={(open) => {
+        // Re-sync on every open too, in case `date` changed while closed.
+        if (open) setMonth(date ?? minDate ?? new Date());
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           className={cn(
-            'w-full justify-start text-left font-bold rounded-xl h-12 bg-zinc-50/50 border-zinc-100 hover:border-[#966FD6]/30 hover:bg-white transition-all shadow-sm group',
-            !date ? 'text-zinc-400 font-medium group-hover:text-[#966FD6]' : 'text-zinc-900 group-hover:text-[#966FD6]'
+            'w-full justify-start text-left font-bold rounded-xl h-11 bg-white border-zinc-200 hover:border-violet-300 hover:bg-zinc-50/50 transition-all shadow-sm group',
+            !date ? 'text-zinc-400 font-medium hover:text-[#966FD6]' : 'text-zinc-900 group-hover:text-[#966FD6]'
           )}
         >
-          <CalendarIcon className="mr-3 h-4 w-4 text-zinc-400 group-hover:text-[#966FD6] transition-colors" />
-          {date ? format(date, 'PPP HH:mm') : <span className="group-hover:text-[#966FD6] transition-colors">{placeholder}</span>}
+          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-violet-500 transition-colors" />
+          {date ? format(date, 'PPP') : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="p-0 overflow-hidden" align="start">
-        <div className="flex bg-white rounded-3xl overflow-hidden">
-          {/* Calendar Section */}
-          <div className="p-4 border-r border-zinc-50">
-            <DayPicker
-              mode="single"
-              selected={date}
-              onSelect={(d) => {
-                if (d && date) {
-                   // Keep the current time
-                   const updated = setHours(setMinutes(d, date.getMinutes()), date.getHours());
-                   setDate(updated);
-                } else {
-                   setDate(d);
-                }
-              }}
-              captionLayout="dropdown"
-              fromYear={2000}
-              toYear={2050}
-              hideNavigation
-              disabled={disabled}
-              classNames={{
-                root:          'w-full',
-                months:        'flex flex-col',
-                month:         'space-y-3',
-                month_caption: 'flex justify-start items-center mb-3 px-1',
-                dropdowns:     'inline-flex flex-row items-center gap-3 text-sm font-bold',
-                dropdown_root: 'relative inline-flex flex-row items-center gap-1 cursor-pointer',
-                dropdown:      'absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10',
-                caption_label: 'text-sm font-bold text-zinc-800 pointer-events-none select-none',
-                chevron:       'inline-block ml-0.5 w-3 h-3 fill-zinc-500 pointer-events-none',
-                month_grid:    'w-full border-collapse',
-                weekdays:      'grid grid-cols-7',
-                weekday:       'text-zinc-400 font-semibold text-[10px] uppercase tracking-wider text-center py-2',
-                weeks:         'space-y-1 mt-1',
-                week:          'grid grid-cols-7',
-                day:           'flex items-center justify-center',
-                day_button: [
-                  'size-9 rounded-xl text-sm font-semibold',
-                  'flex items-center justify-center',
-                  'transition-all duration-150 cursor-pointer',
-                  'text-zinc-900',
-                  'hover:bg-violet-50 hover:text-violet-600',
-                  'focus-visible:outline-none',
-                ].join(' '),
-                selected: [
-                  '*:bg-[#966FD6]!',
-                  '*:text-white!',
-                  '*:shadow-md!',
-                  '*:shadow-violet-200!',
-                  '*:ring-2!',
-                  '*:ring-[#966FD6]!',
-                  '*:ring-offset-1!',
-                  'hover:*:bg-[#7d5bbf]!',
-                ].join(' '),
-                disabled: [
-                  '*:text-zinc-200!',
-                  '*:cursor-not-allowed!',
-                  'hover:*:bg-transparent!',
-                  'hover:*:text-zinc-200!',
-                ].join(' '),
-                today:   '*:bg-zinc-100 *:text-[#966FD6]',
-                outside: 'opacity-30 pointer-events-none',
-                hidden:  'invisible',
-              }}
-            />
-          </div>
+      <PopoverContent className="p-0" align="start">
+        <div className="p-4 bg-white rounded-3xl">
+          <DayPicker
+            mode="single"
+            selected={date}
+            onSelect={setDate}
+            month={month}
+            onMonthChange={setMonth}
+            captionLayout="dropdown"
+            fromYear={2000}
+            toYear={2050}
+            hideNavigation
+            disabled={mergedDisabled.length ? mergedDisabled : undefined}
+            classNames={{
+              root:          'w-full',
+              months:        'flex flex-col',
+              month:         'space-y-3',
+              month_caption: 'flex justify-start items-center mb-3 px-1',
+              dropdowns:     'inline-flex flex-row items-center gap-3 text-sm font-bold',
+              dropdown_root: 'relative inline-flex flex-row items-center gap-1 cursor-pointer',
+              dropdown:      'absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10',
+              caption_label: 'text-sm font-bold text-zinc-800 pointer-events-none select-none',
+              chevron:       'inline-block ml-0.5 w-3 h-3 fill-zinc-500 pointer-events-none',
+              month_grid:    'w-full border-collapse',
+              weekdays:      'grid grid-cols-7',
+              weekday:       'text-zinc-400 font-semibold text-[10px] uppercase tracking-wider text-center py-2',
+              weeks:         'space-y-1 mt-1',
+              week:          'grid grid-cols-7',
+              day:           'flex items-center justify-center',
 
-          {/* Time Section */}
-          <div className="flex flex-col w-48 bg-zinc-50/30">
-             <div className="p-4 border-b border-zinc-50 flex items-center justify-center gap-2">
-                <Clock className="size-3 text-[#966FD6]" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Select Time</span>
-             </div>
-             
-             <div className="flex-1 p-6 flex flex-col justify-center items-center gap-6">
-                <div className="flex items-center gap-3">
-                   {/* Hour Input */}
-                   <div className="flex flex-col items-center gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Hour</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="23"
-                        value={date ? date.getHours().toString().padStart(2, '0') : '00'}
-                        onChange={(e) => {
-                          let val = parseInt(e.target.value);
-                          if (isNaN(val)) val = 0;
-                          if (val > 23) val = 23;
-                          if (val < 0) val = 0;
-                          handleTimeChange('hours', val);
-                        }}
-                        className="w-14 h-14 rounded-2xl border-2 border-zinc-100 bg-white text-center text-lg font-black text-black outline-none focus:border-[#966FD6] focus:ring-4 focus:ring-[#966FD6]/10 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                   </div>
+              // <button> inside each day cell — base style
+              day_button: [
+                'size-9 rounded-xl text-sm font-semibold',
+                'flex items-center justify-center',
+                'transition-all duration-150 cursor-pointer',
+                'text-zinc-900',                              // available dates: black
+                'hover:bg-violet-50 hover:text-violet-600',
+                'focus-visible:outline-none',
+              ].join(' '),
 
-                   <span className="text-xl font-black text-zinc-300 mt-5">:</span>
+              // selected: td gets this class — use * to pierce into the button (Tailwind v4)
+              selected: [
+                '*:bg-violet-500!',
+                '*:text-white!',
+                '*:shadow-md!',
+                '*:shadow-violet-200!',
+                '*:ring-2!',
+                '*:ring-violet-600!',
+                '*:ring-offset-1!',
+                'hover:*:bg-violet-600!',
+              ].join(' '),
 
-                   {/* Minute Input */}
-                   <div className="flex flex-col items-center gap-2">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Minute</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max="59"
-                        value={date ? date.getMinutes().toString().padStart(2, '0') : '00'}
-                        onChange={(e) => {
-                          let val = parseInt(e.target.value);
-                          if (isNaN(val)) val = 0;
-                          if (val > 59) val = 59;
-                          if (val < 0) val = 0;
-                          handleTimeChange('minutes', val);
-                        }}
-                        className="w-14 h-14 rounded-2xl border-2 border-zinc-100 bg-white text-center text-lg font-black text-black outline-none focus:border-[#966FD6] focus:ring-4 focus:ring-[#966FD6]/10 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                   </div>
-                </div>
+              // disabled: td gets this — gray out the inner button
+              disabled: [
+                '*:text-zinc-300!',          // gray text
+                '*:cursor-not-allowed!',
+                'hover:*:bg-transparent!',
+                'hover:*:text-zinc-300!',
+              ].join(' '),
 
-             </div>
-
-             <div className="p-3 border-t border-zinc-50 bg-white flex justify-center gap-2">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setDate(undefined)}
-                  className="text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-full px-4 h-8"
-                >
-                  Clear
-                </Button>
-                <div className="text-[11px] font-black text-[#966FD6] bg-[#966FD6]/5 px-4 py-1.5 rounded-full border border-[#966FD6]/10">
-                   {date ? format(date, 'HH:mm') : '--:--'}
-                </div>
-             </div>
-          </div>
+              today:   '*:bg-zinc-100 *:text-violet-500',
+              outside: 'opacity-30 pointer-events-none',
+              hidden:  'invisible',
+            }}
+          />
         </div>
       </PopoverContent>
-      
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #966FD6;
-        }
-      `}</style>
     </Popover>
   );
 }

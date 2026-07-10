@@ -8,6 +8,7 @@ import { Button } from '@/src/components/ui/button';
 import { Spinner } from '@/src/components/ui/spinner';
 import { RegionRuleBuilder } from './RegionRuleBuilder';
 import { RelationPicker } from './RelationPicker';
+import { DateTimePicker } from '@/src/components/ui/date-time-picker';
 import {
   createCoupon,
   generateCouponCode,
@@ -35,14 +36,19 @@ const defaultRegionRule: CouponRegionRule = {
   free_shipping: false,
 };
 
-function toDatetimeLocal(value?: string | null) {
-  if (!value) return '';
+// starts_at / expires_at are stored as ISO datetime strings, but the
+// DateTimePicker only deals in Date objects and whole days. These helpers
+// convert between the two without drifting a day in positive-UTC-offset
+// timezones (e.g. Nepal, UTC+5:45).
+function isoToDate(value?: string | null): Date | undefined {
+  if (!value) return undefined;
   const d = new Date(value);
-  if (isNaN(d.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
+function dateToIso(date?: Date): string | null {
+  if (!date) return null;
+  return date.toISOString();
 }
 
 export function CouponFormModal({
@@ -283,36 +289,26 @@ export function CouponFormModal({
               <label className="block text-sm font-bold text-zinc-600 mb-1.5">
                 Starts at
               </label>
-              <input
-                type="datetime-local"
-                value={toDatetimeLocal(form.starts_at)}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    starts_at: e.target.value
-                      ? new Date(e.target.value).toISOString()
-                      : null,
-                  }))
+              <DateTimePicker
+                date={isoToDate(form.starts_at)}
+                setDate={(date) =>
+                  setForm((f) => ({ ...f, starts_at: dateToIso(date) }))
                 }
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#966FD6]"
+                placeholder="Start date"
+                maxDate={isoToDate(form.expires_at)}
               />
             </div>
             <div>
               <label className="block text-sm font-bold text-zinc-600 mb-1.5">
                 Expires at
               </label>
-              <input
-                type="datetime-local"
-                value={toDatetimeLocal(form.expires_at)}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...f,
-                    expires_at: e.target.value
-                      ? new Date(e.target.value).toISOString()
-                      : null,
-                  }))
+              <DateTimePicker
+                date={isoToDate(form.expires_at)}
+                setDate={(date) =>
+                  setForm((f) => ({ ...f, expires_at: dateToIso(date) }))
                 }
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#966FD6]"
+                placeholder="Expiry date"
+                minDate={isoToDate(form.starts_at)}
               />
             </div>
 
