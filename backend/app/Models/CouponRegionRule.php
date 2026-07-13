@@ -15,6 +15,7 @@ class CouponRegionRule extends Model
         'coupon_id',
         'market',
         'currency',
+        'customer_type',
         'discount_type',
         'discount_value',
         'minimum_subtotal',

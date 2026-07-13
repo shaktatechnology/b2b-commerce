@@ -74,6 +74,11 @@ class Coupon extends Model
 
     protected $hidden = [
         'secure_code',
+        'customer_code',
+    ];
+
+    protected $appends = [
+        'coupon_code',
     ];
 
     protected static function booted(): void
@@ -98,6 +103,11 @@ class Coupon extends Model
         $this->attributes['customer_code'] = $value === null || trim($value) === ''
             ? null
             : Str::upper(trim($value));
+    }
+
+    public function getCouponCodeAttribute(): ?string
+    {
+        return $this->customer_code;
     }
 
     public static function generateCustomerCode(int $length = self::CUSTOMER_CODE_LENGTH): string

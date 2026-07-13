@@ -62,7 +62,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null, ?string $paymentMethod = null): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null, ?string $paymentMethod = null, ?string $currency = null): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -73,7 +73,7 @@ class OrderService implements OrderServiceInterface
         $user = User::findOrFail($userId);
         $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
 
-        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode, $paymentMethod) {
+        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode, $paymentMethod, $currency) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;
@@ -162,6 +162,7 @@ class OrderService implements OrderServiceInterface
                 'shipping_address' => $shippingAddress,
                 'items' => $couponItems,
                 'payment_method' => $paymentMethod,
+                'currency' => $currency,
             ];
             $manualCouponValidation = null;
 

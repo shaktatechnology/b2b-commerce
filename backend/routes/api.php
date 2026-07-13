@@ -66,7 +66,7 @@ Route::get('/offers/{id}',          [OfferController::class, 'show']);
 // Discounts
 Route::get('/discounts',            [DiscountController::class, 'index']);
 Route::get('/discounts/{id}',       [DiscountController::class, 'show']);
-Route::post('/coupons/validate', [CouponController::class, 'validate']);
+Route::post('/coupons/validate', [CouponController::class, 'validate'])->middleware('auth:sanctum');
 
 // ── Authenticated Routes (auth:sanctum) ────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {

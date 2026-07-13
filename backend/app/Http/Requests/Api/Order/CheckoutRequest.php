@@ -6,6 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class CheckoutRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('currency') && $this->input('currency') !== null) {
+            $this->merge([
+                'currency' => strtoupper(trim((string) $this->input('currency'))),
+            ]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -17,6 +26,7 @@ class CheckoutRequest extends FormRequest
             'address_id' => 'nullable|string|max:255',
             'coupon_code' => 'nullable|string|max:255',
             'payment_method' => 'nullable|string|max:64',
+            'currency' => 'nullable|in:NPR,USD',
             // Allow either a previously saved `address_id` OR a full `shipping_address` payload
             'shipping_address' => 'required_with:coupon_code|required_without:address_id|array',
             'shipping_address.street' => 'required_with:coupon_code|required_without:address_id|string|max:255',

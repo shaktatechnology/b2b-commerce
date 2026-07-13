@@ -32,7 +32,7 @@ class CouponService implements CouponServiceInterface
         return DB::transaction(function () use ($data, $creator) {
             $coupon = $this->couponRepository->create([
                 'name' => $data['name'],
-                'customer_code' => $data['customer_code'] ?? null,
+                'customer_code' => $data['coupon_code'] ?? $data['customer_code'] ?? null,
                 'description' => $data['description'] ?? null,
                 'status' => $data['status'] ?? 'active',
                 'promotion_type' => $data['promotion_type'] ?? 'standard',
@@ -65,6 +65,10 @@ class CouponService implements CouponServiceInterface
     public function updateCoupon(string $id, array $data): Coupon
     {
         return DB::transaction(function () use ($id, $data) {
+            if (array_key_exists('coupon_code', $data)) {
+                $data['customer_code'] = $data['coupon_code'];
+            }
+
             $couponFields = [
                 'name',
                 'customer_code',

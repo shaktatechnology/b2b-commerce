@@ -7,6 +7,25 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class ValidateCouponRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+
+        if ($this->has('coupon_code') && $this->input('coupon_code') !== null) {
+            $merge['coupon_code'] = strtoupper(trim((string) $this->input('coupon_code')));
+        } elseif ($this->has('code') && $this->input('code') !== null) {
+            $merge['code'] = strtoupper(trim((string) $this->input('code')));
+        }
+
+        if ($this->has('currency') && $this->input('currency') !== null) {
+            $merge['currency'] = strtoupper(trim((string) $this->input('currency')));
+        }
+
+        if (!empty($merge)) {
+            $this->merge($merge);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -15,9 +34,11 @@ class ValidateCouponRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => 'required|string|max:' . Coupon::SECURE_CODE_LENGTH,
+            'coupon_code' => 'required_without:code|string|max:' . Coupon::SECURE_CODE_LENGTH,
+            'code' => 'required_without:coupon_code|string|max:' . Coupon::SECURE_CODE_LENGTH,
             'subtotal' => 'required|numeric|min:0',
             'shipping_address' => 'required|array',
+            'currency' => 'nullable|in:NPR,USD',
             'items' => 'nullable|array',
             'items.*.product_id' => 'nullable|uuid',
             'items.*.brand_id' => 'nullable|uuid',

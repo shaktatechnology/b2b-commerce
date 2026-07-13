@@ -3,16 +3,18 @@
 namespace App\Services\Coupon;
 
 use App\Models\Coupon;
+use App\Models\CouponRedemption;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class CouponValidationService
 {
     private const COUPON_RELATIONS = ['regionRules', 'products', 'categories', 'brands', 'users', 'redemptions', 'creator'];
+    private const WHOLESALER_ROLES = ['wholesaler', 'wholeseller', 'wholesale'];
 
     public function validateCoupon(array $payload, ?User $user = null): array
     {
-        $code = strtoupper(trim((string) ($payload['code'] ?? $payload['customer_code'] ?? '')));
+        $code = strtoupper(trim((string) ($payload['coupon_code'] ?? $payload['code'] ?? $payload['customer_code'] ?? '')));
 
         if ($code === '') {
             return $this->failure('Coupon code is required.');
@@ -99,7 +101,7 @@ class CouponValidationService
             return $this->failure('Coupon has expired.');
         }
 
-        if ($coupon->usage_limit !== null && $coupon->redemptions()->count() >= $coupon->usage_limit) {
+        if ($coupon->usage_limit !== null && $this->redemptionCount($coupon) >= $coupon->usage_limit) {
             return $this->failure('Coupon usage limit has been reached.');
         }
 
@@ -108,7 +110,7 @@ class CouponValidationService
         }
 
         if ($user) {
-            if ($coupon->usage_per_user !== null && $coupon->redemptions()->where('user_id', $user->id)->count() >= $coupon->usage_per_user) {
+            if ($coupon->usage_per_user !== null && $this->redemptionCountForUser($coupon, $user) >= $coupon->usage_per_user) {
                 return $this->failure('Coupon usage limit for this customer has been reached.');
             }
 
@@ -127,21 +129,22 @@ class CouponValidationService
 
         $shippingAddress = (array) ($payload['shipping_address'] ?? []);
         $market = $this->resolveMarket($shippingAddress);
-        $currency = $this->resolveCurrency($market);
+        $currency = $this->resolveCurrency($payload, $market);
         $subtotal = (float) ($payload['subtotal'] ?? 0);
         $items = $payload['items'] ?? [];
+        $customerType = $this->resolveUserCustomerType($user);
 
         if (!$this->passesPaymentMethodCheck($coupon, $payload['payment_method'] ?? null)) {
             return $this->failure('Coupon is not valid for the selected payment method.');
         }
 
-        $regionRule = $coupon->regionRules->first(function ($rule) use ($market, $currency) {
-            return $rule->market === $market && $rule->currency === $currency;
-        });
+        $ruleSelection = $this->selectRegionRule($coupon, $market, $currency, $customerType);
 
-        if (!$regionRule) {
-            return $this->failure('Coupon is not valid for the selected market or currency.');
+        if (!($ruleSelection['success'] ?? false)) {
+            return $this->failure($ruleSelection['message']);
         }
+
+        $regionRule = $ruleSelection['rule'];
 
         if ($subtotal < (float) $regionRule->minimum_subtotal) {
             return $this->failure('Cart subtotal does not meet the minimum required amount.');
@@ -164,7 +167,7 @@ class CouponValidationService
             'message' => 'Coupon validated successfully.',
             'data' => [
                 'coupon_id' => $coupon->id,
-                'customer_code' => $coupon->customer_code,
+                'coupon_code' => $coupon->customer_code,
                 'promotion_type' => $coupon->promotion_type ?? 'standard',
                 'auto_apply' => $this->isAutoPromotion($coupon),
                 'stackable' => (bool) $coupon->stackable,
@@ -172,6 +175,7 @@ class CouponValidationService
                 'applied_rule' => [
                     'market' => $regionRule->market,
                     'currency' => $regionRule->currency,
+                    'customer_type' => $regionRule->customer_type,
                     'discount_type' => $regionRule->discount_type,
                     'discount_value' => number_format((float) $regionRule->discount_value, 2, '.', ''),
                     'minimum_subtotal' => number_format((float) $regionRule->minimum_subtotal, 2, '.', ''),
@@ -190,6 +194,18 @@ class CouponValidationService
     protected function couponQuery()
     {
         return Coupon::with(self::COUPON_RELATIONS);
+    }
+
+    protected function redemptionCount(Coupon $coupon): int
+    {
+        return CouponRedemption::where('coupon_id', $coupon->id)->count();
+    }
+
+    protected function redemptionCountForUser(Coupon $coupon, User $user): int
+    {
+        return CouponRedemption::where('coupon_id', $coupon->id)
+            ->where('user_id', $user->id)
+            ->count();
     }
 
     protected function failure(string $message): array
@@ -211,19 +227,85 @@ class CouponValidationService
         return 'INT';
     }
 
-    protected function resolveCurrency(string $market): string
+    protected function resolveCurrency(array $payload, string $market): string
     {
+        if (array_key_exists('currency', $payload) && trim((string) $payload['currency']) !== '') {
+            return strtoupper(trim((string) $payload['currency']));
+        }
+
         return $market === 'NP' ? 'NPR' : 'USD';
+    }
+
+    protected function selectRegionRule(Coupon $coupon, string $market, string $currency, ?string $customerType): array
+    {
+        $matchingMarketCurrencyRules = $coupon->regionRules->filter(function ($rule) use ($market, $currency) {
+            return $rule->market === $market && strtoupper((string) $rule->currency) === $currency;
+        });
+
+        if ($matchingMarketCurrencyRules->isEmpty()) {
+            return [
+                'success' => false,
+                'message' => 'This coupon is not valid for the selected currency or market.',
+            ];
+        }
+
+        $genericRule = $matchingMarketCurrencyRules->first(function ($rule) {
+            return $this->isGenericRuleCustomerType($rule->customer_type ?? null);
+        });
+
+        if ($customerType !== null) {
+            $specificRule = $matchingMarketCurrencyRules->first(function ($rule) use ($customerType) {
+                return $this->normalizeCustomerType($rule->customer_type ?? null) === $customerType;
+            });
+
+            if ($specificRule) {
+                return [
+                    'success' => true,
+                    'rule' => $specificRule,
+                ];
+            }
+
+            if ($genericRule) {
+                return [
+                    'success' => true,
+                    'rule' => $genericRule,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Coupon is not valid for this customer type.',
+            ];
+        }
+
+        if ($genericRule) {
+            return [
+                'success' => true,
+                'rule' => $genericRule,
+            ];
+        }
+
+        return [
+            'success' => false,
+            'message' => 'Authentication is required to validate this coupon.',
+        ];
+    }
+
+    protected function isGenericRuleCustomerType($customerType): bool
+    {
+        return $this->normalizeCustomerType($customerType) === null;
     }
 
     protected function calculateDiscountAmount(object $rule, float $subtotal): float
     {
-        $discountAmount = $rule->discount_type === 'percentage'
-            ? round($subtotal * ((float) $rule->discount_value / 100), 2)
-            : (float) $rule->discount_value;
+        if ($rule->discount_type === 'percentage') {
+            $discountAmount = round($subtotal * ((float) $rule->discount_value / 100), 2);
 
-        if ($rule->maximum_discount !== null) {
-            $discountAmount = min($discountAmount, (float) $rule->maximum_discount);
+            if ($rule->maximum_discount !== null) {
+                $discountAmount = min($discountAmount, (float) $rule->maximum_discount);
+            }
+        } else {
+            $discountAmount = (float) $rule->discount_value;
         }
 
         return min($discountAmount, $subtotal);
@@ -455,7 +537,7 @@ class CouponValidationService
         }
 
         if (empty($allowedMethods)) {
-            return ($coupon->promotion_type ?? 'standard') !== 'payment_specific';
+            return true;
         }
 
         $paymentMethod = $this->normalizePaymentMethod($paymentMethod);
@@ -481,31 +563,63 @@ class CouponValidationService
 
     protected function matchesCustomerType(string $customerType, User $user): bool
     {
-        $customerType = strtolower($customerType);
+        $customerType = $this->normalizeCustomerType($customerType);
 
-        if ($customerType === 'all') {
+        if ($customerType === null) {
             return true;
         }
 
-        if ($customerType === 'wholesale') {
-            return in_array($user->role, ['wholesaler', 'wholeseller'], true);
-        }
-
-        if ($customerType === 'retail') {
-            return !in_array($user->role, ['wholesaler', 'wholeseller'], true);
-        }
-
-        return $customerType === strtolower((string) $user->role);
+        return $customerType === $this->resolveUserCustomerType($user);
     }
 
     protected function requiresAuthenticatedCustomer(Coupon $coupon): bool
     {
-        $customerType = strtolower((string) $coupon->customer_type);
-
         return $coupon->usage_per_user !== null
             || $coupon->first_order_only
-            || ($coupon->customer_type !== null && $customerType !== 'all')
+            || $this->normalizeCustomerType($coupon->customer_type) !== null
             || $coupon->users->isNotEmpty();
+    }
+
+    protected function resolveUserCustomerType(?User $user): ?string
+    {
+        if (!$user) {
+            return null;
+        }
+
+        $role = strtolower(trim((string) $user->role));
+
+        if (in_array($role, self::WHOLESALER_ROLES, true)) {
+            return 'wholesaler';
+        }
+
+        if (in_array($role, ['customer', 'retail'], true)) {
+            return 'customer';
+        }
+
+        return $role === '' ? null : $role;
+    }
+
+    protected function normalizeCustomerType($customerType): ?string
+    {
+        if ($customerType === null) {
+            return null;
+        }
+
+        $customerType = strtolower(trim((string) $customerType));
+
+        if ($customerType === '' || in_array($customerType, ['all', 'any'], true)) {
+            return null;
+        }
+
+        if (in_array($customerType, self::WHOLESALER_ROLES, true)) {
+            return 'wholesaler';
+        }
+
+        if (in_array($customerType, ['customer', 'retail'], true)) {
+            return 'customer';
+        }
+
+        return $customerType;
     }
 
     protected function passesRestrictionChecks(Coupon $coupon, array $items): bool

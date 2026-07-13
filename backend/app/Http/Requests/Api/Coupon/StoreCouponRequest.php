@@ -9,10 +9,20 @@ class StoreCouponRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
-        if ($this->has('customer_code') && $this->input('customer_code') !== null) {
-            $this->merge([
-                'customer_code' => strtoupper(trim((string) $this->input('customer_code'))),
-            ]);
+        $merge = [];
+
+        if ($this->has('coupon_code') && $this->input('coupon_code') !== null) {
+            $merge['coupon_code'] = strtoupper(trim((string) $this->input('coupon_code')));
+        } elseif ($this->has('customer_code') && $this->input('customer_code') !== null) {
+            $merge['customer_code'] = strtoupper(trim((string) $this->input('customer_code')));
+        }
+
+        if ($this->has('region_rules') && is_array($this->input('region_rules'))) {
+            $merge['region_rules'] = $this->normalizeRegionRules($this->input('region_rules'));
+        }
+
+        if (!empty($merge)) {
+            $this->merge($merge);
         }
     }
 
@@ -25,7 +35,9 @@ class StoreCouponRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:' . Coupon::NAME_MAX_LENGTH,
-            'customer_code' => 'nullable|string|max:' . Coupon::CUSTOMER_CODE_LENGTH . '|unique:coupons,customer_code',
+            'coupon_code' => 'nullable|string|max:' . Coupon::CUSTOMER_CODE_LENGTH . '|unique:coupons,customer_code',
+            /** @ignoreParam */
+            'customer_code' => 'exclude_unless:coupon_code,null|nullable|string|max:' . Coupon::CUSTOMER_CODE_LENGTH . '|unique:coupons,customer_code',
             'description' => 'nullable|string|max:5000',
             'status' => 'nullable|in:active,inactive',
             'promotion_type' => 'nullable|in:' . implode(',', Coupon::PROMOTION_TYPES),
@@ -37,7 +49,7 @@ class StoreCouponRequest extends FormRequest
             'stackable' => 'nullable|boolean',
             'first_order_only' => 'nullable|boolean',
             'customer_type' => 'nullable|string|max:' . Coupon::CUSTOMER_TYPE_MAX_LENGTH,
-            'payment_methods' => 'required_if:promotion_type,payment_specific|nullable|array|min:1',
+            'payment_methods' => 'nullable|array',
             'payment_methods.*' => 'string|max:64',
             'bogo_config' => 'nullable|array',
             'bogo_config.buy_quantity' => 'required_if:promotion_type,bogo|integer|min:1',
@@ -52,6 +64,7 @@ class StoreCouponRequest extends FormRequest
             'region_rules' => 'required|array|min:1',
             'region_rules.*.market' => 'required|in:NP,INT',
             'region_rules.*.currency' => 'required|in:NPR,USD',
+            'region_rules.*.customer_type' => 'nullable|in:all,customer,wholesaler,retail,wholesale,wholeseller',
             'region_rules.*.discount_type' => 'required|in:percentage,fixed',
             'region_rules.*.discount_value' => 'required|numeric|min:0',
             'region_rules.*.minimum_subtotal' => 'nullable|numeric|min:0',
@@ -66,5 +79,24 @@ class StoreCouponRequest extends FormRequest
             'user_ids' => 'nullable|array',
             'user_ids.*' => 'uuid|exists:users,id',
         ];
+    }
+
+    private function normalizeRegionRules(array $rules): array
+    {
+        return array_map(function ($rule) {
+            if (!is_array($rule)) {
+                return $rule;
+            }
+
+            if (array_key_exists('currency', $rule) && $rule['currency'] !== null) {
+                $rule['currency'] = strtoupper(trim((string) $rule['currency']));
+            }
+
+            if (array_key_exists('customer_type', $rule) && $rule['customer_type'] !== null) {
+                $rule['customer_type'] = strtolower(trim((string) $rule['customer_type'])) ?: null;
+            }
+
+            return $rule;
+        }, $rules);
     }
 }

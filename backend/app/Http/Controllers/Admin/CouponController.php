@@ -88,8 +88,10 @@ class CouponController extends Controller
         $code = $this->couponService->generateCustomerCode((int) $request->input('length', Coupon::CUSTOMER_CODE_LENGTH));
 
         return response()->json([
-            'message' => 'Customer code generated successfully',
-            'data' => ['customer_code' => $code],
+            'message' => 'Coupon code generated successfully',
+            'data' => [
+                'coupon_code' => $code,
+            ],
         ]);
     }
 
