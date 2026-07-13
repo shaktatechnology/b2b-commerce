@@ -935,7 +935,7 @@ export default function AdminProductsPage() {
         <div className="fixed inset-0 z-[100] bg-zinc-50/95 backdrop-blur-md overflow-y-auto animate-in fade-in duration-300">
           <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col">
             <div className="flex items-center gap-4 mb-8">
-              <Button variant="ghost" size="icon" onClick={closeModal} className="rounded-full bg-white shadow-sm border border-zinc-200 h-12 w-12 hover:bg-zinc-100 shrink-0">
+              <Button variant="ghost" size="icon" onClick={closeModal} className="rounded-full bg-white shadow-sm border border-zinc-200 h-12 w-12 hover:bg-zinc-100 hover hover:text-black/60 shrink-0">
                 <ChevronLeft className="h-6 w-6" />
               </Button>
               <h2 className="text-3xl font-black">
@@ -1606,7 +1606,7 @@ export default function AdminProductsPage() {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Variants</label>
-                        <Button type="button" size="sm" variant="outline" onClick={addVariant} className="rounded-xl border-[#966FD6]/30 text-[#966FD6] hover:bg-[#966FD6]/5 font-black h-9 px-4">
+                        <Button type="button" size="sm" variant="outline" onClick={addVariant} className="rounded-xl border-[#966FD6]/30 text-[#966FD6] hover:bg-[#966FD6]/5 hover:text-[#966FD6] font-black h-9 px-4">
                           <Plus className="h-4 w-4 mr-2" /> Add Variant
                         </Button>
                       </div>
@@ -1911,7 +1911,7 @@ export default function AdminProductsPage() {
                     Ensure categories and variants are correctly defined
                   </p>
                   <div className="flex w-full sm:w-auto gap-3">
-                    <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 sm:flex-none font-bold text-zinc-400 rounded-xl md:rounded-2xl h-12 px-6 hover:bg-zinc-50">
+                    <Button type="button" variant="ghost" onClick={closeModal} className="flex-1 sm:flex-none font-bold text-zinc-400 rounded-xl md:rounded-2xl h-12 px-6 hover:bg-zinc-50 hover:text-zinc-400">
                       Cancel
                     </Button>
                     <Button

@@ -99,10 +99,10 @@ export function DateTimePicker({
           variant="outline"
           className={cn(
             'w-full justify-start text-left font-bold rounded-xl h-11 bg-white border-zinc-200 hover:border-violet-300 hover:bg-zinc-50/50 transition-all shadow-sm group',
-            !date ? 'text-zinc-400 font-medium hover:text-[#966FD6]' : 'text-zinc-900 group-hover:text-[#966FD6]'
+            !date ? 'text-zinc-400 font-medium hover:text-[#966FD6]!' : 'text-zinc-900 hover:text-[#966FD6]! group-hover:text-[#966FD6]!'
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-violet-500 transition-colors" />
+          <CalendarIcon className="mr-2 h-4 w-4 text-zinc-400 group-hover:text-violet-500! transition-colors" />
           {date ? format(date, 'PPP') : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>

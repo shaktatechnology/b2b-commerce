@@ -23,7 +23,7 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['category_slug', 'search', 'active', 'offer_id']);
-        
+
         // Non-admin can only view active products
         if (!$request->user() || $request->user()->role !== 'admin') {
             $filters['active'] = true;
@@ -79,10 +79,12 @@ class ProductController extends Controller
 
         foreach ($activeDiscounts as $discount) {
             $product = $discount->product;
-            if (!$product || !$product->is_active) continue;
+            if (!$product || !$product->is_active)
+                continue;
 
             $productId = $product->id;
-            if (isset($seen[$productId])) continue;
+            if (isset($seen[$productId]))
+                continue;
             $seen[$productId] = true;
 
             $dealVariantImageUrl = null;
@@ -91,13 +93,14 @@ class ProductController extends Controller
             }
 
             $product->deal_discount_value = $discount->value;
-            $product->deal_discount_type  = $discount->type;
-            $product->deal_variant_image  = $dealVariantImageUrl;
-            $product->deal_variant_id     = $discount->variant_id;
+            $product->deal_discount_type = $discount->type;
+            $product->deal_variant_image = $dealVariantImageUrl;
+            $product->deal_variant_id = $discount->variant_id;
 
             $deals[] = $product;
 
-            if (count($deals) >= 20) break;
+            if (count($deals) >= 20)
+                break;
         }
 
         // Fill up to 20 if we have fewer
@@ -110,7 +113,7 @@ class ProductController extends Controller
                 ->orderByDesc('discount_percentage')
                 ->limit($needed)
                 ->get();
-            
+
             foreach ($additional as $p) {
                 $deals[] = $p;
                 $seen[$p->id] = true;
@@ -125,7 +128,7 @@ class ProductController extends Controller
                     ->whereNotIn('id', array_keys($seen))
                     ->limit($needed)
                     ->get();
-                foreach($featured as $p) {
+                foreach ($featured as $p) {
                     $deals[] = $p;
                     $seen[$p->id] = true;
                 }
@@ -140,7 +143,7 @@ class ProductController extends Controller
                     ->orderByDesc('sales_count')
                     ->limit($needed)
                     ->get();
-                foreach($popular as $p) {
+                foreach ($popular as $p) {
                     $deals[] = $p;
                     $seen[$p->id] = true;
                 }

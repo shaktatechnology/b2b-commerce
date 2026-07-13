@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShoppingCart, ChevronLeft, ChevronRight, Star, SlidersHorizontal, X } from "lucide-react";
 import ProductCard from "@/src/components/cards/ProductCard";
+import { calculateDiscountAmount } from "@/src/lib/product-utils";
 import type { StorefrontProduct, StorefrontCategory } from "@/src/types/storefront";
 import type { Offer } from "@/src/types/offer";
 
@@ -62,15 +63,31 @@ function hasWeightProducts(products: StorefrontProduct[]) {
     return products.some((p) => p.weight || p.variants?.some((v) => v.weight));
 }
 
-// Get price range
+// Get effective (discounted) price for a product
+function getEffectivePrice(product: StorefrontProduct): number {
+    const variant =
+        product.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ??
+        product.variants?.[0];
+    if (!variant) return 0;
+
+    const basePrice = parseFloat(String(variant.retail_price ?? 0));
+
+    const activeDiscount =
+        (variant as any)?.discounts?.find((d: any) => d.is_active) ??
+        (product as any)?.discounts?.find((d: any) => d.is_active) ??
+        null;
+
+    const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, false, 'NPR');
+    return Math.max(0, basePrice - discountAmount);
+}
+
+// Get price range using effective (discounted) prices
 function getPriceRange(products: StorefrontProduct[]) {
     let min = Infinity, max = 0;
     products.forEach((p) => {
-        p.variants?.forEach((v) => {
-            const price = parseFloat(String(v.retail_price ?? 0));
-            if (price > 0 && price < min) min = price;
-            if (price > max) max = price;
-        });
+        const price = getEffectivePrice(p);
+        if (price > 0 && price < min) min = price;
+        if (price > max) max = price;
     });
     return { min: min === Infinity ? 0 : Math.floor(min), max: Math.ceil(max) };
 }
@@ -140,10 +157,10 @@ export default function ProductListingClient({
     const filteredProducts = React.useMemo(() => {
         let result = [...products];
 
-        // Price
+        // Price — filter by effective (discounted) price
         if (priceRange[0] > priceExtremes.min || priceRange[1] < priceExtremes.max) {
             result = result.filter((p) => {
-                const price = parseFloat(String(p.variants?.[0]?.retail_price ?? 0));
+                const price = getEffectivePrice(p);
                 return price >= priceRange[0] && price <= priceRange[1];
             });
         }
@@ -176,10 +193,10 @@ export default function ProductListingClient({
         // Sort
         switch (sortBy) {
             case "price_low":
-                result.sort((a, b) => parseFloat(String(a.variants?.[0]?.retail_price ?? 0)) - parseFloat(String(b.variants?.[0]?.retail_price ?? 0)));
+                result.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
                 break;
             case "price_high":
-                result.sort((a, b) => parseFloat(String(b.variants?.[0]?.retail_price ?? 0)) - parseFloat(String(a.variants?.[0]?.retail_price ?? 0)));
+                result.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
                 break;
             case "name_asc": result.sort((a, b) => a.name.localeCompare(b.name)); break;
             default: break;
@@ -324,7 +341,7 @@ export default function ProductListingClient({
                                     </div>
 
                                     <span className="text-xs text-gray-400 group-hover:text-primary transition-colors">
-                                        {r} & up
+                                        {r === 5 ? '5' : `${r} & up`}
                                     </span>
                                 </label>
                             ))}

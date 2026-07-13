@@ -5,6 +5,7 @@ import {
   fetchCategories,
   fetchProducts,
   fetchOffers,
+  fetchTags,
 } from "@/src/lib/storefront-api";
 
 interface PageProps {
@@ -12,20 +13,49 @@ interface PageProps {
     category?: string;
     offer_id?: string;
     brand?: string;
-    product_id?: string
+    product_id?: string;
+    search?: string;
+    tag?: string;
   }>;
 }
 
 export default async function ProductsListingPage({ searchParams }: PageProps) {
-  const { category: categorySlug, offer_id, brand: brandId, product_id } = await searchParams;
+  const { category: categorySlug, offer_id, brand: brandId, product_id, search, tag: tagSlug } = await searchParams;
 
-  const [{ storefront }, categories, products, offers] = await Promise.all([
+  const queryParams: Record<string, string> = {};
+  if (offer_id) queryParams.offer_id = offer_id;
+  if (search) queryParams.search = search;
+
+  const [{ storefront }, categories, tags, products, offers] = await Promise.all([
     fetchAllSettings(),
     fetchCategories(),
-    fetchProducts(offer_id ? { offer_id } : undefined),
+    fetchTags(),
+    fetchProducts(Object.keys(queryParams).length > 0 ? queryParams : undefined),
     fetchOffers(),
   ]);
 
+  let resolvedCategorySlug = categorySlug;
+  let resolvedTagSlug: string | undefined = undefined;
+
+  if (tagSlug) {
+    const matchingCategory = categories.find((c) => 
+      c.slug?.toLowerCase() === tagSlug.toLowerCase() || 
+      c.name?.toLowerCase() === tagSlug.toLowerCase()
+    );
+    if (matchingCategory) {
+      resolvedCategorySlug = matchingCategory.slug;
+    } else {
+      const matchingTag = tags.find((t) => 
+        t.slug?.toLowerCase() === tagSlug.toLowerCase() || 
+        t.name?.toLowerCase() === tagSlug.toLowerCase()
+      );
+      if (matchingTag) {
+        resolvedTagSlug = matchingTag.slug;
+      } else {
+        resolvedTagSlug = tagSlug;
+      }
+    }
+  }
 
   // Category filter
   // 1. Identify all target groups
@@ -74,27 +104,38 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
   // 3. Apply the reordering
   const reordered = [...group0, ...group1, ...group2, ...group3, ...group4];
 
-  // 4. Handle initial category filter if present (keep reordered items that match)
+  // 4. Handle initial category/tag filters if present (keep reordered items that match)
   let filtered = reordered;
-  if (categorySlug) {
+  if (resolvedCategorySlug) {
     filtered = reordered.filter((p) =>
-      p.categories?.some((c) => c.slug === categorySlug)
+      p.categories?.some((c) => c.slug?.toLowerCase() === resolvedCategorySlug?.toLowerCase())
+    );
+  }
+
+  if (resolvedTagSlug) {
+    filtered = filtered.filter((p) =>
+      p.tags?.some((t) => t.slug?.toLowerCase() === resolvedTagSlug?.toLowerCase() || t.name?.toLowerCase() === resolvedTagSlug?.toLowerCase())
     );
   }
 
   // Determine page title
-  const activeCategory = categories.find((c) => c.slug === categorySlug);
+  const activeCategory = categories.find((c) => c.slug?.toLowerCase() === resolvedCategorySlug?.toLowerCase());
+  const activeTag = tags.find((t) => t.slug?.toLowerCase() === resolvedTagSlug?.toLowerCase());
   const activeBrand = targetBrandId
     ? products.find((p) => p.brand?.id?.toString() === targetBrandId.toString())?.brand
     : null;
 
-  const pageTitle = activeOffer
-    ? `Special Offer: ${activeOffer.title}`
-    : activeCategory
-      ? activeCategory.name
-      : activeBrand
-        ? activeBrand.name
-        : "All Products";
+  const pageTitle = search
+    ? `Search Results for "${search}"`
+    : activeOffer
+      ? `Special Offer: ${activeOffer.title}`
+      : activeCategory
+        ? activeCategory.name
+        : activeTag
+          ? `Tag: ${activeTag.name}`
+          : activeBrand
+            ? activeBrand.name
+            : "All Products";
 
   return (
     <StorefrontLayout categories={categories} settings={storefront}>
@@ -104,7 +145,7 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
           categories={categories}
           allProducts={products}
           offers={offers}
-          initialCategorySlug={categorySlug}
+          initialCategorySlug={resolvedCategorySlug}
           initialOfferId={offer_id}
           initialBrandId={brandId}
           pageTitle={pageTitle}

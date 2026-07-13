@@ -92,7 +92,7 @@ export function DatePicker({
         <Button
           variant="outline"
           className={cn(
-            'w-full justify-start text-left font-bold rounded-xl h-11 bg-white border-zinc-200 hover:border-violet-300 hover:bg-zinc-50/50 transition-all shadow-sm group',
+            'w-full justify-start text-left font-bold rounded-xl h-11 bg-white border-zinc-200 hover:border-violet-300 hover:text-black hover:bg-zinc-50/50 transition-all shadow-sm group',
             !date ? 'text-zinc-400 font-medium hover:text-[#966FD6]' : 'text-zinc-900 group-hover:text-[#966FD6]'
           )}
         >

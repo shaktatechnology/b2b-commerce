@@ -28,7 +28,7 @@ class ProductRepository implements ProductRepositoryInterface
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -76,7 +76,7 @@ class ProductRepository implements ProductRepositoryInterface
 
         return $query->where(function ($q) use ($decoded) {
             $q->where('slug', $decoded)
-              ->orWhere('slug', strtolower($decoded));
+                ->orWhere('slug', strtolower($decoded));
         })->firstOrFail();
     }
 
@@ -212,7 +212,7 @@ class ProductRepository implements ProductRepositoryInterface
                     if (isset($variantData['id'])) {
                         // Update existing variant
                         $variant = ProductVariant::where('product_id', $product->id)->findOrFail($variantData['id']);
-                        
+
                         // If new image uploaded, delete old one from storage
                         if (isset($variantData['image']) && $variant->image_url) {
                             $oldPath = str_replace('/storage/', '', $variant->image_url);

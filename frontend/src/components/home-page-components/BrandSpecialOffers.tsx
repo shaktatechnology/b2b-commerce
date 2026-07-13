@@ -10,6 +10,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parent_id?: string | number | null;
 }
 
 interface Tag {
@@ -73,7 +74,7 @@ export default function BrandSpecialOffers({ offers, categories = [], tags = [] 
     })
     : defaultOffers;
 
-  const sidebarTags = tags.length > 0 ? tags : categories;
+  const sidebarTags = tags.length > 0 ? tags : categories.filter((cat) => cat.parent_id != null);
 
   return (
     <section className="max-w-7xl mx-auto px-4 md:px-10 py-6 md:py-10">
