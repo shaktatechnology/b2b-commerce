@@ -51,6 +51,8 @@ class OrderController extends Controller
     public function store(CheckoutRequest $request): JsonResponse
     {
         try {
+            $currency = $request->validated('currency');
+
             $order = $this->orderService->createOrderFromCart(
                 $request->user()->id,
                 $request->input('shipping_address', []),
@@ -58,7 +60,7 @@ class OrderController extends Controller
                 $request->input('address_id'),
                 $request->input('coupon_code'),
                 $request->input('payment_method'),
-                $request->input('currency')
+                $currency
             );
 
             return response()->json([

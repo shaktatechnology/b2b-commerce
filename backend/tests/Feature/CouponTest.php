@@ -1373,6 +1373,48 @@ class CouponTest extends TestCase
     }
 
     /** @test */
+    public function checkout_with_cod_coupon_defaults_missing_currency_from_nepal_shipping_market()
+    {
+        $coupon = $this->makeCoupon([
+            'name' => 'Checkout COD NPR Fallback Coupon',
+            'payment_methods' => ['cod'],
+        ], [
+            'market' => 'NP',
+            'currency' => 'NPR',
+            'discount_type' => 'fixed',
+            'discount_value' => 31,
+        ]);
+
+        $cart = Cart::create(['user_id' => $this->customer->id]);
+        $cart->items()->create([
+            'variant_id' => $this->variant->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson('/api/orders', [
+            'shipping_address' => [
+                'street' => '123 Market Street',
+                'city' => 'Kathmandu',
+                'state' => 'Bagmati',
+                'zip' => '44600',
+                'country' => 'Nepal',
+            ],
+            'coupon_code' => $coupon->customer_code,
+            'payment_method' => 'cod',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.discount_amount', '31.00')
+            ->assertJsonPath('data.total', '169.00');
+
+        $this->assertDatabaseHas('coupon_redemptions', [
+            'coupon_id' => $coupon->id,
+            'currency' => 'NPR',
+            'discount_amount' => 31.00,
+        ]);
+    }
+
+    /** @test */
     public function checkout_revalidates_coupon_usage_limit_and_does_not_create_failed_redemptions()
     {
         $coupon = $this->makeCoupon([

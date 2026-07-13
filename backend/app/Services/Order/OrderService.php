@@ -72,6 +72,7 @@ class OrderService implements OrderServiceInterface
 
         $user = User::findOrFail($userId);
         $userType = ($user->role === 'wholesaler' || $user->role === 'wholeseller') ? 'wholesale' : 'retail';
+        $currency = $this->resolveCheckoutCurrency($currency, $shippingAddress);
 
         return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode, $paymentMethod, $currency) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
@@ -118,7 +119,7 @@ class OrderService implements OrderServiceInterface
                     ->first();
 
                 $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
+                if ($discount) {
                     if ($discount->type === 'percent') {
                         $unitDiscount = round($unitPrice * ($discount->value / 100), 2);
                     } elseif ($discount->type === 'fixed') {
@@ -227,6 +228,23 @@ class OrderService implements OrderServiceInterface
         });
     }
 
+    protected function resolveCheckoutCurrency(?string $currency, array $shippingAddress): string
+    {
+        $currency = strtoupper(trim((string) $currency));
+
+        if ($currency !== '') {
+            if (!in_array($currency, ['NPR', 'USD'], true)) {
+                throw new \InvalidArgumentException('Currency must be NPR or USD.');
+            }
+
+            return $currency;
+        }
+
+        $country = strtoupper(trim((string) ($shippingAddress['country'] ?? '')));
+
+        return in_array($country, ['NP', 'NPL', 'NEPAL'], true) ? 'NPR' : 'USD';
+    }
+
     protected function applyValidatedCouponDiscount(array $validation, float $couponSubtotal, float &$total, float &$discountAmount): ?array
     {
         if (!isset($validation['data']['coupon_id'])) {
@@ -309,7 +327,7 @@ class OrderService implements OrderServiceInterface
                     ->first();
 
                 $unitDiscount = 0.00;
-                if ($userType !== 'wholesale' && $discount) {
+                if ($discount) {
                     $unitDiscount = $discount->type === 'percent'
                         ? round($unitPrice * ($discount->value / 100), 2)
                         : $discount->value;
