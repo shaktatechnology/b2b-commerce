@@ -105,10 +105,30 @@ export default async function ProductsListingPage({ searchParams }: PageProps) {
   const reordered = [...group0, ...group1, ...group2, ...group3, ...group4];
 
   // 4. Handle initial category/tag filters if present (keep reordered items that match)
+  // When filtering by a category, also include products belonging to any
+  // of its descendant (child) categories, so selecting a parent category
+  // shows products tagged only with its children too.
+  const getCategoryIdsIncludingDescendants = (rootId: string): string[] => {
+    const ids = [rootId];
+    categories
+      .filter((c) => String(c.parent_id) === String(rootId))
+      .forEach((child) => {
+        ids.push(...getCategoryIdsIncludingDescendants(String(child.id)));
+      });
+    return ids;
+  };
+
   let filtered = reordered;
   if (resolvedCategorySlug) {
+    const matchedCategoryForFilter = categories.find(
+      (c) => c.slug?.toLowerCase() === resolvedCategorySlug?.toLowerCase()
+    );
+    const allowedCategoryIds = matchedCategoryForFilter
+      ? new Set(getCategoryIdsIncludingDescendants(String(matchedCategoryForFilter.id)))
+      : new Set<string>();
+
     filtered = reordered.filter((p) =>
-      p.categories?.some((c) => c.slug?.toLowerCase() === resolvedCategorySlug?.toLowerCase())
+      p.categories?.some((c) => allowedCategoryIds.has(String(c.id)))
     );
   }
 

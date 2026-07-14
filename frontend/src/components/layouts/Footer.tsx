@@ -73,7 +73,7 @@ export default function Footer({
                 key={cat.id}
                 className="hover:text-white cursor-pointer transition"
               >
-                <a href={`/category/${cat.slug}`}>{cat.name}</a>
+                <a href={`/products?category=${cat.slug}`}>{cat.name}</a>
               </li>
             ))}
           </ul>
