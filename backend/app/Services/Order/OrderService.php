@@ -63,7 +63,7 @@ class OrderService implements OrderServiceInterface
     /**
      * Checkout user's cart and create an order in a secure database transaction.
      */
-    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null, ?string $paymentMethod = null): Order
+    public function createOrderFromCart(string $userId, array $shippingAddress, ?string $notes, ?string $addressId = null, ?string $couponCode = null, ?string $paymentMethod = null, string $currency = 'NPR'): Order
     {
         $cart = $this->cartService->getCartForUser($userId);
 
@@ -75,7 +75,7 @@ class OrderService implements OrderServiceInterface
         $userType = $this->orderUserType($user);
         $currency = $this->normalizeCurrency($currency);
 
-        return DB::transaction(function () use ($userId, $user, $cart, $userType, $shippingAddress, $notes, $addressId, $couponCode) {
+        return DB::transaction(function () use ($userId, $user, $cart, $userType, $currency, $shippingAddress, $notes, $addressId, $couponCode, $paymentMethod) {
             $orderNumber = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
 
             $subtotal = 0;
@@ -102,7 +102,7 @@ class OrderService implements OrderServiceInterface
                 }
 
                 $unitPrice = $this->unitPriceFor($variant, $userType, $currency);
-                $discount = $this->activeDiscountFor($variant);
+                $discount = $this->activeDiscountFor($variant, $userType, $currency);
                 $unitDiscount = $discount
                     ? $discount->calculateAmountFor($unitPrice, $userType, $currency)
                     : 0.00;
@@ -274,7 +274,7 @@ class OrderService implements OrderServiceInterface
                 }
 
                 $unitPrice = $this->unitPriceFor($variant, $userType, $currency);
-                $discount = $this->activeDiscountFor($variant);
+                $discount = $this->activeDiscountFor($variant, $userType, $currency);
                 $unitDiscount = $discount
                     ? $discount->calculateAmountFor($unitPrice, $userType, $currency)
                     : 0.00;
@@ -399,11 +399,13 @@ class OrderService implements OrderServiceInterface
             : $variant->retail_price);
     }
 
-    private function activeDiscountFor(ProductVariant $variant): ?Discount
+    private function activeDiscountFor(ProductVariant $variant, string $userType, string $currency): ?Discount
     {
         $now = now();
+        $isWholesale = $userType === 'wholesale';
+        $isInternational = strtoupper($currency) === 'USD';
 
-        return Discount::where('is_active', true)
+        $query = Discount::where('is_active', true)
             ->where('starts_at', '<=', $now)
             ->where('ends_at', '>=', $now)
             ->where(function ($q) use ($variant) {
@@ -412,8 +414,22 @@ class OrderService implements OrderServiceInterface
                         $q2->where('product_id', $variant->product_id)
                             ->whereNull('variant_id');
                     });
-            })
-            ->orderBy('variant_id', 'desc')
-            ->first();
+            });
+
+        if ($isWholesale && $isInternational) {
+            $query->whereNotNull('wholesale_international_type')
+                  ->where('wholesale_international_value', '>', 0);
+        } elseif ($isWholesale) {
+            $query->whereNotNull('wholesale_type')
+                  ->where('wholesale_value', '>', 0);
+        } elseif ($isInternational) {
+            $query->whereNotNull('international_type')
+                  ->where('international_value', '>', 0);
+        } else {
+            $query->whereNotNull('type')
+                  ->where('value', '>', 0);
+        }
+
+        return $query->orderBy('variant_id', 'desc')->first();
     }
 }

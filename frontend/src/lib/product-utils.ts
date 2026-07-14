@@ -59,6 +59,16 @@ export function getDiscountDefinition(
     return { type: null, value: null };
   }
 
+  const now = new Date();
+  if (discount.starts_at) {
+    const start = new Date(discount.starts_at);
+    if (now < start) return { type: null, value: null };
+  }
+  if (discount.ends_at) {
+    const end = new Date(discount.ends_at);
+    if (now > end) return { type: null, value: null };
+  }
+
   const isInternational = currency.toUpperCase() === 'USD';
 
   if (isWholesaler && isInternational) {
@@ -148,23 +158,34 @@ export function productToCartLineItem(
   );
 
   // Auto-calculate discount from product/variant discount data if not explicitly provided
-  let activeDiscount = variant.discounts?.find((d) => d.is_active) ?? null;
-  if (!activeDiscount) {
-    activeDiscount = product.discounts?.find((d) => d.is_active) ?? null;
-  }
+  const activeDiscountNpr = variant.discounts?.find((d) => {
+    const def = getDiscountDefinition(d, isWholesaler, 'NPR');
+    return d.is_active && def.type !== null && def.value !== null && def.value > 0;
+  }) ?? product.discounts?.find((d) => {
+    const def = getDiscountDefinition(d, isWholesaler, 'NPR');
+    return d.is_active && def.type !== null && def.value !== null && def.value > 0;
+  }) ?? null;
+
+  const activeDiscountUsd = variant.discounts?.find((d) => {
+    const def = getDiscountDefinition(d, isWholesaler, 'USD');
+    return d.is_active && def.type !== null && def.value !== null && def.value > 0;
+  }) ?? product.discounts?.find((d) => {
+    const def = getDiscountDefinition(d, isWholesaler, 'USD');
+    return d.is_active && def.type !== null && def.value !== null && def.value > 0;
+  }) ?? null;
 
   // Pre-calculate both NPR and USD prices & discounts
   const rawPriceNpr = isWholesaler
     ? (variant.wholesale_price ?? variant.retail_price ?? 0)
     : (variant.retail_price ?? 0);
   const basePriceNpr = parseFloat(String(rawPriceNpr));
-  const discountNpr = calculateDiscountAmount(basePriceNpr, activeDiscount, isWholesaler, 'NPR');
+  const discountNpr = calculateDiscountAmount(basePriceNpr, activeDiscountNpr, isWholesaler, 'NPR');
 
   const rawPriceUsd = isWholesaler
     ? ((variant as any).international_wholesale_price ?? variant.international_price ?? 0)
     : (variant.international_price ?? 0);
   const basePriceUsd = parseFloat(String(rawPriceUsd));
-  const discountUsd = calculateDiscountAmount(basePriceUsd, activeDiscount, isWholesaler, 'USD');
+  const discountUsd = calculateDiscountAmount(basePriceUsd, activeDiscountUsd, isWholesaler, 'USD');
 
   let discount = options?.discount ?? 0;
   if (options?.discount === undefined) {

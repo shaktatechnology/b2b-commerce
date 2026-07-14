@@ -17,6 +17,7 @@ class CheckoutRequest extends FormRequest
             'address_id' => 'nullable|string|max:255',
             'coupon_code' => 'nullable|string|max:255',
             'payment_method' => 'nullable|string|max:64',
+            'currency' => 'nullable|string|max:3',
             // Allow either a previously saved `address_id` OR a full `shipping_address` payload
             'shipping_address' => 'required_with:coupon_code|required_without:address_id|array',
             'shipping_address.street' => 'required_with:coupon_code|required_without:address_id|string|max:255',

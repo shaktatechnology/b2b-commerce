@@ -57,7 +57,8 @@ class OrderController extends Controller
                 $request->input('notes'),
                 $request->input('address_id'),
                 $request->input('coupon_code'),
-                $request->input('payment_method')
+                $request->input('payment_method'),
+                $request->input('currency', 'NPR')
             );
 
             return response()->json([
