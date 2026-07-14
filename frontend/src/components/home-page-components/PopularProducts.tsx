@@ -7,8 +7,9 @@ import type { CartProductInput } from "@/src/types/cart";
 import { getUserRole } from "@/src/lib/auth";
 
 interface Category {
-  id: string;
+  id: number;
   name: string;
+  parent_id?: number | null;
 }
 
 interface PopularProductsProps {
@@ -25,9 +26,34 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   products,
   categories,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  
+  const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
   const swiperRef = useRef<any>(null);
+
+  // Only top-level categories are shown as filter tabs
+  const parentCategories = categories.filter(
+    (c) => c.parent_id === null || c.parent_id === undefined
+  );
+
+  // For a given parent category id, return that id plus all of its
+  // descendant (child) category ids, so products tagged with a child
+  // category still show up when the parent tab is active.
+  // IDs are coerced to strings for comparison since the API has been
+  // inconsistent about returning numeric ids as numbers vs strings.
+  const getCategoryIdsForParent = (parentId: number): (string | number)[] => {
+    const ids: (string | number)[] = [parentId];
+    const collectChildren = (id: number | string) => {
+      categories
+        .filter((c) => String(c.parent_id) === String(id))
+        .forEach((child) => {
+          ids.push(child.id);
+          collectChildren(child.id);
+        });
+    };
+    collectChildren(parentId);
+    return ids;
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -46,10 +72,15 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   const role = getUserRole();
   const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
 
+  // Only include products explicitly marked as popular
+  const popularOnlyProducts = products.filter((p: any) => p.is_popular);
+  
+
   // Exclude products where no active variant has stock > 0
-  const inStockProducts = products.filter((p) =>
+  const inStockProducts = popularOnlyProducts.filter((p) =>
     p.variants?.some((v: any) => v.is_active && (v.stock ?? 0) > 0)
   );
+  
 
   const visibleProducts = currency === 'USD'
     ? inStockProducts.filter((p) =>
@@ -61,9 +92,15 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
         )
       )
     : inStockProducts;
+  
 
   const filteredProducts = activeCategory
-    ? visibleProducts.filter((p) => p.categories?.some((c) => c.id === activeCategory) ?? false)
+    ? (() => {
+        const allowedCategoryIds = getCategoryIdsForParent(activeCategory).map(String);
+        return visibleProducts.filter(
+          (p) => p.categories?.some((c) => allowedCategoryIds.includes(String(c.id))) ?? false
+        );
+      })()
     : visibleProducts;
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,7 +136,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
     return () => container.removeEventListener("scroll", checkOverflow);
   }, []);
 
-  if (!products || products.length === 0) return <p></p>;
+  if (!products || products.length === 0 || popularOnlyProducts.length === 0) return <p></p>;
 
   return (
     <div className="w-full relative group/section">
@@ -139,7 +176,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
               All
             </button>
 
-            {categories.map((category) => (
+            {parentCategories.map((category) => (
               <button
                 key={category.id}
                 onClick={() => setActiveCategory(category.id)}
