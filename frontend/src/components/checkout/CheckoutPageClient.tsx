@@ -6,11 +6,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { useAppStore } from "@/src/store/use-app-store";
-import { formatRs, formatPrice, getActiveCurrency } from "@/src/lib/product-utils";
+import {
+  formatRs,
+  formatPrice,
+  getActiveCurrency,
+} from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
 import { syncCartToServer, checkoutOrder } from "@/src/lib/cart-api";
 import { initiatePayment } from "@/src/lib/payment-api";
-import type { PaymentSettings, PaymentGatewayId } from "@/src/types/payment-settings";
+import type {
+  PaymentSettings,
+  PaymentGatewayId,
+} from "@/src/types/payment-settings";
 import EsewaPaymentForm from "./EsewaPaymentForm";
 
 interface CheckoutPageClientProps {
@@ -33,17 +40,16 @@ export default function CheckoutPageClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  
+
   // Stored copy of checked out items so they persist in the UI summary when local cart is cleared
   const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
   const [checkoutDiscount, setCheckoutDiscount] = useState<number>(0);
-  
+
   const [orderSubtotal, setOrderSubtotal] = useState<number>(0);
   const [orderDiscount, setOrderDiscount] = useState<number>(0);
   const [orderTotal, setOrderTotal] = useState<number>(0);
-  const [selectedGateway, setSelectedGateway] = useState<PaymentGatewayId | null>(
-    paymentSettings.defaultGateway
-  );
+  const [selectedGateway, setSelectedGateway] =
+    useState<PaymentGatewayId | null>(paymentSettings.defaultGateway);
   const [esewaConfig, setEsewaConfig] = useState<{
     config: import("@/src/lib/payment-api").EsewaPaymentConfig;
     paymentId: string;
@@ -59,13 +65,14 @@ export default function CheckoutPageClient({
     notes: "",
   });
 
-  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+  const [currency, setCurrency] = useState<"NPR" | "USD">("NPR");
 
   useEffect(() => {
     setCurrency(getActiveCurrency());
     const handleCurrencyChange = () => setCurrency(getActiveCurrency());
-    window.addEventListener('currency_changed', handleCurrencyChange);
-    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
+    window.addEventListener("currency_changed", handleCurrencyChange);
+    return () =>
+      window.removeEventListener("currency_changed", handleCurrencyChange);
   }, []);
 
   const formatCheckoutPrice = (amount: number) => formatPrice(amount, currency);
@@ -74,24 +81,35 @@ export default function CheckoutPageClient({
 
   // eSewa only for NPR, PayPal only for USD, COD for both
   const activeGateways = paymentSettings.gateways.filter((g) => {
-    if (currency === 'NPR') {
-      return g.id === 'esewa' || g.id === 'cod';
+    if (currency === "NPR") {
+      return g.id === "esewa" || g.id === "cod";
     } else {
-      return g.id === 'paypal' || g.id === 'cod';
+      return g.id === "paypal" || g.id === "cod";
     }
   });
 
   // Make sure we select a valid default gateway whenever activeGateways changes
   useEffect(() => {
     const validIds = activeGateways.map((g) => g.id);
-    if (validIds.length > 0 && (!selectedGateway || !validIds.includes(selectedGateway))) {
-      if (paymentSettings.defaultGateway && validIds.includes(paymentSettings.defaultGateway)) {
+    if (
+      validIds.length > 0 &&
+      (!selectedGateway || !validIds.includes(selectedGateway))
+    ) {
+      if (
+        paymentSettings.defaultGateway &&
+        validIds.includes(paymentSettings.defaultGateway)
+      ) {
         setSelectedGateway(paymentSettings.defaultGateway);
       } else {
         setSelectedGateway(validIds[0]);
       }
     }
-  }, [currency, activeGateways, selectedGateway, paymentSettings.defaultGateway]);
+  }, [
+    currency,
+    activeGateways,
+    selectedGateway,
+    paymentSettings.defaultGateway,
+  ]);
 
   // Set checkoutItems from cart items as soon as they are loaded
   useEffect(() => {
@@ -104,8 +122,10 @@ export default function CheckoutPageClient({
   useEffect(() => {
     // Clear any pending payment configs from previous sessions
     sessionStorage.removeItem("pending_payment_config");
-    
-    const storageKey = user ? `b2b_shipping_address_${user.id}` : "b2b_shipping_address";
+
+    const storageKey = user
+      ? `b2b_shipping_address_${user.id}`
+      : "b2b_shipping_address";
     const savedAddress = localStorage.getItem(storageKey);
     if (savedAddress) {
       try {
@@ -114,14 +134,23 @@ export default function CheckoutPageClient({
 
         // Sync currency preferences with loaded country
         if (parsed.country) {
-          const nextCur = parsed.country.toLowerCase() === 'nepal' ? getActiveCurrency() : 'USD';
-          localStorage.setItem('currency_preference', nextCur);
+          const nextCur =
+            parsed.country.toLowerCase() === "nepal"
+              ? getActiveCurrency()
+              : "USD";
+          localStorage.setItem("currency_preference", nextCur);
           useCartStore.getState().syncCurrency(nextCur);
-          window.dispatchEvent(new Event('currency_changed'));
+          window.dispatchEvent(new Event("currency_changed"));
         }
 
         // Only skip editing if all key required address fields are present
-        if (parsed.street?.trim() && parsed.city?.trim() && parsed.state?.trim() && parsed.zip?.trim() && parsed.country?.trim()) {
+        if (
+          parsed.street?.trim() &&
+          parsed.city?.trim() &&
+          parsed.state?.trim() &&
+          parsed.zip?.trim() &&
+          parsed.country?.trim()
+        ) {
           setIsEditingAddress(false);
         } else {
           setIsEditingAddress(true);
@@ -136,20 +165,26 @@ export default function CheckoutPageClient({
   }, [user]);
 
   const total = subtotal();
-  const activeDiscount = step === "shipping" ? discountTotal() : (orderDiscount > 0 ? orderDiscount : checkoutDiscount);
+  const activeDiscount =
+    step === "shipping"
+      ? discountTotal()
+      : orderDiscount > 0
+        ? orderDiscount
+        : checkoutDiscount;
 
   const handleChange = (field: keyof typeof form, value: string) => {
     setForm((prev) => {
       const updated = { ...prev, [field]: value };
-      
+
       // Auto-set currency & translate cart items based on country selection
-      if (field === 'country') {
-        const nextCur = value.toLowerCase() === 'nepal' ? getActiveCurrency() : 'USD';
-        localStorage.setItem('currency_preference', nextCur);
+      if (field === "country") {
+        const nextCur =
+          value.toLowerCase() === "nepal" ? getActiveCurrency() : "USD";
+        localStorage.setItem("currency_preference", nextCur);
         useCartStore.getState().syncCurrency(nextCur);
-        window.dispatchEvent(new Event('currency_changed'));
+        window.dispatchEvent(new Event("currency_changed"));
       }
-      
+
       return updated;
     });
   };
@@ -157,7 +192,9 @@ export default function CheckoutPageClient({
   const getImageUrl = (url?: string | null) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
-    const host = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api").replace("/api", "");
+    const host = (
+      process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api"
+    ).replace("/api", "");
     return `${host}${url}`;
   };
 
@@ -167,7 +204,7 @@ export default function CheckoutPageClient({
       router.push("/login?redirect=/checkout");
       return;
     }
-    
+
     const activeItems = step === "shipping" ? items : checkoutItems;
     if (activeItems.length === 0) {
       toast.error("Your cart is empty.");
@@ -177,11 +214,15 @@ export default function CheckoutPageClient({
 
     for (const item of activeItems) {
       if (item.stock !== undefined && item.stock <= 0) {
-        toast.error(`Item "${item.name}" is out of stock and cannot be checked out.`);
+        toast.error(
+          `Item "${item.name}" is out of stock and cannot be checked out.`,
+        );
         return;
       }
       if (item.stock !== undefined && item.quantity > item.stock) {
-        toast.error(`Item "${item.name}" only has ${item.stock} unit${item.stock === 1 ? "" : "s"} available.`);
+        toast.error(
+          `Item "${item.name}" only has ${item.stock} unit${item.stock === 1 ? "" : "s"} available.`,
+        );
         return;
       }
     }
@@ -214,7 +255,7 @@ export default function CheckoutPageClient({
 
     if (paymentSettings.gateways.length === 0) {
       toast.error(
-        "No payment gateways are enabled. Please contact the store administrator."
+        "No payment gateways are enabled. Please contact the store administrator.",
       );
       return;
     }
@@ -223,7 +264,7 @@ export default function CheckoutPageClient({
     try {
       // Sync local cart to server database first
       await syncCartToServer(token, activeItems);
-      
+
       const res = await checkoutOrder(token, {
         shipping_address: {
           street: form.street.trim(),
@@ -244,15 +285,20 @@ export default function CheckoutPageClient({
       setOrderTotal(parseFloat(String(order.total)));
 
       // Save valid address to local storage
-      const storageKey = user ? `b2b_shipping_address_${user.id}` : "b2b_shipping_address";
-      localStorage.setItem(storageKey, JSON.stringify({
-        street: form.street.trim(),
-        city: form.city.trim(),
-        state: form.state.trim(),
-        zip: form.zip.trim(),
-        country: form.country.trim(),
-        notes: form.notes,
-      }));
+      const storageKey = user
+        ? `b2b_shipping_address_${user.id}`
+        : "b2b_shipping_address";
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          street: form.street.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          zip: form.zip.trim(),
+          country: form.country.trim(),
+          notes: form.notes,
+        }),
+      );
       setIsEditingAddress(false);
 
       // Empties the cart store locally upon successful order creation
@@ -285,7 +331,7 @@ export default function CheckoutPageClient({
         toast.success("Order confirmed! You will pay upon delivery.");
         clearCart();
         router.push(
-          `/payment-verify?gateway=cod&order_id=${orderId}&status=success`
+          `/payment-verify?gateway=cod&order_id=${orderId}&status=success`,
         );
         return;
       }
@@ -301,9 +347,12 @@ export default function CheckoutPageClient({
       }
 
       if (selectedGateway === "paypal" && payment.paypal) {
-        sessionStorage.setItem("pending_payment_config", JSON.stringify(payment));
+        sessionStorage.setItem(
+          "pending_payment_config",
+          JSON.stringify(payment),
+        );
         router.push(
-          `/payment?order_id=${orderId}&payment_id=${payment.payment_id}&gateway=paypal`
+          `/payment?order_id=${orderId}&payment_id=${payment.payment_id}&gateway=paypal`,
         );
         return;
       }
@@ -369,26 +418,44 @@ export default function CheckoutPageClient({
         <div className="lg:col-span-3 space-y-4">
           {step === "shipping" ? (
             <>
-              <h2 className="font-medium text-gray-900 text-base">Shipping address</h2>
+              <h2 className="font-medium text-gray-900 text-base">
+                Shipping address
+              </h2>
               {!isEditingAddress ? (
                 <div className="border border-gray-200 bg-zinc-50/30 rounded-xl p-5 space-y-2">
                   <div className="text-sm text-gray-700 space-y-2">
                     <div>
-                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">Street Address</span>
-                      <span className="text-gray-800 font-medium">{form.street}</span>
+                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">
+                        Street Address
+                      </span>
+                      <span className="text-gray-800 font-medium">
+                        {form.street}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">City, State, ZIP</span>
-                      <span className="text-gray-800 font-medium">{form.city}, {form.state} {form.zip}</span>
+                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">
+                        City, State, ZIP
+                      </span>
+                      <span className="text-gray-800 font-medium">
+                        {form.city}, {form.state} {form.zip}
+                      </span>
                     </div>
                     <div>
-                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">Country</span>
-                      <span className="text-gray-800 font-medium">{form.country}</span>
+                      <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">
+                        Country
+                      </span>
+                      <span className="text-gray-800 font-medium">
+                        {form.country}
+                      </span>
                     </div>
                     {form.notes ? (
                       <div className="pt-1">
-                        <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">Order Notes</span>
-                        <span className="text-gray-800 font-medium italic">"{form.notes}"</span>
+                        <span className="font-bold text-gray-900 text-xs uppercase tracking-wider text-zinc-400 block mb-0.5">
+                          Order Notes
+                        </span>
+                        <span className="text-gray-800 font-medium italic">
+                          "{form.notes}"
+                        </span>
                       </div>
                     ) : null}
                   </div>
@@ -403,9 +470,18 @@ export default function CheckoutPageClient({
                     <button
                       type="button"
                       onClick={() => {
-                        const storageKey = user ? `b2b_shipping_address_${user.id}` : "b2b_shipping_address";
+                        const storageKey = user
+                          ? `b2b_shipping_address_${user.id}`
+                          : "b2b_shipping_address";
                         localStorage.removeItem(storageKey);
-                        setForm({ street: "", city: "", state: "", zip: "", country: "Nepal", notes: "" });
+                        setForm({
+                          street: "",
+                          city: "",
+                          state: "",
+                          zip: "",
+                          country: "Nepal",
+                          notes: "",
+                        });
                         setIsEditingAddress(true);
                       }}
                       className="px-4 py-2 bg-white border border-red-100 rounded-lg text-sm font-semibold text-red-650 hover:bg-red-50 transition-colors"
@@ -475,7 +551,9 @@ export default function CheckoutPageClient({
                       </label>
                       <select
                         value={form.country}
-                        onChange={(e) => handleChange("country", e.target.value)}
+                        onChange={(e) =>
+                          handleChange("country", e.target.value)
+                        }
                         className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none bg-white focus:border-primary transition-all focus:ring-1 focus:ring-primary/20"
                       >
                         <option value="Nepal">Nepal</option>
@@ -485,7 +563,7 @@ export default function CheckoutPageClient({
                   </div>
                 </div>
               )}
-              
+
               <div>
                 <label className="text-sm font-semibold text-gray-750 block mb-1">
                   Order notes (optional)
@@ -510,7 +588,9 @@ export default function CheckoutPageClient({
             </>
           ) : (
             <>
-              <h2 className="font-medium text-gray-900 text-base">Payment method</h2>
+              <h2 className="font-medium text-gray-900 text-base">
+                Payment method
+              </h2>
               {activeGateways.length === 0 ? (
                 <p className="text-sm text-destructive">
                   No payment gateways are active for the selected country.
@@ -540,7 +620,7 @@ export default function CheckoutPageClient({
                         <p className="text-sm text-gray-500">
                           {gateway.description}
                         </p>
-                        {gateway.id !== 'cod' && (
+                        {gateway.id !== "cod" && (
                           <p className="text-xs text-gray-400 mt-1">
                             Mode: {gateway.mode}
                           </p>
@@ -559,8 +639,8 @@ export default function CheckoutPageClient({
                 {isSubmitting
                   ? "Processing…"
                   : selectedGateway === "cod"
-                  ? "Confirm Order (Cash on Delivery)"
-                  : "Pay now"}
+                    ? "Confirm Order (Cash on Delivery)"
+                    : "Pay now"}
               </button>
               <button
                 type="button"
@@ -575,12 +655,15 @@ export default function CheckoutPageClient({
 
         <div className="lg:col-span-2 border border-gray-200 rounded-2xl p-5 h-fit bg-white shadow-sm space-y-4">
           <h2 className="text-primary font-bold text-base">Order summary</h2>
-          
+
           <div className="space-y-1 divide-y divide-gray-100 max-h-[300px] overflow-y-auto pr-1">
             {activeSummaryItems.map((item) => {
               const fullImageUrl = getImageUrl(item.image);
               return (
-                <div key={item.variantId} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                <div
+                  key={item.variantId}
+                  className="flex gap-3 py-3 first:pt-0 last:pb-0"
+                >
                   {/* Thumbnail Image */}
                   <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
                     {fullImageUrl ? (
@@ -590,12 +673,17 @@ export default function CheckoutPageClient({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-[9px] font-bold text-gray-400">No Image</span>
+                      <span className="text-[9px] font-bold text-gray-400">
+                        No Image
+                      </span>
                     )}
                   </div>
                   {/* Product Details */}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-800 text-sm truncate" title={item.name}>
+                    <h4
+                      className="font-semibold text-gray-800 text-sm truncate"
+                      title={item.name}
+                    >
                       {item.name}
                     </h4>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">
@@ -607,7 +695,10 @@ export default function CheckoutPageClient({
                       </p>
                     )}
                     <p className="text-xs font-bold text-primary mt-1">
-                      Total: {formatCheckoutPrice((item.price - (item.discount ?? 0)) * item.quantity)}
+                      Total:{" "}
+                      {formatCheckoutPrice(
+                        (item.price - (item.discount ?? 0)) * item.quantity,
+                      )}
                     </p>
                   </div>
                 </div>
@@ -624,16 +715,14 @@ export default function CheckoutPageClient({
                   : formatCheckoutPrice(total)}
               </span>
             </div>
-            
+
             {activeDiscount > 0 ? (
               <div className="flex justify-between text-sm text-green-600 font-medium">
                 <span>Discount:</span>
-                <span>
-                  - {formatCheckoutPrice(activeDiscount)}
-                </span>
+                <span>- {formatCheckoutPrice(activeDiscount)}</span>
               </div>
             ) : null}
-            
+
             <div className="flex justify-between font-bold text-primary text-base border-t border-dashed border-gray-200 pt-2 mt-2">
               <span>Amount to be Paid</span>
               <span>
