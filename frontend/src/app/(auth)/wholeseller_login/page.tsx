@@ -46,7 +46,7 @@ export default function WholesellerLoginPage() {
       if (role === 'admin') {
         router.push('/admin/dashboard');
       } else if (role === 'wholeseller' || role === 'wholesaler') {
-        router.push('/wholeseller');
+        router.push('/');
       } else {
         router.push('/');
       }

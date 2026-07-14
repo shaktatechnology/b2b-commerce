@@ -98,7 +98,7 @@ export function LoginForm() {
       } else if (role === 'admin') {
         window.location.href = '/admin/dashboard';
       } else if (role === 'wholeseller' || role === 'wholesaler') {
-        window.location.href = '/wholeseller';
+        window.location.href = '/';
       } else {
         window.location.href = '/';
       }

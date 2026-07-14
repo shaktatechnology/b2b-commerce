@@ -21,7 +21,7 @@ export function proxy(request: NextRequest) {
   // 1. Redirect Logged-in Users away from Auth Pages
   if (isAuth && (pathname === '/login' || pathname === '/register' || pathname === '/wholeseller_login')) {
     if (role === 'admin') return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-    if (role === 'wholeseller' || role === 'wholesaler') return NextResponse.redirect(new URL('/wholeseller', request.url));
+    if (role === 'wholeseller' || role === 'wholesaler') return NextResponse.redirect(new URL('/', request.url));
     const redirectParam = request.nextUrl.searchParams.get('redirect');
     if (redirectParam && redirectParam.startsWith('/') && role !== 'admin') {
       return NextResponse.redirect(new URL(redirectParam, request.url));
