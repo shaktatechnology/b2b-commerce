@@ -29,6 +29,7 @@ export default function CartPageClient({
   const removeItem = useCartStore((s) => s.removeItem);
   const subtotal = useCartStore((s) => s.subtotal);
   const itemCount = useCartStore((s) => s.itemCount);
+  const discountTotal = useCartStore((s) => s.discountTotal);
 
   const [coupon, setCoupon] = useState("");
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -37,8 +38,10 @@ export default function CartPageClient({
   const [variantToRemove, setVariantToRemove] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [activeCurrency, setActiveCurrency] = useState<'NPR' | 'USD'>('NPR');
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     setRole(getUserRole());
     const cur = getActiveCurrency();
     setActiveCurrency(cur);
@@ -53,6 +56,7 @@ export default function CartPageClient({
     return () => window.removeEventListener('currency_changed', onChange);
   }, []);
 
+
   // Derive cart currency from items (stamped at Add-to-Cart time)
   const cartCurrency: 'NPR' | 'USD' = (items[0]?.currency as 'NPR' | 'USD') ?? activeCurrency;
   const fmt = (amount: number) => formatPrice(amount, cartCurrency, 0);
@@ -60,7 +64,7 @@ export default function CartPageClient({
   const isWholesaler = role === "wholesaler";
 
   const rawSubtotal = subtotal();
-  const totalDiscount = useCartStore((s) => s.discountTotal)();
+  const totalDiscount = discountTotal();
   const subtotalAmount = rawSubtotal - totalDiscount;
   const totalAmount = subtotalAmount + SHIPPING_ESTIMATE;
   const totalItems = itemCount();
@@ -132,6 +136,35 @@ export default function CartPageClient({
     setVariantToRemove(null);
   };
 
+  if (!isMounted) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 md:px-10 py-6 pb-16 animate-pulse">
+        <nav className="text-sm text-gray-550 mb-6">
+          <Link href="/" className="hover:text-primary transition-colors">
+            Home
+          </Link>
+          <span className="mx-2 text-gray-400">&gt;</span>
+          <span className="text-primary font-medium">Cart</span>
+        </nav>
+
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="flex-1 w-full space-y-4">
+            <div className="h-32 bg-gray-100 rounded-lg" />
+            <div className="h-32 bg-gray-100 rounded-lg" />
+          </div>
+          <aside className="w-full lg:w-[340px] shrink-0 border border-gray-200 rounded-lg p-5 bg-white space-y-4">
+            <div className="h-10 bg-gray-100 rounded" />
+            <div className="h-6 bg-gray-150 rounded w-2/3" />
+            <div className="space-y-3 pt-4">
+              <div className="h-4 bg-gray-100 rounded" />
+              <div className="h-4 bg-gray-100 rounded w-5/6" />
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-10 py-6 pb-16">
       <nav className="text-sm text-gray-500 mb-6">
@@ -179,6 +212,11 @@ export default function CartPageClient({
                   <h3 className="font-semibold text-gray-900 text-sm sm:text-base mt-0.5 line-clamp-2">
                     {item.name}
                   </h3>
+                  {item.variantName && (
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      Variant: {item.variantName}
+                    </p>
+                  )}
                   <div className="mt-1 flex items-center gap-2 flex-wrap">
                     <p className="text-primary font-bold text-lg">
                       {fmt(item.price - (item.discount ?? 0))}

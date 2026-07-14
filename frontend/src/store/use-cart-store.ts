@@ -12,6 +12,10 @@ interface CartState {
   subtotal: () => number;
   discountTotal: () => number;
   syncCurrency: (targetCurrency: 'NPR' | 'USD') => void;
+  // Corrects a stale cart item once the backend tells us its variant is no
+  // longer active — cart items only carry a snapshot of is_active taken at
+  // add-to-cart time, so this keeps local state truthful after a 422.
+  markItemInactive: (variantId: string) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -55,14 +59,22 @@ export const useCartStore = create<CartState>()(
 
       clearCart: () => set({ items: [] }),
 
+      markItemInactive: (variantId) => {
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.variantId === variantId ? { ...i, is_active: false, isUnavailable: true } : i
+          ),
+        }));
+      },
+
       itemCount: () =>
         get().items.reduce((sum, item) => sum + item.quantity, 0),
 
       subtotal: () =>
-        get().items.reduce((sum, item) => sum + (item.isUnavailable ? 0 : item.price) * item.quantity, 0),
+        get().items.reduce((sum, item) => sum + ((item.isUnavailable || item.is_active === false) ? 0 : item.price) * item.quantity, 0),
 
       discountTotal: () =>
-        get().items.reduce((sum, item) => sum + (item.isUnavailable ? 0 : (item.discount ?? 0)) * item.quantity, 0),
+        get().items.reduce((sum, item) => sum + ((item.isUnavailable || item.is_active === false) ? 0 : (item.discount ?? 0)) * item.quantity, 0),
 
       syncCurrency: (targetCurrency) => {
         set((state) => {

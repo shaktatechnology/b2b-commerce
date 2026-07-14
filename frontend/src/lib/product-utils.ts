@@ -213,6 +213,7 @@ export function productToCartLineItem(
       NPR: Number.isFinite(discountNpr) ? discountNpr : 0,
       USD: Number.isFinite(discountUsd) ? discountUsd : 0,
     },
+    variantName: variant.variant_name,
   };
 }
 

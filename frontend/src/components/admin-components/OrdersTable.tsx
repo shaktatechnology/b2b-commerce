@@ -1,4 +1,5 @@
 import type { Order, OrderStatus, PaymentStatus } from "@/src/types/orders";
+import { formatOrderAmount } from "@/src/lib/currency";
 import { StatusBadge } from "./StatusBadge";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { Eye } from "lucide-react";
@@ -214,7 +215,7 @@ export function OrdersTable({
                   </div>
                 </TableCell>
                 <TableCell className="px-5 py-5 font-bold text-zinc-800 text-xs">
-                  Rs. {Number(order.total).toLocaleString()}
+                  {formatOrderAmount(order, order.total)}
                 </TableCell>
                 <TableCell className="px-5 py-5 text-xs text-zinc-400 font-bold">
                   {formatDate(order.created_at)}

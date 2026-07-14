@@ -313,8 +313,11 @@ export default function ProductPurchasePanel({
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
                 {label}: <span className="text-zinc-900 font-black ml-1">
                   {(() => {
+                    const extract = (v: unknown) =>
+                      v && typeof v === "object" ? (v as any)?.name : v;
                     const val = selectedVariant[property as keyof typeof selectedVariant];
-                    return typeof val === 'object' ? (val as any)?.name : (val as string) || (product as any)[property] || 'Default';
+                    const fallback = (product as any)[property];
+                    return extract(val) || extract(fallback) || 'Default';
                   })()}
                 </span>
               </h3>
@@ -324,20 +327,22 @@ export default function ProductPurchasePanel({
 
                   const uniqueOptions = [
                     ...new Set(
-                      activeVariants.map(v =>
-                        typeof v[property as keyof typeof v] === "object"
-                          ? (v[property as keyof typeof v] as any)?.name
-                          : (v[property as keyof typeof v] as string) || "Default"
-                      )
+                      activeVariants
+                        .map(v =>
+                          v[property as keyof typeof v] && typeof v[property as keyof typeof v] === "object"
+                            ? (v[property as keyof typeof v] as any)?.name
+                            : (v[property as keyof typeof v] as string) || "Default"
+                        )
+                        .filter(Boolean)
                     ),
                   ];
 
-                  return uniqueOptions.map(optionValue => {
+                  return uniqueOptions.map((optionValue, idx) => {
                     const availableVariant = activeVariants.find(v => {
                       const color = v.color?.name || product.color?.name || "Default";
 
                       const value =
-                        typeof v[property as keyof typeof v] === "object"
+                        v[property as keyof typeof v] && typeof v[property as keyof typeof v] === "object"
                           ? (v[property as keyof typeof v] as any)?.name
                           : (v[property as keyof typeof v] as string) || "Default";
 
@@ -347,7 +352,7 @@ export default function ProductPurchasePanel({
                     const available = !!availableVariant;
 
                     const selectedValue =
-                      typeof selectedVariant[property as keyof typeof selectedVariant] === "object"
+                      selectedVariant[property as keyof typeof selectedVariant] && typeof selectedVariant[property as keyof typeof selectedVariant] === "object"
                         ? (selectedVariant[property as keyof typeof selectedVariant] as any)?.name
                         : (selectedVariant[property as keyof typeof selectedVariant] as string) || "Default";
 
@@ -355,7 +360,7 @@ export default function ProductPurchasePanel({
 
                     return (
                       <button
-                        key={optionValue}
+                        key={optionValue ?? `${property}-${idx}`}
                         type="button"
                         disabled={!available}
                         onClick={() => available && onVariantChange(availableVariant!.id)}

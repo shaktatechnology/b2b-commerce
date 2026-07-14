@@ -61,6 +61,15 @@ export interface Order {
   notes?: string | null;
   status: OrderStatus;
   payment_status: PaymentStatus;
+  // Gateway used to pay for this order (e.g. "esewa", "cod", "paypal").
+  // ASSUMPTION: adjust the field name to match whatever your Laravel API actually returns
+  // (could be `payment_method`, `gateway`, or nested under a `payment` relation).
+  payment_method?: string | null;
+  gateway?: string | null;
+  payment?: {
+    method?: string | null;
+    currency?: string | null;
+  } | null;
   shipping_address: ShippingAddress;
   address_id?: string | null;
   product_ids?: string[];

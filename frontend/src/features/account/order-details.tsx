@@ -12,6 +12,7 @@ import { ChevronLeft, Package, Truck, CheckCircle2, Clock, MapPin, Receipt, Cale
 import { cn } from '@/src/lib/utils';
 
 import { resolveProductImageUrl } from '@/src/lib/product-utils';
+import { formatOrderAmount } from '@/src/lib/currency';
 import { fetchAllSettings } from '@/src/lib/storefront-api';
 import { initiatePayment } from '@/src/lib/payment-api';
 import { getAuthToken } from '@/src/lib/auth';
@@ -218,7 +219,7 @@ export function OrderDetailsFeature() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-black text-black">Rs. {Number(item.line_total || 0).toLocaleString()}</p>
+                            <p className="font-black text-black">{formatOrderAmount(order, item.line_total || 0)}</p>
                             <p className="text-xs text-zinc-400 font-medium">Qty: {item.quantity} Unit</p>
                           </div>
                         </div>
@@ -234,12 +235,12 @@ export function OrderDetailsFeature() {
                <div className="bg-zinc-50/50 p-8 border-t border-zinc-100 space-y-3">
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
                     <span>Subtotal</span>
-                    <span>Rs. {Number(order.subtotal || 0).toLocaleString()}</span>
+                    <span>{formatOrderAmount(order, order.subtotal || 0)}</span>
                   </div>
                   {Number(order.discount_amount || 0) > 0 && (
                     <div className="flex justify-between text-sm font-medium text-emerald-600">
                       <span>Discount</span>
-                      <span>- Rs. {Number(order.discount_amount).toLocaleString()}</span>
+                      <span>- {formatOrderAmount(order, order.discount_amount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
@@ -248,7 +249,7 @@ export function OrderDetailsFeature() {
                   </div>
                   <div className="flex justify-between pt-4 border-t border-zinc-100">
                     <span className="text-lg font-black text-black uppercase tracking-tight">Grand Total</span>
-                    <span className="text-2xl font-black text-[#966FD6]">Rs. {Number(order.total_amount || order.total || 0).toLocaleString()}</span>
+                    <span className="text-2xl font-black text-[#966FD6]">{formatOrderAmount(order, order.total_amount || order.total || 0)}</span>
                   </div>
                </div>
             </CardContent>

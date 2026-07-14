@@ -15,6 +15,7 @@ import { PageHeader } from "@/src/components/layout-components/page-wrapper";
 import { Pagination } from "@/src/components/ui/pagination";
 import { Modal, ModalContent, ModalHeader, ModalTitle } from "@/src/components/modals/modal";
 import { StatusBadge } from "./StatusBadge";
+import { formatOrderAmount } from "@/src/lib/currency";
 
 interface Props {
   initialOrders: Order[];
@@ -381,15 +382,15 @@ export function OrdersPageClient({
                             {/* Pricing & Quantities */}
                             <div className="text-right shrink-0">
                               <p className="text-sm font-bold text-zinc-950">
-                                Rs. {Number(item.unit_price).toLocaleString()} × {item.quantity}
+                                {formatOrderAmount(selectedOrder, item.unit_price)} × {item.quantity}
                               </p>
                               {Number(item.discount_amount) > 0 && (
                                 <p className="text-[10px] text-green-600 font-bold">
-                                  Disc: Rs. {Number(item.discount_amount).toLocaleString()}
+                                  Disc: {formatOrderAmount(selectedOrder, item.discount_amount)}
                                 </p>
                               )}
                               <p className="text-xs font-black text-zinc-950 mt-1">
-                                Total: Rs. {Number(item.line_total).toLocaleString()}
+                                Total: {formatOrderAmount(selectedOrder, item.line_total)}
                               </p>
                             </div>
                           </div>
@@ -417,17 +418,17 @@ export function OrdersPageClient({
                 <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 space-y-2.5 shadow-sm">
                   <div className="flex justify-between text-sm font-bold text-zinc-650">
                     <span>Subtotal:</span>
-                    <span className="text-zinc-950">Rs. {Number(selectedOrder.subtotal).toLocaleString()}</span>
+                    <span className="text-zinc-950">{formatOrderAmount(selectedOrder, selectedOrder.subtotal)}</span>
                   </div>
                   {Number(selectedOrder.discount_amount) > 0 && (
                     <div className="flex justify-between text-sm font-bold text-green-600">
                       <span>Discount amount:</span>
-                      <span>- Rs. {Number(selectedOrder.discount_amount).toLocaleString()}</span>
+                      <span>- {formatOrderAmount(selectedOrder, selectedOrder.discount_amount)}</span>
                     </div>
                   )}
                   <div className="border-t border-zinc-250 pt-2 flex justify-between text-base font-black text-zinc-950">
                     <span>Grand Total:</span>
-                    <span className="text-[#966FD6]">Rs. {Number(selectedOrder.total).toLocaleString()}</span>
+                    <span className="text-[#966FD6]">{formatOrderAmount(selectedOrder, selectedOrder.total)}</span>
                   </div>
                 </div>
               </div>

@@ -11,6 +11,7 @@ export interface CartLineItem {
   moq?: number;
   stock?: number;
   currency?: string;
+  is_active?: boolean;
   prices?: {
     NPR: number;
     USD: number;
@@ -20,6 +21,7 @@ export interface CartLineItem {
     USD: number;
   };
   isUnavailable?: boolean;
+  variantName?: string;
 }
 
 export interface CartDiscount {

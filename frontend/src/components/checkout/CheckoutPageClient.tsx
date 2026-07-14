@@ -35,6 +35,8 @@ export default function CheckoutPageClient({
   const subtotal = useCartStore((s) => s.subtotal);
   const discountTotal = useCartStore((s) => s.discountTotal);
   const clearCart = useCartStore((s) => s.clearCart);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const markItemInactive = useCartStore((s) => s.markItemInactive);
 
   const [step, setStep] = useState<Step>("shipping");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +46,12 @@ export default function CheckoutPageClient({
   // Stored copy of checked out items so they persist in the UI summary when local cart is cleared
   const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
   const [checkoutDiscount, setCheckoutDiscount] = useState<number>(0);
+  // Set when the backend rejects an order because one cart item's variant
+  // went inactive after it was added to cart (stale local is_active).
+  // We can't reliably map the backend's message back to a specific
+  // variantId (it only returns the variant name), so this drives a
+  // persistent banner rather than an auto-removed line item.
+  const [unavailableNotice, setUnavailableNotice] = useState<string | null>(null);
 
   const [orderSubtotal, setOrderSubtotal] = useState<number>(0);
   const [orderDiscount, setOrderDiscount] = useState<number>(0);
@@ -66,14 +74,17 @@ export default function CheckoutPageClient({
   });
 
   const [currency, setCurrency] = useState<"NPR" | "USD">("NPR");
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     setCurrency(getActiveCurrency());
     const handleCurrencyChange = () => setCurrency(getActiveCurrency());
     window.addEventListener("currency_changed", handleCurrencyChange);
     return () =>
       window.removeEventListener("currency_changed", handleCurrencyChange);
   }, []);
+
 
   const formatCheckoutPrice = (amount: number) => formatPrice(amount, currency);
 
@@ -199,6 +210,7 @@ export default function CheckoutPageClient({
   };
 
   const handleCreateOrder = async () => {
+    setUnavailableNotice(null);
     const token = getAuthToken();
     if (!token) {
       router.push("/login?redirect=/checkout");
@@ -213,6 +225,12 @@ export default function CheckoutPageClient({
     }
 
     for (const item of activeItems) {
+      if (item.is_active === false) {
+        toast.error(
+          `Item "${item.name}" (${item.variantId ? "selected variant" : "product"}) is no longer available. Please remove it from your cart.`,
+        );
+        return;
+      }
       if (item.stock !== undefined && item.stock <= 0) {
         toast.error(
           `Item "${item.name}" is out of stock and cannot be checked out.`,
@@ -307,9 +325,44 @@ export default function CheckoutPageClient({
       setStep("payment");
       toast.success("Order created successfully. Complete payment to confirm.");
     } catch (err) {
+      console.log("CHECKOUT ERROR:", err); // temp debug
       const message =
         err instanceof Error ? err.message : "Could not create order.";
-      toast.error(message);
+      // Backend guards against variants that went inactive after this
+      // page's initial cart load (stale is_active snapshot); surface that
+      // clearly so the user knows to revisit their cart rather than retry
+      // blindly.
+      if (/inactive/i.test(message)) {
+        toast.error(
+          `${message} Please remove it from your cart and try again.`,
+        );
+        setUnavailableNotice(message);
+
+        // Best-effort: the backend only gives us the variant name (e.g.
+        // "Product variant 'Red' is inactive"), not its variantId, so we
+        // can only auto-flag it locally when exactly one cart item's name
+        // matches. Otherwise the banner below is the fallback.
+        const quoted = message.match(/'([^']+)'/)?.[1];
+        if (quoted) {
+          const matches = activeItems.filter(
+            (i) =>
+              i.name?.toLowerCase().includes(quoted.toLowerCase()) ||
+              i.variantName?.toLowerCase().includes(quoted.toLowerCase()),
+          );
+          if (matches.length === 1) {
+            markItemInactive(matches[0].variantId);
+            setCheckoutItems((prev) =>
+              prev.map((i) =>
+                i.variantId === matches[0].variantId
+                  ? { ...i, is_active: false, isUnavailable: true }
+                  : i,
+              ),
+            );
+          }
+        }
+      } else {
+        toast.error(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -368,6 +421,37 @@ export default function CheckoutPageClient({
   };
 
   const activeSummaryItems = step === "shipping" ? items : checkoutItems;
+
+  if (!isMounted) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 md:px-10 py-8 pb-16 animate-pulse">
+        <nav className="text-sm text-gray-500 mb-6">
+          <Link href="/" className="hover:text-primary">
+            Home
+          </Link>
+          <span className="mx-2">&gt;</span>
+          <Link href="/cart" className="hover:text-primary">
+            Cart
+          </Link>
+          <span className="mx-2">&gt;</span>
+          <span className="text-primary font-medium">Checkout</span>
+        </nav>
+
+        <h1 className="text-2xl font-semibold text-primary mb-2">Checkout</h1>
+        <div className="grid lg:grid-cols-5 gap-8 mt-6">
+          <div className="lg:col-span-3 space-y-4">
+            <div className="h-10 bg-gray-100 rounded" />
+            <div className="h-64 bg-gray-100 rounded-xl" />
+          </div>
+          <div className="lg:col-span-2 border border-gray-200 rounded-2xl p-5 bg-white space-y-4">
+            <div className="h-8 bg-gray-100 rounded w-1/2" />
+            <div className="h-32 bg-gray-100 rounded-xl" />
+            <div className="h-12 bg-gray-100 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (activeSummaryItems.length === 0 && step === "shipping") {
     return (
@@ -580,7 +664,7 @@ export default function CheckoutPageClient({
               <button
                 type="button"
                 onClick={handleCreateOrder}
-                disabled={isSubmitting}
+                disabled={isSubmitting || activeSummaryItems.some((i) => i.is_active === false)}
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
                 {isSubmitting ? "Creating order…" : "Continue to payment"}
@@ -656,13 +740,27 @@ export default function CheckoutPageClient({
         <div className="lg:col-span-2 border border-gray-200 rounded-2xl p-5 h-fit bg-white shadow-sm space-y-4">
           <h2 className="text-primary font-bold text-base">Order summary</h2>
 
+          {unavailableNotice && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p className="font-semibold">{unavailableNotice}</p>
+              <p className="mt-1 text-red-600">
+                Remove it below or{" "}
+                <Link href="/cart" className="underline font-medium">
+                  go to your cart
+                </Link>{" "}
+                to update it, then try again.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-1 divide-y divide-gray-100 max-h-[300px] overflow-y-auto pr-1">
             {activeSummaryItems.map((item) => {
               const fullImageUrl = getImageUrl(item.image);
+              const isInactive = item.is_active === false;
               return (
                 <div
                   key={item.variantId}
-                  className="flex gap-3 py-3 first:pt-0 last:pb-0"
+                  className={`flex gap-3 py-3 first:pt-0 last:pb-0 ${isInactive ? "opacity-60" : ""}`}
                 >
                   {/* Thumbnail Image */}
                   <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
@@ -680,26 +778,55 @@ export default function CheckoutPageClient({
                   </div>
                   {/* Product Details */}
                   <div className="flex-1 min-w-0">
-                    <h4
-                      className="font-semibold text-gray-800 text-sm truncate"
-                      title={item.name}
-                    >
-                      {item.name}
-                    </h4>
-                    <p className="text-xs text-gray-500 font-medium mt-0.5">
-                      Qty: {item.quantity} × {formatCheckoutPrice(item.price)}
-                    </p>
-                    {item.discount > 0 && (
-                      <p className="text-xs text-green-600 font-medium">
-                        Discount: -{formatCheckoutPrice(item.discount)} each
+                    <div className="flex items-center gap-2">
+                      <h4
+                        className="font-semibold text-gray-850 text-sm truncate"
+                        title={item.name}
+                      >
+                        {item.name}
+                      </h4>
+                      {isInactive && (
+                        <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                          Unavailable
+                        </span>
+                      )}
+                    </div>
+                    {item.variantName && (
+                      <p className="text-xs text-gray-500 font-medium truncate mt-0.5">
+                        Variant: {item.variantName}
                       </p>
                     )}
-                    <p className="text-xs font-bold text-primary mt-1">
-                      Total:{" "}
-                      {formatCheckoutPrice(
-                        (item.price - (item.discount ?? 0)) * item.quantity,
-                      )}
-                    </p>
+                    {isInactive ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeItem(item.variantId);
+                          setCheckoutItems((prev) =>
+                            prev.filter((i) => i.variantId !== item.variantId),
+                          );
+                        }}
+                        className="text-xs font-semibold text-red-600 hover:underline mt-1"
+                      >
+                        Remove from order
+                      </button>
+                    ) : (
+                      <>
+                        <p className="text-xs text-gray-500 font-medium mt-0.5">
+                          Qty: {item.quantity} × {formatCheckoutPrice(item.price)}
+                        </p>
+                        {item.discount > 0 && (
+                          <p className="text-xs text-green-600 font-medium">
+                            Discount: -{formatCheckoutPrice(item.discount)} each
+                          </p>
+                        )}
+                        <p className="text-xs font-bold text-primary mt-1">
+                          Total:{" "}
+                          {formatCheckoutPrice(
+                            (item.price - (item.discount ?? 0)) * item.quantity,
+                          )}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               );

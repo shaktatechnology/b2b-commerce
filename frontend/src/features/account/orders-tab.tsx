@@ -9,6 +9,7 @@ import { Spinner } from '@/src/components/ui/spinner';
 import { ShoppingBag, Package, Truck, CheckCircle2, Clock, ChevronDown, ChevronUp, CreditCard, Calendar, Hash, Receipt, ArrowUpRight, Inbox } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { resolveProductImageUrl } from '@/src/lib/product-utils';
+import { formatOrderAmount } from '@/src/lib/currency';
 import {
   Select,
   SelectContent,
@@ -238,7 +239,7 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
 
                     <div className="flex flex-wrap items-baseline gap-2">
                       <span className="text-2xl font-black text-black">
-                        Rs. {Number(order.total_amount || order.total || 0).toLocaleString()}
+                        {formatOrderAmount(order, order.total_amount || order.total || 0)}
                       </span>
                       <span className="text-xs text-zinc-400 font-bold">
                         ({order.items && order.items.length > 0 ? order.items.length : '—'} {order.items && order.items.length === 1 ? 'item' : 'items'})
@@ -323,7 +324,7 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                                       {item.variant?.product?.name || item.variant?.variant_name || 'Product'}
                                     </p>
                                     <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">
-                                      Qty: {item.quantity} × Rs. {Number(item.unit_price).toLocaleString()}
+                                      Qty: {item.quantity} × {formatOrderAmount(order, item.unit_price)}
                                       {(item.variant?.color || item.variant?.size) && (
                                         <span className="ml-2 px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-500 font-semibold lowercase">
                                           {[item.variant?.color?.name, item.variant?.size?.name].filter(Boolean).join(', ')}
@@ -334,7 +335,7 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="font-bold text-black">
-                                    Rs. {Number(item.line_total).toLocaleString()}
+                                    {formatOrderAmount(order, item.line_total)}
                                   </p>
                                 </div>
                               </div>
@@ -351,17 +352,17 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                       <div className="mt-6 flex flex-col items-end space-y-2 border-t border-dashed border-zinc-200 pt-4 max-w-sm ml-auto">
                         <div className="flex justify-between w-full text-xs">
                           <span className="font-black text-zinc-400 uppercase tracking-widest">Subtotal</span>
-                          <span className="font-bold text-black">Rs. {Number(order.subtotal || 0).toLocaleString()}</span>
+                          <span className="font-bold text-black">{formatOrderAmount(order, order.subtotal || 0)}</span>
                         </div>
                         {Number(order.discount_amount || 0) > 0 && (
                           <div className="flex justify-between w-full text-xs">
                             <span className="font-black text-emerald-600 uppercase tracking-widest">Discount</span>
-                            <span className="font-bold text-emerald-600">- Rs. {Number(order.discount_amount).toLocaleString()}</span>
+                            <span className="font-bold text-emerald-600">- {formatOrderAmount(order, order.discount_amount)}</span>
                           </div>
                         )}
                         <div className="flex justify-between w-full pt-2 border-t border-zinc-100">
                           <span className="text-xs font-black text-black uppercase tracking-widest self-center">Invoice Total</span>
-                          <span className="text-2xl font-black text-[#966FD6]">Rs. {Number(order.total_amount || order.total || 0).toLocaleString()}</span>
+                          <span className="text-2xl font-black text-[#966FD6]">{formatOrderAmount(order, order.total_amount || order.total || 0)}</span>
                         </div>
                       </div>
                     </div>
