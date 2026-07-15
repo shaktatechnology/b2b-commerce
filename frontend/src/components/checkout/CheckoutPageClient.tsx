@@ -90,18 +90,25 @@ export default function CheckoutPageClient({
 
   const [isEditingAddress, setIsEditingAddress] = useState<boolean>(true);
 
-  // eSewa only for NPR, PayPal only for USD, COD for both
-  const activeGateways = paymentSettings.gateways.filter((g) => {
-    if (currency === "NPR") {
-      return g.id === "esewa" || g.id === "cod";
-    } else {
-      return g.id === "paypal" || g.id === "cod";
-    }
-  });
+  // All configured gateways are shown regardless of currency. eSewa only
+  // works for NPR orders and PayPal only works for USD orders, so those two
+  // are disabled (greyed out, unselectable) rather than removed when the
+  // currency doesn't match. COD (and any other gateway) is always enabled.
+  const isGatewayDisabledForCurrency = (gatewayId: string) => {
+    if (gatewayId === "esewa") return currency !== "NPR";
+    if (gatewayId === "paypal") return currency !== "USD";
+    return false;
+  };
 
-  // Make sure we select a valid default gateway whenever activeGateways changes
+  const activeGateways = paymentSettings.gateways;
+  const enabledGateways = activeGateways.filter(
+    (g) => !isGatewayDisabledForCurrency(g.id),
+  );
+
+  // Make sure we select a valid, currency-enabled default gateway whenever
+  // the currency (or gateway list) changes.
   useEffect(() => {
-    const validIds = activeGateways.map((g) => g.id);
+    const validIds = enabledGateways.map((g) => g.id);
     if (
       validIds.length > 0 &&
       (!selectedGateway || !validIds.includes(selectedGateway))
@@ -117,18 +124,10 @@ export default function CheckoutPageClient({
     }
   }, [
     currency,
-    activeGateways,
+    enabledGateways,
     selectedGateway,
     paymentSettings.defaultGateway,
   ]);
-
-  // Set checkoutItems from cart items as soon as they are loaded
-  useEffect(() => {
-    if (items.length > 0 && checkoutItems.length === 0) {
-      setCheckoutItems(items);
-      setCheckoutDiscount(discountTotal());
-    }
-  }, [items, checkoutItems, discountTotal]);
 
   useEffect(() => {
     // Clear any pending payment configs from previous sessions
@@ -184,20 +183,20 @@ export default function CheckoutPageClient({
         : checkoutDiscount;
 
   const handleChange = (field: keyof typeof form, value: string) => {
-    setForm((prev) => {
-      const updated = { ...prev, [field]: value };
+    setForm((prev) => ({ ...prev, [field]: value }));
 
-      // Auto-set currency & translate cart items based on country selection
-      if (field === "country") {
-        const nextCur =
-          value.toLowerCase() === "nepal" ? getActiveCurrency() : "USD";
-        localStorage.setItem("currency_preference", nextCur);
-        useCartStore.getState().syncCurrency(nextCur);
-        window.dispatchEvent(new Event("currency_changed"));
-      }
-
-      return updated;
-    });
+    // Auto-set currency & translate cart items based on country selection.
+    // This must run outside the setForm updater — updater functions must
+    // stay pure (React can invoke them more than once), and calling a
+    // different store's setState from inside one triggers "Cannot update a
+    // component while rendering a different component".
+    if (field === "country") {
+      const nextCur =
+        value.toLowerCase() === "nepal" ? getActiveCurrency() : "USD";
+      localStorage.setItem("currency_preference", nextCur);
+      useCartStore.getState().syncCurrency(nextCur);
+      window.dispatchEvent(new Event("currency_changed"));
+    }
   };
 
   const getImageUrl = (url?: string | null) => {
@@ -318,6 +317,13 @@ export default function CheckoutPageClient({
         }),
       );
       setIsEditingAddress(false);
+
+      // Snapshot the summary items *now*, from the live store, so the
+      // payment-step display reflects whatever currency was active at
+      // submit time (not whatever it was when the page first mounted).
+      // Must happen before clearCart() empties the store.
+      setCheckoutItems(activeItems);
+      setCheckoutDiscount(discountTotal());
 
       // Empties the cart store locally upon successful order creation
       clearCart();
@@ -677,47 +683,74 @@ export default function CheckoutPageClient({
               </h2>
               {activeGateways.length === 0 ? (
                 <p className="text-sm text-destructive">
-                  No payment gateways are active for the selected country.
+                  No payment gateways are enabled.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {activeGateways.map((gateway) => (
-                    <label
-                      key={gateway.id}
-                      className={`flex items-start gap-3 border rounded-xl p-4 cursor-pointer transition-all ${
-                        selectedGateway === gateway.id
-                          ? "border-primary bg-primary/5"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="gateway"
-                        checked={selectedGateway === gateway.id}
-                        onChange={() => setSelectedGateway(gateway.id)}
-                        className="mt-1 accent-primary"
-                      />
-                      <div>
-                        <p className="font-semibold text-gray-900">
-                          {gateway.label}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {gateway.description}
-                        </p>
-                        {gateway.id !== "cod" && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            Mode: {gateway.mode}
+                  {activeGateways.map((gateway) => {
+                    const isDisabled = isGatewayDisabledForCurrency(
+                      gateway.id,
+                    );
+                    const unavailableReason =
+                      gateway.id === "esewa"
+                        ? "Available for NPR orders only"
+                        : gateway.id === "paypal"
+                          ? "Available for USD orders only"
+                          : null;
+
+                    return (
+                      <label
+                        key={gateway.id}
+                        className={`flex items-start gap-3 border rounded-xl p-4 transition-all ${
+                          isDisabled
+                            ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200"
+                            : "cursor-pointer " +
+                              (selectedGateway === gateway.id
+                                ? "border-primary bg-primary/5"
+                                : "border-gray-200")
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="gateway"
+                          checked={selectedGateway === gateway.id}
+                          disabled={isDisabled}
+                          onChange={() =>
+                            !isDisabled && setSelectedGateway(gateway.id)
+                          }
+                          className="mt-1 accent-primary disabled:cursor-not-allowed"
+                        />
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {gateway.label}
                           </p>
-                        )}
-                      </div>
-                    </label>
-                  ))}
+                          <p className="text-sm text-gray-500">
+                            {gateway.description}
+                          </p>
+                          {gateway.id !== "cod" && !isDisabled && (
+                            <p className="text-xs text-gray-400 mt-1">
+                              Mode: {gateway.mode}
+                            </p>
+                          )}
+                          {isDisabled && unavailableReason && (
+                            <p className="text-xs text-red-500 mt-1 font-medium">
+                              {unavailableReason}
+                            </p>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               )}
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={isSubmitting || !selectedGateway}
+                disabled={
+                  isSubmitting ||
+                  !selectedGateway ||
+                  isGatewayDisabledForCurrency(selectedGateway)
+                }
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
                 {isSubmitting

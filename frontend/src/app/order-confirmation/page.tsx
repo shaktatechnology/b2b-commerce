@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { getAuthToken } from "@/src/lib/auth";
 
 import { apiFetch } from "@/src/lib/api";
+import { formatOrderAmount } from "@/src/lib/currency";
 
 interface Order {
   id: string;
@@ -15,6 +16,15 @@ interface Order {
   status: string;
   payment_status: string;
   created_at: string;
+  payment_method?: string | null;
+  gateway?: string | null;
+  payment?: {
+    method?: string | null;
+    currency?: string | null;
+  } | null;
+  shipping_address?: {
+    country?: string;
+  } | null;
 }
 
 export default function OrderConfirmationPage() {
@@ -183,7 +193,7 @@ function OrderConfirmationContent() {
               <div className="border-t border-gray-200 pt-4 flex justify-between">
                 <span className="text-gray-900 font-semibold">Total Amount:</span>
                 <span className="text-2xl font-bold text-primary">
-                  Rs. {parseFloat(String(order.total)).toLocaleString()}
+                  {formatOrderAmount(order, order.total)}
                 </span>
               </div>
             </div>

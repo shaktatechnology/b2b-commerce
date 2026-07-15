@@ -1,13 +1,16 @@
 import type { Order } from "@/src/types/orders";
 
 /**
- * Maps a payment gateway id to a currency symbol.
- * ASSUMPTION: eSewa / COD orders are in NPR ("Rs."), PayPal orders are in USD ("$").
- * Extend this map if you add more gateways with different currencies.
+ * Maps a payment gateway id to a currency symbol, for gateways that are only
+ * ever offered in one currency.
+ * ASSUMPTION: eSewa is NPR-only, PayPal is USD-only.
+ * COD is deliberately NOT listed here — it's offered for both NPR and
+ * international orders, so its currency can't be inferred from the gateway
+ * id alone (see the country-based fallback below).
+ * Extend this map if you add more single-currency gateways.
  */
 const GATEWAY_CURRENCY: Record<string, string> = {
   esewa: "Rs.",
-  cod: "Rs.",
   paypal: "$",
 };
 
@@ -17,10 +20,12 @@ const DEFAULT_CURRENCY_SYMBOL = "Rs.";
  * Resolves the currency symbol for a given order.
  * Reads whichever field your backend actually populates — tries, in order:
  * `payment.currency`, `payment.method`, `payment_method`, `gateway`.
- * Falls back to Rs. if nothing is set (safe default for existing local orders).
+ * For gateways that don't imply a fixed currency (e.g. COD), falls back to
+ * the shipping address country. Falls back to Rs. if nothing is set (safe
+ * default for existing local orders).
  */
 export function getOrderCurrencySymbol(
-  order: Pick<Order, "payment_method" | "gateway" | "payment">
+  order: Pick<Order, "payment_method" | "gateway" | "payment" | "shipping_address">
 ): string {
   const explicitCurrency = order.payment?.currency?.toUpperCase();
   if (explicitCurrency === "USD") return "$";
@@ -33,7 +38,19 @@ export function getOrderCurrencySymbol(
     ""
   ).toLowerCase();
 
-  return GATEWAY_CURRENCY[method] ?? DEFAULT_CURRENCY_SYMBOL;
+  if (method && GATEWAY_CURRENCY[method]) {
+    return GATEWAY_CURRENCY[method];
+  }
+
+  // Ambiguous method (COD, or anything else without a fixed currency) —
+  // infer from the shipping country instead, mirroring the same logic the
+  // checkout page uses to pick NPR vs USD in the first place.
+  const country = order.shipping_address?.country?.trim().toLowerCase();
+  if (country) {
+    return country === "nepal" ? "Rs." : "$";
+  }
+
+  return DEFAULT_CURRENCY_SYMBOL;
 }
 
 /**
@@ -41,7 +58,7 @@ export function getOrderCurrencySymbol(
  * Use this everywhere an order/item amount is displayed instead of hardcoding "Rs." or "$".
  */
 export function formatOrderAmount(
-  order: Pick<Order, "payment_method" | "gateway" | "payment">,
+  order: Pick<Order, "payment_method" | "gateway" | "payment" | "shipping_address">,
   amount: number | string
 ): string {
   const symbol = getOrderCurrencySymbol(order);

@@ -12,7 +12,7 @@ import { ChevronLeft, Package, Truck, CheckCircle2, Clock, MapPin, Receipt, Cale
 import { cn } from '@/src/lib/utils';
 
 import { resolveProductImageUrl } from '@/src/lib/product-utils';
-import { formatOrderAmount } from '@/src/lib/currency';
+import { formatOrderAmount, getOrderCurrencySymbol } from '@/src/lib/currency';
 import { fetchAllSettings } from '@/src/lib/storefront-api';
 import { initiatePayment } from '@/src/lib/payment-api';
 import { getAuthToken } from '@/src/lib/auth';
@@ -43,9 +43,6 @@ export function OrderDetailsFeature() {
         ]);
         setOrder(orderData);
         setPaymentSettings(settingsData.payment);
-        if (settingsData.payment.defaultGateway) {
-          setSelectedGateway(settingsData.payment.defaultGateway);
-        }
       } catch (error: any) {
         toast.error('Failed to load order details');
         console.error(error);
@@ -56,6 +53,33 @@ export function OrderDetailsFeature() {
 
     loadData();
   }, [id, router]);
+
+  // eSewa only makes sense for NPR orders, PayPal only for USD orders — COD
+  // works for both. Filter down to whichever pair matches this order's
+  // currency, same as the checkout page's own gateway logic.
+  const isInternational = order ? getOrderCurrencySymbol(order) === '$' : false;
+  const availableGateways = React.useMemo(
+    () =>
+      (paymentSettings?.gateways ?? []).filter((g) =>
+        isInternational ? g.id === 'paypal' || g.id === 'cod' : g.id === 'esewa' || g.id === 'cod',
+      ),
+    [paymentSettings, isInternational],
+  );
+
+  // Pick a valid default once we know both the order's currency and the
+  // filtered gateway list — preferring the store's configured default if
+  // it's actually valid for this order, otherwise the first available one.
+  React.useEffect(() => {
+    if (availableGateways.length === 0) return;
+    const validIds = availableGateways.map((g) => g.id);
+    if (selectedGateway && validIds.includes(selectedGateway)) return;
+
+    if (paymentSettings?.defaultGateway && validIds.includes(paymentSettings.defaultGateway)) {
+      setSelectedGateway(paymentSettings.defaultGateway);
+    } else {
+      setSelectedGateway(availableGateways[0].id as PaymentGatewayId);
+    }
+  }, [availableGateways, paymentSettings, selectedGateway]);
 
   const handlePay = async () => {
     const token = getAuthToken();
@@ -282,7 +306,12 @@ export function OrderDetailsFeature() {
                </CardHeader>
                <CardContent className="p-8 space-y-6">
                  <div className="space-y-3">
-                   {paymentSettings.gateways.map((gateway) => (
+                   {availableGateways.length === 0 ? (
+                     <p className="text-sm text-red-500 font-medium">
+                       No payment methods are available for this order's currency. Please contact support.
+                     </p>
+                   ) : (
+                     availableGateways.map((gateway) => (
                      <label
                        key={gateway.id}
                        className={cn(
@@ -308,12 +337,13 @@ export function OrderDetailsFeature() {
                          </p>
                        </div>
                      </label>
-                   ))}
+                     ))
+                   )}
                  </div>
                  
                  <Button 
                    onClick={handlePay}
-                   disabled={isPaying || !selectedGateway}
+                   disabled={isPaying || !selectedGateway || availableGateways.length === 0}
                    className="w-full h-14 bg-[#966FD6] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#855cc4] transition-all shadow-xl shadow-[#966FD6]/20"
                  >
                    {isPaying ? <Spinner className="w-4 h-4 mr-2" /> : null}
