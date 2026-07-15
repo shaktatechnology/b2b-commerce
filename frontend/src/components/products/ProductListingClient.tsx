@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShoppingCart, ChevronLeft, ChevronRight, Star, SlidersHorizontal, X } from "lucide-react";
 import ProductCard from "@/src/components/cards/ProductCard";
-import { calculateDiscountAmount } from "@/src/lib/product-utils";
+import { calculateDiscountAmount, getActiveCurrency } from "@/src/lib/product-utils";
+import { getUserRole } from "@/src/lib/auth";
 import type { StorefrontProduct, StorefrontCategory } from "@/src/types/storefront";
 import type { Offer } from "@/src/types/offer";
 
@@ -63,29 +64,49 @@ function hasWeightProducts(products: StorefrontProduct[]) {
     return products.some((p) => p.weight || p.variants?.some((v) => v.weight));
 }
 
-// Get effective (discounted) price for a product
-function getEffectivePrice(product: StorefrontProduct): number {
+// Get effective (discounted) price for a product, in whichever currency is
+// currently active — NPR uses retail/wholesale price, USD uses
+// international/international-wholesale price. Must match the same field
+// selection used in productToCartLineItem, or the filter's numbers won't
+// correspond to what the product cards actually display.
+function getEffectivePrice(
+    product: StorefrontProduct,
+    currency: "NPR" | "USD" = "NPR",
+    isWholesaler = false
+): number {
     const variant =
         product.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ??
         product.variants?.[0];
     if (!variant) return 0;
 
-    const basePrice = parseFloat(String(variant.retail_price ?? 0));
+    const isUSD = currency === "USD";
+    const rawPrice = isUSD
+        ? (isWholesaler
+            ? ((variant as any).international_wholesale_price ?? (variant as any).international_price ?? variant.retail_price ?? 0)
+            : ((variant as any).international_price ?? variant.retail_price ?? 0))
+        : (isWholesaler
+            ? ((variant as any).wholesale_price ?? variant.retail_price ?? 0)
+            : (variant.retail_price ?? 0));
+    const basePrice = parseFloat(String(rawPrice ?? 0));
 
     const activeDiscount =
         (variant as any)?.discounts?.find((d: any) => d.is_active) ??
         (product as any)?.discounts?.find((d: any) => d.is_active) ??
         null;
 
-    const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, false, 'NPR');
+    const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
     return Math.max(0, basePrice - discountAmount);
 }
 
-// Get price range using effective (discounted) prices
-function getPriceRange(products: StorefrontProduct[]) {
+// Get price range using effective (discounted) prices, for the given currency
+function getPriceRange(
+    products: StorefrontProduct[],
+    currency: "NPR" | "USD" = "NPR",
+    isWholesaler = false
+) {
     let min = Infinity, max = 0;
     products.forEach((p) => {
-        const price = getEffectivePrice(p);
+        const price = getEffectivePrice(p, currency, isWholesaler);
         if (price > 0 && price < min) min = price;
         if (price > max) max = price;
     });
@@ -116,6 +137,22 @@ export default function ProductListingClient({
     const router = useRouter();
     const searchParams = useSearchParams();
 
+    // Currency — mirrors the same 'currency_changed' event / localStorage
+    // pattern used on checkout, so the price filter stays in sync with
+    // whatever currency the product cards are actually displaying.
+    const [currency, setCurrency] = React.useState<"NPR" | "USD">("NPR");
+    const [isWholesaler, setIsWholesaler] = React.useState(false);
+
+    React.useEffect(() => {
+        setCurrency(getActiveCurrency());
+        const role = getUserRole();
+        setIsWholesaler(role === "wholesaler" || role === "wholeseller");
+
+        const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+        window.addEventListener("currency_changed", handleCurrencyChange);
+        return () => window.removeEventListener("currency_changed", handleCurrencyChange);
+    }, []);
+
     // Filter states
     const [priceRange, setPriceRange] = React.useState<[number, number]>([0, 100000]);
     const [selectedBrands, setSelectedBrands] = React.useState<Set<string>>(new Set());
@@ -126,10 +163,14 @@ export default function ProductListingClient({
     const [currentPage, setCurrentPage] = React.useState(1);
     const [showMobileFilters, setShowMobileFilters] = React.useState(false);
 
-    // Derive filter options
-    const priceExtremes = React.useMemo(() => getPriceRange(products), [products]);
+    // Derive filter options — recomputed whenever currency (or wholesaler
+    // status) changes, so the slider bounds always match what's on screen
+    const priceExtremes = React.useMemo(
+        () => getPriceRange(products, currency, isWholesaler),
+        [products, currency, isWholesaler]
+    );
 
-    // Update price range when products change
+    // Update price range when products OR currency change
     React.useEffect(() => {
         if (priceExtremes.max > 0) {
             setPriceRange([priceExtremes.min, priceExtremes.max]);
@@ -157,10 +198,10 @@ export default function ProductListingClient({
     const filteredProducts = React.useMemo(() => {
         let result = [...products];
 
-        // Price — filter by effective (discounted) price
+        // Price — filter by effective (discounted) price, in the active currency
         if (priceRange[0] > priceExtremes.min || priceRange[1] < priceExtremes.max) {
             result = result.filter((p) => {
-                const price = getEffectivePrice(p);
+                const price = getEffectivePrice(p, currency, isWholesaler);
                 return price >= priceRange[0] && price <= priceRange[1];
             });
         }
@@ -193,16 +234,16 @@ export default function ProductListingClient({
         // Sort
         switch (sortBy) {
             case "price_low":
-                result.sort((a, b) => getEffectivePrice(a) - getEffectivePrice(b));
+                result.sort((a, b) => getEffectivePrice(a, currency, isWholesaler) - getEffectivePrice(b, currency, isWholesaler));
                 break;
             case "price_high":
-                result.sort((a, b) => getEffectivePrice(b) - getEffectivePrice(a));
+                result.sort((a, b) => getEffectivePrice(b, currency, isWholesaler) - getEffectivePrice(a, currency, isWholesaler));
                 break;
             case "name_asc": result.sort((a, b) => a.name.localeCompare(b.name)); break;
             default: break;
         }
         return result;
-    }, [products, priceRange, selectedBrands, selectedColors, selectedSizes, selectedWeights, selectedRating, sortBy, priceExtremes.max]);
+    }, [products, priceRange, selectedBrands, selectedColors, selectedSizes, selectedWeights, selectedRating, sortBy, priceExtremes.max, currency, isWholesaler]);
 
     const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
     const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -255,11 +296,11 @@ export default function ProductListingClient({
                     <div className="flex justify-between items-center text-xs text-gray-500 font-bold bg-gray-50 p-3 rounded-xl">
                         <div className="flex flex-col">
                             <span className="text-[10px] uppercase text-gray-400">Min Price</span>
-                            <span className="text-primary">Rs. {priceRange[0]}</span>
+                            <span className="text-primary">{currency === "USD" ? "$" : "Rs."} {priceRange[0]}</span>
                         </div>
                         <div className="flex flex-col text-right">
                             <span className="text-[10px] uppercase text-gray-400">Max Price</span>
-                            <span className="text-primary">Rs. {priceRange[1]}</span>
+                            <span className="text-primary">{currency === "USD" ? "$" : "Rs."} {priceRange[1]}</span>
                         </div>
                     </div>
                 </div>
