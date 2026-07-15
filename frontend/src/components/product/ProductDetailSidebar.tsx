@@ -1,8 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import type { StorefrontCategory, StorefrontProduct } from "@/src/types/storefront";
-import { resolveProductImageUrl, getProductPath, productToCartLineItem } from "@/src/lib/product-utils";
+import { resolveProductImageUrl, getProductPath, productToCartLineItem, getActiveCurrency, formatPrice } from "@/src/lib/product-utils";
 import CategorySidebar from "../home-page-components/CategorySidebar";
 import { Offer } from "@/src/types/offer";
+import { getUserRole } from "@/src/lib/auth";
 
 interface CategoryWithCount {
   category: StorefrontCategory;
@@ -35,17 +39,19 @@ export default function ProductDetailSidebar({
   similarProducts,
   offers = [],
 }: ProductDetailSidebarProps) {
+  const [currency, setCurrency] = useState<"NPR" | "USD">("NPR");
+  const [role, setRole] = useState<string | null>(null);
 
-  // Price range from similar products
-  let minPrice = Infinity, maxPrice = 0;
-  similarProducts.forEach((p) => {
-    p.variants?.forEach((v: any) => {
-      const price = parseFloat(String(v.retail_price ?? 0));
-      if (price > 0 && price < minPrice) minPrice = price;
-      if (price > maxPrice) maxPrice = price;
-    });
-  });
-  if (minPrice === Infinity) minPrice = 0;
+  useEffect(() => {
+    setRole(getUserRole());
+    setCurrency(getActiveCurrency());
+    const onChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener("currency_changed", onChange);
+    return () => window.removeEventListener("currency_changed", onChange);
+  }, []);
+
+  const isWholesaler = role === "wholesaler" || role === "wholeseller";
+  const isUSD = currency === "USD";
 
   const activeOffers = offers.filter(o => o.is_active);
 
@@ -71,7 +77,6 @@ export default function ProductDetailSidebar({
         </div>
       )}
       <CategorySidebar
-
         categories={categoriesWithCounts.map((c) => ({
           id: c.category.id.toString(),
           name: c.category.name,
@@ -80,35 +85,32 @@ export default function ProductDetailSidebar({
         }))}
       />
 
-      {/* Price Range Display */}
-      {/* {maxPrice > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-          <h3 className="text-base font-bold text-primary mb-3">
-            Price Range
-          </h3>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500">From:</span>
-              <span className="font-semibold text-primary">Rs.{Math.floor(minPrice)}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-gray-500">To:</span>
-              <span className="font-semibold text-primary">Rs.{Math.ceil(maxPrice)}</span>
-            </div>
-          </div>
-          <div className="w-full h-1.5 bg-gray-100 rounded-full mt-3 overflow-hidden">
-            <div className="h-full bg-primary/40 rounded-full" style={{ width: "100%" }} />
-          </div>
-        </div>
-      )} */}
-
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
         <h3 className="text-base font-bold text-primary mb-3">
           Similar Products
         </h3>
         <ul className="space-y-3">
           {similarProducts.slice(0, 4).map((item) => {
-            const lineItem = productToCartLineItem(item);
+            const activeVariant = item.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ?? item.variants?.[0];
+            const isInternationalPriceMissing =
+              isUSD &&
+              (isWholesaler
+                ? (activeVariant?.international_wholesale_price === undefined ||
+                  activeVariant?.international_wholesale_price === null ||
+                  activeVariant?.international_wholesale_price === "" ||
+                  Number(activeVariant?.international_wholesale_price) <= 0) &&
+                  (activeVariant?.international_price === undefined ||
+                  activeVariant?.international_price === null ||
+                  activeVariant?.international_price === "" ||
+                  Number(activeVariant?.international_price) <= 0)
+                : (activeVariant?.international_price === undefined ||
+                  activeVariant?.international_price === null ||
+                  activeVariant?.international_price === "" ||
+                  Number(activeVariant?.international_price) <= 0));
+
+            if (isInternationalPriceMissing) return null;
+
+            const lineItem = productToCartLineItem(item, { currency });
             const basePrice = lineItem?.price ?? 0;
             const discountAmount = lineItem?.discount ?? 0;
             const finalPrice = basePrice - discountAmount;
@@ -139,11 +141,11 @@ export default function ProductDetailSidebar({
                     </p>
                     <div className="flex flex-col">
                       <p className="text-sm font-bold text-primary">
-                        Rs.{finalPrice.toFixed(0)}
+                        {formatPrice(finalPrice, currency, 0)}
                       </p>
                       {hasDiscount && (
                         <p className="text-[10px] text-gray-400 line-through">
-                          Rs.{basePrice.toFixed(0)}
+                          {formatPrice(basePrice, currency, 0)}
                         </p>
                       )}
                     </div>

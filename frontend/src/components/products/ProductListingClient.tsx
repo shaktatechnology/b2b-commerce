@@ -64,6 +64,27 @@ function hasWeightProducts(products: StorefrontProduct[]) {
     return products.some((p) => p.weight || p.variants?.some((v) => v.weight));
 }
 
+function isInternationalPriceMissing(product: StorefrontProduct, isWholesaler: boolean): boolean {
+    const variant =
+        product.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ??
+        product.variants?.[0];
+    if (!variant) return true;
+
+    return isWholesaler
+        ? (variant.international_wholesale_price === undefined ||
+          variant.international_wholesale_price === null ||
+          variant.international_wholesale_price === "" ||
+          Number(variant.international_wholesale_price) <= 0) &&
+          (variant.international_price === undefined ||
+          variant.international_price === null ||
+          variant.international_price === "" ||
+          Number(variant.international_price) <= 0)
+        : (variant.international_price === undefined ||
+          variant.international_price === null ||
+          variant.international_price === "" ||
+          Number(variant.international_price) <= 0);
+}
+
 // Get effective (discounted) price for a product, in whichever currency is
 // currently active — NPR uses retail/wholesale price, USD uses
 // international/international-wholesale price. Must match the same field
@@ -82,8 +103,8 @@ function getEffectivePrice(
     const isUSD = currency === "USD";
     const rawPrice = isUSD
         ? (isWholesaler
-            ? ((variant as any).international_wholesale_price ?? (variant as any).international_price ?? variant.retail_price ?? 0)
-            : ((variant as any).international_price ?? variant.retail_price ?? 0))
+            ? ((variant as any).international_wholesale_price ?? (variant as any).international_price ?? 0)
+            : ((variant as any).international_price ?? 0))
         : (isWholesaler
             ? ((variant as any).wholesale_price ?? variant.retail_price ?? 0)
             : (variant.retail_price ?? 0));
@@ -163,11 +184,26 @@ export default function ProductListingClient({
     const [currentPage, setCurrentPage] = React.useState(1);
     const [showMobileFilters, setShowMobileFilters] = React.useState(false);
 
+    // Filter out products that don't have USD pricing when in USD mode
+    const memoizedProducts = React.useMemo(() => {
+        if (currency === "USD") {
+            return products.filter((p) => !isInternationalPriceMissing(p, isWholesaler));
+        }
+        return products;
+    }, [products, currency, isWholesaler]);
+
+    const memoizedAllProducts = React.useMemo(() => {
+        if (currency === "USD") {
+            return allProducts.filter((p) => !isInternationalPriceMissing(p, isWholesaler));
+        }
+        return allProducts;
+    }, [allProducts, currency, isWholesaler]);
+
     // Derive filter options — recomputed whenever currency (or wholesaler
     // status) changes, so the slider bounds always match what's on screen
     const priceExtremes = React.useMemo(
-        () => getPriceRange(products, currency, isWholesaler),
-        [products, currency, isWholesaler]
+        () => getPriceRange(memoizedProducts, currency, isWholesaler),
+        [memoizedProducts, currency, isWholesaler]
     );
 
     // Update price range when products OR currency change
@@ -177,26 +213,26 @@ export default function ProductListingClient({
         }
     }, [priceExtremes.min, priceExtremes.max]);
 
-    const availableBrands = React.useMemo(() => extractBrands(products), [products]);
-    const availableColors = React.useMemo(() => extractColors(products), [products]);
-    const availableSizes = React.useMemo(() => extractSizes(products), [products]);
+    const availableBrands = React.useMemo(() => extractBrands(memoizedProducts), [memoizedProducts]);
+    const availableColors = React.useMemo(() => extractColors(memoizedProducts), [memoizedProducts]);
+    const availableSizes = React.useMemo(() => extractSizes(memoizedProducts), [memoizedProducts]);
     const weightOptions = React.useMemo(() => {
         const weights = new Set<string>();
-        products.forEach(p => {
+        memoizedProducts.forEach(p => {
             if (p.weight) weights.add(p.weight);
             p.variants?.forEach(v => { if (v.weight) weights.add(String(v.weight)); });
         });
         return Array.from(weights).sort();
-    }, [products]);
+    }, [memoizedProducts]);
 
-    const categoriesWithCounts = React.useMemo(() => countByCategory(allProducts, categories), [allProducts, categories]);
+    const categoriesWithCounts = React.useMemo(() => countByCategory(memoizedAllProducts, categories), [memoizedAllProducts, categories]);
 
     // Apply filters
     const [selectedWeights, setSelectedWeights] = React.useState<Set<string>>(new Set());
     const [selectedRating, setSelectedRating] = React.useState<number | null>(null);
 
     const filteredProducts = React.useMemo(() => {
-        let result = [...products];
+        let result = [...memoizedProducts];
 
         // Price — filter by effective (discounted) price, in the active currency
         if (priceRange[0] > priceExtremes.min || priceRange[1] < priceExtremes.max) {
@@ -243,7 +279,7 @@ export default function ProductListingClient({
             default: break;
         }
         return result;
-    }, [products, priceRange, selectedBrands, selectedColors, selectedSizes, selectedWeights, selectedRating, sortBy, priceExtremes.max, currency, isWholesaler]);
+    }, [memoizedProducts, priceRange, selectedBrands, selectedColors, selectedSizes, selectedWeights, selectedRating, sortBy, priceExtremes.min, priceExtremes.max, currency, isWholesaler]);
 
     const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
     const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);

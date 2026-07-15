@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { StorefrontProduct } from "@/src/types/storefront";
 import type {
   CanReviewPayload,
@@ -8,6 +8,8 @@ import type {
   ProductReviewsPayload,
 } from "@/src/types/review";
 import ProductReviewsPanel from "./ProductReviewsPanel";
+import { getActiveCurrency, formatPrice } from "@/src/lib/product-utils";
+import { getUserRole } from "@/src/lib/auth";
 
 interface ProductDetailTabsProps {
   product: StorefrontProduct;
@@ -36,6 +38,19 @@ export default function ProductDetailTabs({
   ];
 
   const [active, setActive] = useState<(typeof tabs)[number]["id"]>("description");
+  const [currency, setCurrency] = useState<"NPR" | "USD">("NPR");
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole(getUserRole());
+    setCurrency(getActiveCurrency());
+    const onChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener("currency_changed", onChange);
+    return () => window.removeEventListener("currency_changed", onChange);
+  }, []);
+
+  const isWholesaler = role === "wholesaler" || role === "wholeseller";
+  const isUSD = currency === "USD";
   const variants = product.variants ?? [];
 
   return (
@@ -70,13 +85,22 @@ export default function ProductDetailTabs({
             )}
             <ul className="list-disc pl-5 space-y-1">
               <li>Category: {product.categories?.[0]?.name ?? "General"}</li>
-              {variants.map((v) => (
-                <li key={v.id}>
-                  {v.variant_name}: Rs.
-                  {parseFloat(String(v.retail_price)).toFixed(0)} — SKU{" "}
-                  {v.sku ?? "N/A"}
-                </li>
-              ))}
+              {variants.map((v) => {
+                const rawPrice = isUSD
+                  ? (isWholesaler
+                    ? (v.international_wholesale_price ?? v.international_price ?? 0)
+                    : (v.international_price ?? 0))
+                  : (isWholesaler
+                    ? (v.wholesale_price ?? v.retail_price ?? 0)
+                    : (v.retail_price ?? 0));
+                const parsedPrice = parseFloat(String(rawPrice ?? 0));
+                return (
+                  <li key={v.id}>
+                    {v.variant_name}: {parsedPrice > 0 ? formatPrice(parsedPrice, currency, 0) : "N/A"} — SKU{" "}
+                    {v.sku ?? "N/A"}
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}

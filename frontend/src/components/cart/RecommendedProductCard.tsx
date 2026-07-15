@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import type { CartProductInput } from "@/src/types/cart";
-import { productToCartLineItem, getProductPath } from "@/src/lib/product-utils";
+import { productToCartLineItem, getProductPath, getActiveCurrency, formatPrice } from "@/src/lib/product-utils";
+import { getUserRole } from "@/src/lib/auth";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { toast } from "sonner";
 
@@ -17,31 +18,67 @@ export default function RecommendedProductCard({
 }: RecommendedProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const [mounted, setMounted] = useState(false);
+  const [currency, setCurrency] = useState<"NPR" | "USD">("NPR");
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    setRole(getUserRole());
+    setCurrency(getActiveCurrency());
+    const onChange = () => setCurrency(getActiveCurrency());
+    window.addEventListener("currency_changed", onChange);
+    return () => window.removeEventListener("currency_changed", onChange);
   }, []);
+
+  const isWholesaler = role === "wholesaler" || role === "wholeseller";
+  const activeVariant = product.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ?? product.variants?.[0];
+  const isUSD = currency === "USD";
+
+  const isInternationalPriceMissing =
+    isUSD &&
+    (isWholesaler
+      ? (activeVariant?.international_wholesale_price === undefined ||
+        activeVariant?.international_wholesale_price === null ||
+        activeVariant?.international_wholesale_price === "" ||
+        Number(activeVariant?.international_wholesale_price) <= 0) &&
+        (activeVariant?.international_price === undefined ||
+        activeVariant?.international_price === null ||
+        activeVariant?.international_price === "" ||
+        Number(activeVariant?.international_price) <= 0)
+      : (activeVariant?.international_price === undefined ||
+        activeVariant?.international_price === null ||
+        activeVariant?.international_price === "" ||
+        Number(activeVariant?.international_price) <= 0));
 
   const retailVariant = product.variants?.[0];
   const retailPrice = parseFloat(String(retailVariant?.retail_price ?? 0));
 
-  const lineItem = productToCartLineItem(product);
+  const lineItem = productToCartLineItem(product, { currency });
   const clientPrice = lineItem?.price ?? 0;
 
   const price = mounted ? clientPrice : retailPrice;
   const image = lineItem?.image;
   const category = lineItem?.category ?? "Uncategorized";
 
+  if (isInternationalPriceMissing) return null;
+
   const productHref = getProductPath({ id: product.id, slug: product.slug });
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isInternationalPriceMissing) {
+      toast.error("International (USD) pricing is not available for this item.");
+      return;
+    }
     if (!lineItem) {
       toast.error("This product cannot be added to cart.");
       return;
     }
-    addItem(lineItem);
+    addItem({
+      ...lineItem,
+      currency,
+    });
     toast.success(`${product.name} added to cart`);
   };
 
@@ -70,7 +107,7 @@ export default function RecommendedProductCard({
       </Link>
       <div className="mt-2 flex items-center justify-between gap-1">
         <p className="text-sm font-bold text-primary">
-          Rs. {price.toFixed(0)}
+          {formatPrice(price, currency, 0)}
         </p>
         <button
           type="button"

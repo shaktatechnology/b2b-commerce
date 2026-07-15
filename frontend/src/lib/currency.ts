@@ -1,4 +1,3 @@
-import type { Order } from "@/src/types/orders";
 
 /**
  * Maps a payment gateway id to a currency symbol, for gateways that are only
@@ -25,7 +24,17 @@ const DEFAULT_CURRENCY_SYMBOL = "Rs.";
  * default for existing local orders).
  */
 export function getOrderCurrencySymbol(
-  order: Pick<Order, "payment_method" | "gateway" | "payment" | "shipping_address">
+  order: {
+    payment_method?: string | null;
+    gateway?: string | null;
+    payment?: {
+      method?: string | null;
+      currency?: string | null;
+    } | null;
+    shipping_address?: {
+      country?: string | null;
+    } | null;
+  }
 ): string {
   const explicitCurrency = order.payment?.currency?.toUpperCase();
   if (explicitCurrency === "USD") return "$";
@@ -58,7 +67,17 @@ export function getOrderCurrencySymbol(
  * Use this everywhere an order/item amount is displayed instead of hardcoding "Rs." or "$".
  */
 export function formatOrderAmount(
-  order: Pick<Order, "payment_method" | "gateway" | "payment" | "shipping_address">,
+  order: {
+    payment_method?: string | null;
+    gateway?: string | null;
+    payment?: {
+      method?: string | null;
+      currency?: string | null;
+    } | null;
+    shipping_address?: {
+      country?: string | null;
+    } | null;
+  },
   amount: number | string
 ): string {
   const symbol = getOrderCurrencySymbol(order);
