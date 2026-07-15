@@ -54,12 +54,6 @@ export default function CouponVoucher({
   const hasBrands = coupon.brands && coupon.brands.length > 0;
   const isRestricted = hasProducts || hasCategories || hasBrands;
 
-  const getCustomerTypeLabel = (type: string) => {
-    if (!type || type === "all") return "All Customers";
-    if (type === "wholesale") return "Wholesalers Only";
-    if (type === "retail") return "Retail Customers Only";
-    return `${type.charAt(0).toUpperCase() + type.slice(1)} Only`;
-  };
 
   return (
     <div className="relative flex bg-white border border-gray-150 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden min-h-[120px] max-w-sm w-full select-none group">
@@ -87,9 +81,11 @@ export default function CouponVoucher({
       <div className="flex-1 flex flex-col justify-between p-4 pr-6 bg-white pl-4">
         <div>
           <div className="flex items-center gap-1.5">
-            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium border border-emerald-100">
-              {getCustomerTypeLabel(coupon.customer_type)}
-            </span>
+            {coupon.customer_type?.toLowerCase() === "wholesale" && (
+              <span className="text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-medium border border-emerald-100">
+                Wholesalers Only
+              </span>
+            )}
             {isRestricted && (
               <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-medium border border-blue-100 flex items-center gap-0.5">
                 <Info size={10} /> Selected Items
