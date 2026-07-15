@@ -7,6 +7,7 @@ import type { CartProductInput } from "@/src/types/cart";
 import { productToCartLineItem, getProductPath } from "@/src/lib/product-utils";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { toast } from "sonner";
+import { getUserRole } from "@/src/lib/auth";
 
 interface RecommendedProductCardProps {
   product: CartProductInput;
@@ -17,15 +18,17 @@ export default function RecommendedProductCard({
 }: RecommendedProductCardProps) {
   const addItem = useCartStore((s) => s.addItem);
   const [mounted, setMounted] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
+    setRole(getUserRole());
   }, []);
 
   const retailVariant = product.variants?.[0];
   const retailPrice = parseFloat(String(retailVariant?.retail_price ?? 0));
 
-  const lineItem = productToCartLineItem(product);
+  const lineItem = productToCartLineItem(product, { role });
   const clientPrice = lineItem?.price ?? 0;
 
   const price = mounted ? clientPrice : retailPrice;

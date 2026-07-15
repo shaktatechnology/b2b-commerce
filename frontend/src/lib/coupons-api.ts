@@ -168,8 +168,10 @@ export async function fetchCouponRedemptions(
 export async function validateCoupon(params: {
   code: string;
   subtotal: number;
-  shipping_address: string[];
-}): Promise<{ message: string; valid: boolean }> {
+  shipping_address: any;
+  items?: any[];
+  payment_method?: string;
+}): Promise<{ message: string; valid: boolean; data?: any }> {
   const token = getAuthToken();
   const res = await fetch(`${API_BASE}/coupons/validate`, {
     method: 'POST',
@@ -180,11 +182,12 @@ export async function validateCoupon(params: {
     },
     body: JSON.stringify(params),
   });
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     return { message: data?.message ?? `Invalid coupon: ${res.status}`, valid: false };
   }
-  return { message: data?.message ?? 'Coupon is valid', valid: true };
+  return { message: data?.message ?? 'Coupon is valid', valid: true, data: data.data };
 }
 
 /* ── Relation option fetchers (for the product/category/user pickers) ───

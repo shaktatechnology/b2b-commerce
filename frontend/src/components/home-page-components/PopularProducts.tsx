@@ -27,10 +27,12 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
 }) => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+  const [role, setRole] = useState<string | null>(null);
   const swiperRef = useRef<any>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      setRole(getUserRole());
       const stored = localStorage.getItem('currency_preference');
       if (stored === 'USD' || stored === 'NPR') setCurrency(stored);
       const onChange = () => {
@@ -43,7 +45,6 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   }, []);
 
   // Pre-filter: if USD is active, only show products that have international_price set
-  const role = getUserRole();
   const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
 
   // Exclude products where no active variant has stock > 0

@@ -12,7 +12,8 @@ import {
   getActiveCurrency,
 } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
-import { syncCartToServer, checkoutOrder } from "@/src/lib/cart-api";
+import { syncCartToServer, checkoutOrder, clearServerCart } from "@/src/lib/cart-api";
+import { validateCoupon } from "@/src/lib/coupons-api";
 import { initiatePayment } from "@/src/lib/payment-api";
 import type {
   PaymentSettings,
@@ -35,6 +36,8 @@ export default function CheckoutPageClient({
   const subtotal = useCartStore((s) => s.subtotal);
   const discountTotal = useCartStore((s) => s.discountTotal);
   const clearCart = useCartStore((s) => s.clearCart);
+  const appliedCouponCode = useCartStore((s) => s.appliedCouponCode);
+  const appliedCouponDiscount = useCartStore((s) => s.appliedCouponDiscount);
 
   const [step, setStep] = useState<Step>("shipping");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,13 +167,54 @@ export default function CheckoutPageClient({
     }
   }, [user]);
 
+  // Re-validate coupon when checkout items/country/currency change
+  useEffect(() => {
+    if (!appliedCouponCode || items.length === 0) return;
+
+    const revalidate = async () => {
+      try {
+        const validationItems = items.map((item) => ({
+          product_id: item.productId,
+          brand_id: item.brandId ?? null,
+          category_ids: item.categoryIds ?? [],
+          quantity: item.quantity,
+          unit_price: item.price - (item.discount ?? 0),
+          line_total: (item.price - (item.discount ?? 0)) * item.quantity,
+        }));
+
+        const subtotalAmount = subtotal() - discountTotal();
+        const res = await validateCoupon({
+          code: appliedCouponCode,
+          subtotal: subtotalAmount,
+          shipping_address: {
+            country: form.country || (currency === "NPR" ? "Nepal" : "US"),
+          },
+          items: validationItems,
+        });
+
+        if (res.valid && res.data) {
+          const discountVal = parseFloat(res.data.discount_amount || "0");
+          useCartStore.getState().setAppliedCoupon(appliedCouponCode, discountVal);
+        } else {
+          // If coupon is no longer valid, clear it
+          useCartStore.getState().setAppliedCoupon(null, 0);
+          toast.warning(`Coupon "${appliedCouponCode}" was removed: ${res.message || "no longer valid for this region/currency"}`);
+        }
+      } catch (err) {
+        console.error("Coupon checkout revalidation failed:", err);
+      }
+    };
+
+    revalidate();
+  }, [items, currency, form.country, appliedCouponCode, discountTotal, subtotal]);
+
   const total = subtotal();
   const activeDiscount =
     step === "shipping"
-      ? discountTotal()
+      ? (discountTotal() + appliedCouponDiscount)
       : orderDiscount > 0
         ? orderDiscount
-        : checkoutDiscount;
+        : (checkoutDiscount + appliedCouponDiscount);
 
   const handleChange = (field: keyof typeof form, value: string) => {
     setForm((prev) => {
@@ -262,6 +306,8 @@ export default function CheckoutPageClient({
 
     setIsSubmitting(true);
     try {
+      // Clear server cart first to avoid aggregating with stale database items
+      await clearServerCart(token);
       // Sync local cart to server database first
       await syncCartToServer(token, activeItems);
 
@@ -275,6 +321,7 @@ export default function CheckoutPageClient({
         },
         notes: form.notes || undefined,
         currency,
+        coupon_code: appliedCouponCode || undefined,
       });
 
       const order = res.data;
@@ -717,8 +764,16 @@ export default function CheckoutPageClient({
             </div>
 
             {activeDiscount > 0 ? (
-              <div className="flex justify-between text-sm text-green-600 font-medium">
-                <span>Discount:</span>
+              <div className="flex justify-between text-sm text-green-600 font-medium items-center">
+                <span className="flex items-center gap-1.5">
+                  Discount
+                  {appliedCouponCode && (
+                    <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-mono font-semibold tracking-wide">
+                      {appliedCouponCode}
+                    </span>
+                  )}
+                  :
+                </span>
                 <span>- {formatCheckoutPrice(activeDiscount)}</span>
               </div>
             ) : null}

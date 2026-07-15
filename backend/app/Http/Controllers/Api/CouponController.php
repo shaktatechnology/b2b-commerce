@@ -15,7 +15,8 @@ class CouponController extends Controller
 
     public function validate(ValidateCouponRequest $request): JsonResponse
     {
-        $result = $this->couponValidationService->validateCoupon($request->validated(), $request->user());
+        $user = $request->user('sanctum') ?: $request->user();
+        $result = $this->couponValidationService->validateCoupon($request->validated(), $user);
 
         if (($result['success'] ?? false) && isset($result['data'])) {
             $result['data']['preview'] = true;

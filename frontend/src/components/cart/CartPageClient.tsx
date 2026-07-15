@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Minus, Plus, Trash2, Tag, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
 import { formatPrice, getActiveCurrency } from "@/src/lib/product-utils";
@@ -11,6 +11,7 @@ import { getAuthToken, getUserRole } from "@/src/lib/auth";
 import type { CartProductInput } from "@/src/types/cart";
 import RecommendedProductCard from "./RecommendedProductCard";
 import { ConfirmDialog } from "@/src/components/modals/confirm-dialog";
+import { validateCoupon } from "@/src/lib/coupons-api";
 
 interface CartPageClientProps {
   recommendedProducts: CartProductInput[];
@@ -30,7 +31,12 @@ export default function CartPageClient({
   const subtotal = useCartStore((s) => s.subtotal);
   const itemCount = useCartStore((s) => s.itemCount);
 
+  const appliedCouponCode = useCartStore((s) => s.appliedCouponCode);
+  const appliedCouponDiscount = useCartStore((s) => s.appliedCouponDiscount);
+  const setAppliedCoupon = useCartStore((s) => s.setAppliedCoupon);
+
   const [coupon, setCoupon] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -62,8 +68,95 @@ export default function CartPageClient({
   const rawSubtotal = subtotal();
   const totalDiscount = useCartStore((s) => s.discountTotal)();
   const subtotalAmount = rawSubtotal - totalDiscount;
-  const totalAmount = subtotalAmount + SHIPPING_ESTIMATE;
+  const totalAmount = Math.max(0, subtotalAmount - appliedCouponDiscount) + SHIPPING_ESTIMATE;
   const totalItems = itemCount();
+
+  // Re-validate coupon when cart items change
+  useEffect(() => {
+    if (!appliedCouponCode || items.length === 0) return;
+
+    const revalidate = async () => {
+      try {
+        const validationItems = items.map((item) => ({
+          product_id: item.productId,
+          brand_id: item.brandId ?? null,
+          category_ids: item.categoryIds ?? [],
+          quantity: item.quantity,
+          unit_price: item.price - (item.discount ?? 0),
+          line_total: (item.price - (item.discount ?? 0)) * item.quantity,
+        }));
+
+        const res = await validateCoupon({
+          code: appliedCouponCode,
+          subtotal: subtotalAmount,
+          shipping_address: {
+            country: cartCurrency === "NPR" ? "Nepal" : "US",
+          },
+          items: validationItems,
+        });
+
+        if (res.valid && res.data) {
+          const discountVal = parseFloat(res.data.discount_amount || "0");
+          setAppliedCoupon(appliedCouponCode, discountVal);
+        } else {
+          // If coupon is no longer valid, clear it
+          setAppliedCoupon(null, 0);
+          toast.warning(`Coupon "${appliedCouponCode}" was removed: ${res.message || "no longer valid"}`);
+        }
+      } catch (err) {
+        console.error("Coupon revalidation failed:", err);
+      }
+    };
+
+    revalidate();
+  }, [items, subtotalAmount, cartCurrency, appliedCouponCode, setAppliedCoupon]);
+
+  const handleApplyCoupon = async () => {
+    if (!coupon.trim()) {
+      toast.error("Please enter a coupon code.");
+      return;
+    }
+
+    setIsValidating(true);
+    try {
+      const validationItems = items.map((item) => ({
+        product_id: item.productId,
+        brand_id: item.brandId ?? null,
+        category_ids: item.categoryIds ?? [],
+        quantity: item.quantity,
+        unit_price: item.price - (item.discount ?? 0),
+        line_total: (item.price - (item.discount ?? 0)) * item.quantity,
+      }));
+
+      const res = await validateCoupon({
+        code: coupon.trim(),
+        subtotal: subtotalAmount,
+        shipping_address: {
+          country: cartCurrency === "NPR" ? "Nepal" : "US",
+        },
+        items: validationItems,
+      });
+
+      if (res.valid && res.data) {
+        const discountVal = parseFloat(res.data.discount_amount || "0");
+        setAppliedCoupon(res.data.customer_code || coupon.trim(), discountVal);
+        toast.success(res.message || "Coupon applied successfully!");
+        setCoupon("");
+      } else {
+        toast.error(res.message || "Invalid coupon.");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to validate coupon.");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null, 0);
+    toast.success("Coupon removed.");
+  };
 
   const cartVariantIds = new Set(items.map((i) => i.variantId));
   const suggestions = recommendedProducts
@@ -293,8 +386,16 @@ export default function CartPageClient({
             </div>
             {totalDiscount > 0 && (
               <div className="flex justify-between">
-                <span className="text-green-600">Discount</span>
+                <span className="text-green-600">Item Discount</span>
                 <span className="font-semibold text-green-600">-{fmt(totalDiscount)}</span>
+              </div>
+            )}
+            {appliedCouponDiscount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-green-600 flex items-center gap-1">
+                  <Tag size={12} /> Coupon ({appliedCouponCode})
+                </span>
+                <span className="font-semibold text-green-600">-{fmt(appliedCouponDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between">
@@ -310,14 +411,43 @@ export default function CartPageClient({
             </span>
           </div>
 
-          <p className="text-primary text-sm mt-5 mb-2">Got a coupon?</p>
-          <input
-            type="text"
-            value={coupon}
-            onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-            placeholder="COUPON CODE"
-            className="w-full bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm placeholder:text-gray-400 outline-none focus:border-primary"
-          />
+          <p className="text-primary text-sm mt-5 mb-2 font-medium">Coupon Code</p>
+          {appliedCouponCode ? (
+            <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 rounded px-3 py-2 text-sm shadow-sm transition-all animate-in fade-in duration-200">
+              <div className="flex items-center gap-2">
+                <Tag size={14} className="text-green-600" />
+                <span className="font-semibold tracking-wider">{appliedCouponCode}</span>
+                <span className="text-[10px] text-green-600 bg-green-100 px-1 py-0.5 rounded">Applied</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemoveCoupon}
+                className="text-green-600 hover:text-green-850 p-0.5 rounded hover:bg-green-100 transition-colors cursor-pointer"
+                aria-label="Remove coupon"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={coupon}
+                onChange={(e) => setCoupon(e.target.value.toUpperCase())}
+                placeholder="COUPON CODE"
+                disabled={isValidating}
+                className="flex-1 bg-gray-100 border border-gray-200 rounded px-3 py-2 text-sm placeholder:text-gray-400 outline-none focus:border-primary disabled:opacity-50 tracking-wider"
+              />
+              <button
+                type="button"
+                onClick={handleApplyCoupon}
+                disabled={isValidating || !coupon.trim()}
+                className="bg-primary text-white text-sm font-medium px-4 py-2 rounded hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isValidating ? "..." : "Apply"}
+              </button>
+            </div>
+          )}
 
           <button
             type="button"

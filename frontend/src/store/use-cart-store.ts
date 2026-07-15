@@ -12,12 +12,17 @@ interface CartState {
   subtotal: () => number;
   discountTotal: () => number;
   syncCurrency: (targetCurrency: 'NPR' | 'USD') => void;
+  appliedCouponCode: string | null;
+  appliedCouponDiscount: number;
+  setAppliedCoupon: (code: string | null, discount: number) => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      appliedCouponCode: null,
+      appliedCouponDiscount: 0,
 
       addItem: (item) => {
         set((state) => {
@@ -53,7 +58,7 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], appliedCouponCode: null, appliedCouponDiscount: 0 }),
 
       itemCount: () =>
         get().items.reduce((sum, item) => sum + item.quantity, 0),
@@ -63,6 +68,8 @@ export const useCartStore = create<CartState>()(
 
       discountTotal: () =>
         get().items.reduce((sum, item) => sum + (item.isUnavailable ? 0 : (item.discount ?? 0)) * item.quantity, 0),
+
+      setAppliedCoupon: (code, discount) => set({ appliedCouponCode: code, appliedCouponDiscount: discount }),
 
       syncCurrency: (targetCurrency) => {
         set((state) => {

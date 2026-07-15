@@ -1,4 +1,4 @@
-export interface CartLineItem {
+nexport interface CartLineItem {
   productId: string;
   variantId: string;
   name: string;
@@ -20,6 +20,8 @@ export interface CartLineItem {
     USD: number;
   };
   isUnavailable?: boolean;
+  brandId?: string | null;
+  categoryIds?: string[];
 }
 
 export interface CartDiscount {
