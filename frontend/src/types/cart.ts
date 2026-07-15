@@ -1,4 +1,4 @@
-nexport interface CartLineItem {
+export interface CartLineItem {
   productId: string;
   variantId: string;
   name: string;

@@ -46,6 +46,15 @@ export async function fetchOffers(): Promise<Offer[]> {
   return json.data ?? [];
 }
 
+export async function fetchCoupons(): Promise<any[]> {
+  try {
+    const json = await apiGet<{ data: any[] }>('/coupons');
+    return json.data ?? [];
+  } catch {
+    return [];
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function fetchAllDeals(): Promise<any[]> {
   try {

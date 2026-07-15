@@ -7,10 +7,7 @@ import PopularProducts from "./PopularProducts";
 import ProductSuggestions from "./ProductSuggestions";
 import Footer from "../layouts/Footer";
 import Navbar from "../layouts/Navbar";
-
-
-
-
+import CouponsSection from "../coupons/CouponsSection";
 import { isOfferLive } from "@/src/lib/offer-utils";
 import { Suspense } from "react";
 
@@ -30,17 +27,19 @@ async function safeFetch(url: string) {
 export default async function HomePage() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  const [categoryData, settingsData, productData, offersData, tagsData, dailyDealsData] = await Promise.all([
+  const [categoryData, settingsData, productData, offersData, tagsData, dailyDealsData, couponsData] = await Promise.all([
     safeFetch(`${apiUrl}/categories`),
     safeFetch(`${apiUrl}/settings`),
     safeFetch(`${apiUrl}/products`),
     safeFetch(`${apiUrl}/offers`),
     safeFetch(`${apiUrl}/tags`),
     safeFetch(`${apiUrl}/products/daily-deals`),
+    safeFetch(`${apiUrl}/coupons`),
   ]);
 
   const rawOffers = offersData?.data || [];
   const tags = tagsData?.data || [];
+  const coupons = couponsData?.data || [];
 
   const dealOffers = rawOffers.filter((o: any) => o.placement === "deal");
   // Use automated cached deals from API
@@ -68,7 +67,7 @@ export default async function HomePage() {
         logo={logo}
       />
       <HeroSlider offers={topOffers} />
-
+      <CouponsSection coupons={coupons} />
 
       <div className="flex gap-6 px-4 md:px-10 mt-6 max-w-7xl mx-auto">
         <main className="w-full md:w-3/4">
