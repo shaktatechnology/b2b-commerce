@@ -37,6 +37,7 @@ export default function Navbar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+  const [currencyLocked, setCurrencyLocked] = useState(false);
 
   // Search state and history
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,12 +125,19 @@ export default function Navbar({
 
   useEffect(() => {
     setCurrency(getActiveCurrency());
+    setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
     const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+    const handleLockChange = () => setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
     window.addEventListener('currency_changed', handleCurrencyChange);
-    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
+    window.addEventListener('currency_lock_changed', handleLockChange);
+    return () => {
+      window.removeEventListener('currency_changed', handleCurrencyChange);
+      window.removeEventListener('currency_lock_changed', handleLockChange);
+    };
   }, []);
 
   const handleCurrencyToggle = () => {
+    if (currencyLocked) return;
     const next = currency === 'NPR' ? 'USD' : 'NPR';
     localStorage.setItem('currency_preference', next);
     setCurrency(next);
@@ -346,8 +354,12 @@ export default function Navbar({
               <button
                 id="currency-toggle-btn"
                 onClick={handleCurrencyToggle}
-                title={`Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-white/20 hover:border-white transition-all duration-200 bg-white/10 text-white cursor-pointer"
+                disabled={currencyLocked}
+                title={currencyLocked ? 'Currency is locked during payment' : `Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-white/20 transition-all duration-200 bg-white/10 text-white",
+                  currencyLocked ? "opacity-40 cursor-not-allowed" : "hover:border-white cursor-pointer"
+                )}
               >
                 <span className={cn(currency === 'NPR' ? 'text-white font-extrabold font-black' : 'text-white/65 font-normal opacity-60')}>Rs.</span>
                 <span className="text-white/35">|</span>
@@ -638,7 +650,11 @@ export default function Navbar({
               <Globe size={16} className="text-gray-500" />
               <button
                 onClick={handleCurrencyToggle}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border border-zinc-200 text-zinc-700 bg-background cursor-pointer"
+                disabled={currencyLocked}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border border-zinc-200 text-zinc-700 bg-background",
+                  currencyLocked ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
+                )}
               >
                 <span className={cn(currency === 'NPR' ? 'text-primary font-bold' : 'text-zinc-400 font-normal')}>Rs.</span>
                 <span className="text-zinc-300">|</span>

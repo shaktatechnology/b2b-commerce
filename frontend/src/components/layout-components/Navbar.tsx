@@ -36,6 +36,7 @@ export function Navbar() {
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [currency, setCurrency] = React.useState<'NPR' | 'USD'>('NPR');
+  const [currencyLocked, setCurrencyLocked] = React.useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -49,12 +50,19 @@ export function Navbar() {
       .catch((err) => console.error('Failed to fetch navbar settings:', err));
 
     setCurrency(getActiveCurrency());
+    setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
     const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+    const handleLockChange = () => setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
     window.addEventListener('currency_changed', handleCurrencyChange);
-    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
+    window.addEventListener('currency_lock_changed', handleLockChange);
+    return () => {
+      window.removeEventListener('currency_changed', handleCurrencyChange);
+      window.removeEventListener('currency_lock_changed', handleLockChange);
+    };
   }, []);
 
   const handleCurrencyToggle = () => {
+    if (currencyLocked) return;
     const next = currency === 'NPR' ? 'USD' : 'NPR';
     localStorage.setItem('currency_preference', next);
     setCurrency(next);
@@ -142,8 +150,12 @@ export function Navbar() {
           <button
             id="currency-toggle-btn"
             onClick={handleCurrencyToggle}
-            title={`Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-800 hover:border-primary transition-all duration-200 bg-background"
+            disabled={currencyLocked}
+            title={currencyLocked ? 'Currency is locked during payment' : `Switch to ${currency === 'NPR' ? 'USD ($)' : 'NPR (Rs.)'}`}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border border-zinc-200 dark:border-zinc-800 transition-all duration-200 bg-background",
+              currencyLocked ? "opacity-40 cursor-not-allowed" : "hover:border-primary cursor-pointer"
+            )}
           >
             <span className={cn(currency === 'NPR' ? 'text-primary font-black font-extrabold' : 'text-muted-foreground font-normal opacity-60')}>Rs.</span>
             <span className="text-zinc-300 dark:text-zinc-700">|</span>

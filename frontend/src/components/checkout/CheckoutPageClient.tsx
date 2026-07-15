@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -174,6 +174,36 @@ export default function CheckoutPageClient({
     }
   }, [user]);
 
+  // Lock currency toggle in the Navbar when on the payment step
+  const lockCurrency = useCallback(() => {
+    sessionStorage.setItem("currency_locked", "true");
+    window.dispatchEvent(new Event("currency_lock_changed"));
+  }, []);
+
+  const unlockCurrency = useCallback(() => {
+    sessionStorage.removeItem("currency_locked");
+    window.dispatchEvent(new Event("currency_lock_changed"));
+  }, []);
+
+  useEffect(() => {
+    if (step === "payment" || step === "redirecting") {
+      lockCurrency();
+    } else {
+      unlockCurrency();
+    }
+  }, [step, lockCurrency, unlockCurrency]);
+
+  // Always unlock on unmount (e.g. user navigates away)
+  useEffect(() => {
+    return () => {
+      sessionStorage.removeItem("currency_locked");
+      window.dispatchEvent(new Event("currency_lock_changed"));
+    };
+  }, []);
+
+  const isNepalUsdMismatch = form.country.trim().toLowerCase() === "nepal" && currency !== "NPR";
+  const isNonNepalNprMismatch = form.country.trim().toLowerCase() !== "nepal" && currency !== "USD";
+  const isCurrencyAddressMismatch = isNepalUsdMismatch || isNonNepalNprMismatch;
   const total = subtotal();
   const activeDiscount =
     step === "shipping"
@@ -267,6 +297,16 @@ export default function CheckoutPageClient({
     if (!form.country.trim()) {
       toast.error("Country is required.");
       setIsEditingAddress(true);
+      return;
+    }
+
+    if (isNepalUsdMismatch) {
+      toast.error("Nepal shipping address requires NPR (Rs.) currency. Please toggle currency in the header.");
+      return;
+    }
+
+    if (isNonNepalNprMismatch) {
+      toast.error("International shipping address requires USD ($) currency. Please toggle currency in the header.");
       return;
     }
 
@@ -378,6 +418,11 @@ export default function CheckoutPageClient({
     const token = getAuthToken();
     if (!token || !orderId || !selectedGateway) {
       toast.error("Select a payment method.");
+      return;
+    }
+
+    if (isCurrencyAddressMismatch) {
+      toast.error("Currency mismatch detected for selected shipping address.");
       return;
     }
 
@@ -667,10 +712,21 @@ export default function CheckoutPageClient({
                 />
               </div>
 
+              {isNepalUsdMismatch && (
+                <p className="text-xs text-red-650 font-semibold mb-3 text-center bg-red-50 border border-red-200 rounded-lg p-2.5">
+                  Nepal shipping address requires NPR (Rs.) currency. Please switch the currency to Rs. in the header.
+                </p>
+              )}
+              {isNonNepalNprMismatch && (
+                <p className="text-xs text-red-650 font-semibold mb-3 text-center bg-red-50 border border-red-200 rounded-lg p-2.5">
+                  International shipping address requires USD ($) currency. Please switch the currency to $ in the header.
+                </p>
+              )}
+
               <button
                 type="button"
                 onClick={handleCreateOrder}
-                disabled={isSubmitting || activeSummaryItems.some((i) => i.is_active === false)}
+                disabled={isSubmitting || isCurrencyAddressMismatch || activeSummaryItems.some((i) => i.is_active === false)}
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
                 {isSubmitting ? "Creating order…" : "Continue to payment"}
@@ -743,13 +799,23 @@ export default function CheckoutPageClient({
                   })}
                 </div>
               )}
+              {isCurrencyAddressMismatch && (
+                <p className="text-xs text-red-650 font-semibold mb-3 text-center bg-red-50 border border-red-200 rounded-lg p-2.5">
+                  {isNepalUsdMismatch 
+                    ? "Nepal shipping address requires NPR (Rs.) currency. Please switch the currency to Rs. in the header."
+                    : "International shipping address requires USD ($) currency. Please switch the currency to $ in the header."
+                  }
+                </p>
+              )}
+
               <button
                 type="button"
                 onClick={handlePay}
                 disabled={
                   isSubmitting ||
                   !selectedGateway ||
-                  isGatewayDisabledForCurrency(selectedGateway)
+                  isGatewayDisabledForCurrency(selectedGateway) ||
+                  isCurrencyAddressMismatch
                 }
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
