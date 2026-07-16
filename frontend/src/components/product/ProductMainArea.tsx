@@ -69,6 +69,17 @@ export default function ProductMainArea({
     return activeVariants[0]?.id ?? "";
   });
 
+  // Whether the current selectedVariantId reflects an actual explicit pick
+  // (a swatch click, a variant-tagged gallery thumbnail, or a deep link) as
+  // opposed to just the arbitrary "first variant" fallback used for pricing
+  // before the user has interacted. The purchase panel uses this to decide
+  // whether a swatch should visually look selected.
+  const [variantExplicitlySelected, setVariantExplicitlySelected] = useState(() =>
+    Boolean(
+      variantParam && activeVariants.some((v) => String(v.id) === String(variantParam))
+    )
+  );
+
   const [activeIndex, setActiveIndex] = useState(0);
 
   // Sync state if variant collection changes or param changes
@@ -78,6 +89,7 @@ export default function ProductMainArea({
       if (found) {
         const vId = String(found.id);
         setSelectedVariantId(vId);
+        setVariantExplicitlySelected(true);
 
         // Also update gallery index if variant has image
         if (found.image_url) {
@@ -93,6 +105,7 @@ export default function ProductMainArea({
 
   const handleVariantChange = (variantId: string) => {
     setSelectedVariantId(variantId);
+    setVariantExplicitlySelected(true);
     const selectedVariant = activeVariants.find((v) => v.id === variantId);
     if (selectedVariant && selectedVariant.image_url) {
       const url = resolveProductImageUrl(selectedVariant.image_url);
@@ -107,7 +120,16 @@ export default function ProductMainArea({
     setActiveIndex(index);
     const source = galleryMediaWithSource[index];
     if (source && source.variantId) {
+      // This thumbnail belongs to a specific variant — treat viewing it as
+      // picking that variant.
       setSelectedVariantId(source.variantId);
+      setVariantExplicitlySelected(true);
+    } else {
+      // Back on a general/primary product photo that isn't tied to any one
+      // variant — don't let a swatch keep looking "selected" while it's on
+      // screen, even though selectedVariantId still holds a value for
+      // pricing/stock purposes underneath.
+      setVariantExplicitlySelected(false);
     }
   };
 
@@ -125,6 +147,7 @@ export default function ProductMainArea({
         averageRating={averageRating}
         selectedVariantId={selectedVariantId}
         onVariantChange={handleVariantChange}
+        showVariantAsSelected={variantExplicitlySelected}
       />
     </div>
   );

@@ -23,6 +23,10 @@ interface ProductPurchasePanelProps {
   averageRating?: number;
   selectedVariantId: string;
   onVariantChange: (id: string) => void;
+  // False while the gallery is showing the general/primary product photo
+  // rather than a photo that actually belongs to selectedVariant — in that
+  // state no swatch should visually look "selected".
+  showVariantAsSelected?: boolean;
 }
 
 export default function ProductPurchasePanel({
@@ -31,6 +35,7 @@ export default function ProductPurchasePanel({
   averageRating = 0,
   selectedVariantId,
   onVariantChange,
+  showVariantAsSelected = true,
 }: ProductPurchasePanelProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
@@ -270,7 +275,9 @@ export default function ProductPurchasePanel({
                   return true;
                 }).map((variant) => {
                   const colorName = variant.color?.name || product.color?.name || 'Default';
-                  const isSelected = (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName;
+                  const isSelected =
+                    showVariantAsSelected &&
+                    (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName;
 
                   return (
                     <button
@@ -371,7 +378,7 @@ export default function ProductPurchasePanel({
                         ? (selectedVariant[property as keyof typeof selectedVariant] as any)?.name
                         : (selectedVariant[property as keyof typeof selectedVariant] as string) || "Default";
 
-                    const isSelected = selectedValue === optionValue;
+                    const isSelected = showVariantAsSelected && selectedValue === optionValue;
 
                     return (
                       <button
@@ -408,7 +415,7 @@ export default function ProductPurchasePanel({
                   key={variant.id}
                   type="button"
                   onClick={() => onVariantChange(variant.id)}
-                  className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${selectedVariantId === variant.id
+                  className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${showVariantAsSelected && selectedVariantId === variant.id
                     ? "bg-primary text-white border-primary shadow-sm"
                     : "bg-white border-gray-200 text-gray-600 hover:border-primary"
                     }`}
