@@ -27,10 +27,19 @@ export const useCartStore = create<CartState>()(
         set((state) => {
           const existing = state.items.find((i) => i.variantId === item.variantId);
           if (existing) {
+            // Cap the merged quantity at the item's known stock so repeated
+            // "add to cart" calls for the same variant can't push the cart
+            // past what's actually available.
+            const knownStock = item.stock ?? existing.stock;
+            const combined = existing.quantity + item.quantity;
+            const nextQuantity =
+              knownStock !== undefined && knownStock > 0
+                ? Math.min(combined, knownStock)
+                : combined;
             return {
               items: state.items.map((i) =>
                 i.variantId === item.variantId
-                  ? { ...i, quantity: i.quantity + item.quantity }
+                  ? { ...i, quantity: nextQuantity, stock: knownStock ?? i.stock }
                   : i
               ),
             };
@@ -51,9 +60,12 @@ export const useCartStore = create<CartState>()(
           return;
         }
         set((state) => ({
-          items: state.items.map((i) =>
-            i.variantId === variantId ? { ...i, quantity } : i
-          ),
+          items: state.items.map((i) => {
+            if (i.variantId !== variantId) return i;
+            const capped =
+              i.stock !== undefined && i.stock > 0 ? Math.min(quantity, i.stock) : quantity;
+            return { ...i, quantity: capped };
+          }),
         }));
       },
 

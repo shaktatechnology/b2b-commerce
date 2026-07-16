@@ -34,6 +34,7 @@ export default function ProductPurchasePanel({
 }: ProductPurchasePanelProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const cartItems = useCartStore((s) => s.items);
 
   const activeVariants = useMemo(
     () => (product.variants ?? []).filter((v) => v.is_active !== false),
@@ -62,7 +63,13 @@ export default function ProductPurchasePanel({
   const moq = selectedVariant?.moq ?? 1;
   const stock = selectedVariant?.stock ?? 0;
   const isOutOfStock = stock <= 0;
-  const exceedsStock = stock > 0 ? quantity > stock : false;
+
+  // How many units of this exact variant are already sitting in the cart —
+  // needed so we don't let someone add past stock across multiple visits.
+  const quantityInCart =
+    cartItems.find((i) => i.variantId === String(selectedVariant?.id))?.quantity ?? 0;
+  const remainingStock = Math.max(0, stock - quantityInCart);
+  const exceedsStock = stock > 0 ? quantity > remainingStock : false;
 
   // Sync quantity with MOQ for wholesalers when variant changes
   useEffect(() => {
@@ -135,8 +142,12 @@ export default function ProductPurchasePanel({
       toast.error("This variant is out of stock.");
       return;
     }
-    if (quantity > stock) {
-      toast.error(`Only ${stock} unit${stock === 1 ? "" : "s"} are available.`);
+    if (quantity > remainingStock) {
+      toast.error(
+        remainingStock > 0
+          ? `Only ${remainingStock} more unit${remainingStock === 1 ? "" : "s"} can be added (you already have ${quantityInCart} in your cart).`
+          : `You already have the maximum available quantity (${stock}) in your cart.`
+      );
       return;
     }
     if (isWholesaler && quantity < moq) {
@@ -157,8 +168,12 @@ export default function ProductPurchasePanel({
       toast.error("This variant is out of stock.");
       return;
     }
-    if (quantity > stock) {
-      toast.error(`Only ${stock} unit${stock === 1 ? "" : "s"} are available.`);
+    if (quantity > remainingStock) {
+      toast.error(
+        remainingStock > 0
+          ? `Only ${remainingStock} more unit${remainingStock === 1 ? "" : "s"} can be added (you already have ${quantityInCart} in your cart).`
+          : `You already have the maximum available quantity (${stock}) in your cart.`
+      );
       return;
     }
     if (isWholesaler && quantity < moq) {
@@ -410,7 +425,12 @@ export default function ProductPurchasePanel({
         {isOutOfStock ? (
           <p className="text-sm font-semibold text-red-600">Out of stock</p>
         ) : (
-          <p className="text-sm text-gray-600">Available: {stock} unit{stock === 1 ? "" : "s"}</p>
+          <p className="text-sm text-gray-600">
+            Available: {stock} unit{stock === 1 ? "" : "s"}
+            {quantityInCart > 0 && (
+              <span className="text-gray-400"> ({quantityInCart} already in cart)</span>
+            )}
+          </p>
         )}
       </div>
 
@@ -430,8 +450,12 @@ export default function ProductPurchasePanel({
             onClick={() => {
               setQuantity((q) => {
                 const next = q + 1;
-                if (stock > 0 && next > stock) {
-                  toast.error(`Only ${stock} unit${stock === 1 ? "" : "s"} are available.`);
+                if (stock > 0 && next > remainingStock) {
+                  toast.error(
+                    remainingStock > 0
+                      ? `Only ${remainingStock} more unit${remainingStock === 1 ? "" : "s"} can be added (you already have ${quantityInCart} in your cart).`
+                      : `You already have the maximum available quantity (${stock}) in your cart.`
+                  );
                   return q;
                 }
                 return next;
