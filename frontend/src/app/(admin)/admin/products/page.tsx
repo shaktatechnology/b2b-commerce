@@ -1427,21 +1427,11 @@ export default function AdminProductsPage() {
 
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Short Description</label>
-                        <span className={cn(
-                          "text-[10px] font-bold uppercase",
-                          (formData.description || '').length >= 263 ? "text-red-500" : "text-zinc-400"
-                        )}>
-                          {(formData.description || '').length}/263
-                        </span>
-                      </div>
-                      <textarea
+                      <RichTextEditor
+                        label="Description"
                         value={formData.description || ''}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, 263) })}
-                        maxLength={263}
-                        placeholder="Detail the product's features, specs, and selling points..."
-                        className="w-full min-h-[120px] p-5 rounded-2xl border border-zinc-200 focus:ring-2 focus:ring-[#966FD6]/20 transition-all text-sm resize-none bg-zinc-50/30 font-bold"
+                        onChange={(val) => setFormData({ ...formData, description: val })}
+                        placeholder="Comprehensive details for the product page..."
                       />
                     </div>
                     <div className="space-y-2">

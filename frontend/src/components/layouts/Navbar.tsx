@@ -2,7 +2,8 @@
 
 import {  useEffect,  useState,  useRef,  useLayoutEffect,  useCallback,} from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { useDebounce } from "@/src/hooks/use-debounce";
 
 import {  Menu,  Search,  ShoppingCart,  User,  Globe,  X,  Phone,  ChevronRight,  ChevronLeft,  ChevronDown,  LogOut} from "lucide-react";
 import { useCartStore } from "@/src/store/use-cart-store";
@@ -34,6 +35,7 @@ export default function Navbar({
   const setUser = useAppStore((s) => s.setUser);
   const clearUser = useAppStore((s) => s.logout);
   const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
@@ -69,6 +71,23 @@ export default function Navbar({
     }
   }, []);
 
+  // Auto-clear: if the user is on the products page viewing search results
+  // and empties the search box, drop the ?search param after a short pause
+  // instead of requiring them to press Enter.
+  const debouncedSearchQuery = useDebounce(searchQuery, 400);
+
+  useEffect(() => {
+    if (pathname !== "/products") return;
+    if (debouncedSearchQuery.trim()) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("search")) return;
+
+    params.delete("search");
+    const next = params.toString();
+    router.push(next ? `/products?${next}` : "/products");
+  }, [debouncedSearchQuery, pathname, router]);
+
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (
@@ -92,20 +111,33 @@ export default function Navbar({
 
   const handleSearch = (query: string) => {
     const trimmed = query.trim();
-    if (!trimmed) return;
+
+    setShowHistory(false);
+    setShowHistoryMobile(false);
+
+    if (!trimmed) {
+      // Nothing to search for — go back to the full product list.
+      router.push(`/products`);
+      return;
+    }
 
     // Save to search history
     const updatedHistory = [
       trimmed,
       ...searchHistory.filter((item) => item.toLowerCase() !== trimmed.toLowerCase()),
     ].slice(0, 5); // Keep last 5 entries
-    
+
     setSearchHistory(updatedHistory);
     localStorage.setItem("search_history", JSON.stringify(updatedHistory));
-    
+
+    router.push(`/products?search=${encodeURIComponent(trimmed)}`);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
     setShowHistory(false);
     setShowHistoryMobile(false);
-    router.push(`/products?search=${encodeURIComponent(trimmed)}`);
+    router.push(`/products`);
   };
 
   const deleteHistoryItem = (e: React.MouseEvent, itemToDelete: string) => {
@@ -303,6 +335,16 @@ export default function Navbar({
                       size={18}
                     />
                   </button>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={clearSearch}
+                      aria-label="Clear search"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-all cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </form>
 
                 {/* Search History Dropdown */}
@@ -527,6 +569,17 @@ export default function Navbar({
                 placeholder="Search Item category ..."
                 className="w-full h-11 rounded-full border border-primary/40 pl-4 pr-24 text-sm outline-none focus:border-primary transition-all"
               />
+
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                  className="absolute right-[92px] top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all cursor-pointer p-1"
+                >
+                  <X size={16} />
+                </button>
+              )}
 
               <button 
                 type="submit"

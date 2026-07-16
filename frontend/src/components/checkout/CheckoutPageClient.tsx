@@ -79,11 +79,44 @@ export default function CheckoutPageClient({
   useEffect(() => {
     setIsMounted(true);
     setCurrency(getActiveCurrency());
-    const handleCurrencyChange = () => setCurrency(getActiveCurrency());
+
+    const handleCurrencyChange = () => {
+      const next = getActiveCurrency();
+      setCurrency(next);
+
+      // The header currency toggle is the source of truth here: if the
+      // person switches to Rs. (NPR), the shipping address must be Nepal
+      // for the two to stay consistent — auto-correct the address instead
+      // of leaving the person stuck behind the mismatch banner below.
+      if (next === "NPR") {
+        setForm((prev) => {
+          if (prev.country.trim().toLowerCase() === "nepal") return prev;
+
+          const updated = { ...prev, country: "Nepal" };
+
+          try {
+            const storageKey = user
+              ? `b2b_shipping_address_${user.id}`
+              : "b2b_shipping_address";
+            const existingRaw = localStorage.getItem(storageKey);
+            const existing = existingRaw ? JSON.parse(existingRaw) : {};
+            localStorage.setItem(
+              storageKey,
+              JSON.stringify({ ...existing, ...updated }),
+            );
+          } catch (e) {
+            console.error("Failed to persist auto-updated address", e);
+          }
+
+          return updated;
+        });
+      }
+    };
+
     window.addEventListener("currency_changed", handleCurrencyChange);
     return () =>
       window.removeEventListener("currency_changed", handleCurrencyChange);
-  }, []);
+  }, [user]);
 
 
   const formatCheckoutPrice = (amount: number) => formatPrice(amount, currency);
@@ -145,9 +178,7 @@ export default function CheckoutPageClient({
         // Sync currency preferences with loaded country
         if (parsed.country) {
           const nextCur =
-            parsed.country.toLowerCase() === "nepal"
-              ? getActiveCurrency()
-              : "USD";
+            parsed.country.trim().toLowerCase() === "nepal" ? "NPR" : "USD";
           localStorage.setItem("currency_preference", nextCur);
           useCartStore.getState().syncCurrency(nextCur);
           window.dispatchEvent(new Event("currency_changed"));
@@ -221,8 +252,7 @@ export default function CheckoutPageClient({
     // different store's setState from inside one triggers "Cannot update a
     // component while rendering a different component".
     if (field === "country") {
-      const nextCur =
-        value.toLowerCase() === "nepal" ? getActiveCurrency() : "USD";
+      const nextCur = value.trim().toLowerCase() === "nepal" ? "NPR" : "USD";
       localStorage.setItem("currency_preference", nextCur);
       useCartStore.getState().syncCurrency(nextCur);
       window.dispatchEvent(new Event("currency_changed"));
