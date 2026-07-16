@@ -9,6 +9,7 @@ import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Spinner } from '@/src/components/ui/spinner';
 import { Skeleton } from '@/src/components/ui/skeleton';
+import { RichTextEditor } from '@/src/components/ui/rich-text-editor';
 import { 
   Table, 
   TableBody, 
@@ -528,12 +529,11 @@ export default function CategoriesPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-zinc-400">Description</label>
-                <textarea 
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="A brief description of this category..."
-                  className="w-full min-h-[100px] p-4 rounded-xl border border-zinc-200 focus:outline-none focus:ring-2 focus:ring-[#966FD6]/20 transition-all font-medium text-sm resize-none"
+                <RichTextEditor
+                  label="Description"
+                  value={formData.description || ''}
+                  onChange={(val) => setFormData({ ...formData, description: val })}
+                  placeholder="Comprehensive details for the product page..."
                 />
               </div>
 

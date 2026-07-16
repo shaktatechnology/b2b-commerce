@@ -18,6 +18,7 @@ import { DatePicker } from "@/src/components/ui/date-picker";
 import { Pagination } from "@/src/components/ui/pagination";
 import { format, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
 import { DateTimePicker } from "@/src/components/ui/date-time-picker";
+import { RichTextEditor } from '@/src/components/ui/rich-text-editor';
 import { Matcher } from "react-day-picker";
 
 import { Offer, OfferFormData } from "@/src/types/offer";
@@ -707,12 +708,11 @@ export default function AdminOffersPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-xs font-black text-black uppercase tracking-wider ml-1">Campaign Narrative</label>
-                        <textarea
-                          value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          placeholder="Describe the promotion in detail..."
-                          className="w-full min-h-[100px] sm:min-h-[120px] p-4 sm:p-5 rounded-[20px] sm:rounded-[24px] border border-zinc-100 focus:ring-2 focus:ring-[#966FD6]/10 transition-all text-xs sm:text-sm font-medium resize-none bg-zinc-50/50 focus:bg-white"
+                        <RichTextEditor
+                          label="Description"
+                          value={formData.description || ''}
+                          onChange={(val) => setFormData({ ...formData, description: val })}
+                          placeholder="Comprehensive details for the product page..."
                         />
                       </div>
 
