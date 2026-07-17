@@ -526,6 +526,18 @@ export default function AdminProductsPage() {
           body.append(`variants[${i}][image]`, v.image);
         } else if (v.image_url) {
           body.append(`variants[${i}][image_url]`, v.image_url);
+        } else {
+          // Both empty means the image was explicitly removed in the UI.
+          // We send two signals here because we don't have visibility into
+          // the backend controller: an empty image_url (works if it checks
+          // `has()`), and a distinctly-named remove_image flag (works if it
+          // uses something like `filled()`, which treats an empty string
+          // the same as a missing field and would otherwise silently do
+          // nothing). If removal still doesn't stick after this, the
+          // backend needs to be checked for which of these it actually
+          // reads — or a different field name entirely.
+          body.append(`variants[${i}][image_url]`, '');
+          body.append(`variants[${i}][remove_image]`, '1');
         }
 
         if (v.discount && v.discount.type && v.discount.value !== '' && v.discount.starts_at && v.discount.ends_at) {
