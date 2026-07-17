@@ -526,6 +526,18 @@ export default function AdminProductsPage() {
           body.append(`variants[${i}][image]`, v.image);
         } else if (v.image_url) {
           body.append(`variants[${i}][image_url]`, v.image_url);
+        } else {
+          // Both empty means the image was explicitly removed in the UI.
+          // We send two signals here because we don't have visibility into
+          // the backend controller: an empty image_url (works if it checks
+          // `has()`), and a distinctly-named remove_image flag (works if it
+          // uses something like `filled()`, which treats an empty string
+          // the same as a missing field and would otherwise silently do
+          // nothing). If removal still doesn't stick after this, the
+          // backend needs to be checked for which of these it actually
+          // reads — or a different field name entirely.
+          body.append(`variants[${i}][image_url]`, '');
+          body.append(`variants[${i}][remove_image]`, '1');
         }
 
         if (v.discount && v.discount.type && v.discount.value !== '' && v.discount.starts_at && v.discount.ends_at) {
@@ -591,6 +603,15 @@ export default function AdminProductsPage() {
         toast.success('Product created successfully');
       } else {
         body.append('_method', 'PUT');
+        // Without this, the backend appears to do a partial per-field patch
+        // on each variant (skipping fields that arrive empty, such as a
+        // cleared image_url) instead of treating the submitted variant data
+        // as the full, authoritative state — which is why removing a
+        // variant image wasn't sticking. sync_variants tells it to fully
+        // sync each variant row to what we're sending, so an absent/empty
+        // image_url actually clears the stored image instead of being
+        // silently ignored.
+        body.append('sync_variants', '1');
         await apiFetch(`/admin/products/${editingId}`, { method: 'POST', token: freshToken || undefined, body });
 
         if (selectedImage && editingId) {
@@ -864,15 +885,28 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell className="py-5 px-6">
                       <div className="space-y-1">
-                        <p className="font-black text-[#966FD6] text-lg">
-                          Rs.{p.variants?.[0]?.retail_price || '0'}
-                        </p>
-                        <p className="font-black text-[#966FD6] text-lg">
-                          $ {p.variants?.[0]?.international_price || '0'}
-                        </p>
-                        <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
-                          {p.variants?.length || 0} variants
-                        </p>
+                        {(() => {
+                          const displayVariant = p.variants?.[0];
+                          const hasMultipleVariants = (p.variants?.length ?? 0) > 1;
+                          return (
+                            <>
+                              {hasMultipleVariants && displayVariant?.variant_name && (
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#966FD6]/70">
+                                  {displayVariant.variant_name} price
+                                </p>
+                              )}
+                              <p className="font-black text-[#966FD6] text-lg">
+                                Rs.{displayVariant?.retail_price || '0'}
+                              </p>
+                              <p className="font-black text-[#966FD6] text-lg">
+                                $ {displayVariant?.international_price || '0'}
+                              </p>
+                              <p className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                                {p.variants?.length || 0} variant{(p.variants?.length ?? 0) === 1 ? '' : 's'}
+                              </p>
+                            </>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                     <TableCell className="py-5 px-6">

@@ -42,7 +42,11 @@ export default function Navbar({
   const [currencyLocked, setCurrencyLocked] = useState(false);
 
   // Search state and history
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("search") || "";
+  });
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [showHistoryMobile, setShowHistoryMobile] = useState(false);
@@ -61,22 +65,29 @@ export default function Navbar({
     }
   }, []);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const query = params.get("search");
-      if (query) {
-        setSearchQuery(query);
-      }
-    }
-  }, []);
-
   // Auto-clear: if the user is on the products page viewing search results
   // and empties the search box, drop the ?search param after a short pause
   // instead of requiring them to press Enter.
   const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
+  // This effect must ONLY ever fire in response to the user actually typing
+  // in the box — never as a side effect of navigating onto /products (e.g.
+  // from a homepage search, where a stale/lagging debounced value could
+  // otherwise be misread as "the user emptied the box" and wipe out the
+  // search term that was just submitted). Rather than guess at the exact
+  // render/timing where that navigation race occurs, we make it structurally
+  // impossible: userEditedSearchRef is set to true ONLY inside the input's
+  // onChange handler, so the effect below is inert on mount and on every
+  // pathname change, and only "arms" once a real keystroke happens.
+  const userEditedSearchRef = useRef(false);
+
+  const handleSearchInputChange = (value: string) => {
+    userEditedSearchRef.current = true;
+    setSearchQuery(value);
+  };
+
   useEffect(() => {
+    if (!userEditedSearchRef.current) return;
     if (pathname !== "/products") return;
     if (debouncedSearchQuery.trim()) return;
 
@@ -325,7 +336,7 @@ export default function Navbar({
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchInputChange(e.target.value)}
                     onFocus={() => setShowHistory(true)}
                     placeholder="Search Item category ..."
                     className="w-full h-8 text-sm rounded bg-white/10 border border-white/30 pl-12 pr-4 text-white placeholder:text-white/70 outline-none focus:bg-white/20 focus:border-white transition-all"
@@ -564,7 +575,7 @@ export default function Navbar({
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchInputChange(e.target.value)}
                 onFocus={() => setShowHistoryMobile(true)}
                 placeholder="Search Item category ..."
                 className="w-full h-11 rounded-full border border-primary/40 pl-4 pr-24 text-sm outline-none focus:border-primary transition-all"
