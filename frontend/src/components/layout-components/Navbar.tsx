@@ -29,7 +29,7 @@ const navItems = [
   { name: 'Contact', href: '/contact' },
 ];
 
-export function Navbar() {
+export default function Navbar() {
   const [scrolled, setScrolled] = React.useState(false);
   const [settings, setSettings] = React.useState<Record<string, string | null>>({});
   const [profileUser, setProfileUser] = React.useState<AuthUser | null>(null);

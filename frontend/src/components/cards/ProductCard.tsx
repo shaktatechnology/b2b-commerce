@@ -26,6 +26,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   viewMode = "grid",
 }) => {
   const addItem = useCartStore((s) => s.addItem);
+  const cartItems = useCartStore((s) => s.items);
   const [mounted, setMounted] = React.useState(false);
   const [currency, setCurrency] = React.useState<"NPR" | "USD">("NPR");
   const [role, setRole] = React.useState<string | null>(null);
@@ -102,6 +103,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const category = lineItem?.category ?? "Uncategorized";
   const href = getProductPath({ id: product.id, slug: product.slug });
 
+  // How many units of this exact variant are already sitting in the cart —
+  // same check ProductPurchasePanel does on the detail page, so quick-adding
+  // from the listing grid can't push you past actual stock across repeated
+  // clicks or a prior cart session.
+  const stock = lineItem?.stock ?? 0;
+  const quantityInCart =
+    cartItems.find((i) => i.variantId === String(activeVariant?.id))?.quantity ?? 0;
+  const remainingStock = Math.max(0, stock - quantityInCart);
+
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -117,8 +127,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
-    if ((lineItem.stock ?? 0) <= 0) {
+    if (stock <= 0) {
       toast.error("This item is currently out of stock.");
+      return;
+    }
+
+    if (remainingStock <= 0) {
+      toast.error(
+        `You already have the maximum available quantity (${stock}) in your cart.`,
+      );
       return;
     }
 
@@ -131,7 +148,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toast.success(`${product.name} added to cart`);
   };
 
-  const isOutOfStock = allVariantsOutOfStock || (lineItem?.stock ?? 0) <= 0;
+  const isOutOfStock = allVariantsOutOfStock || remainingStock <= 0;
   const isPurchaseDisabled = isOutOfStock || isInternationalPriceMissing;
   const avgRating = Number(product.reviews_avg_rating ?? 0);
   const reviewsCount = product.reviews_count ?? 0;
