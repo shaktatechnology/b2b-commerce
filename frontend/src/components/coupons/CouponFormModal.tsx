@@ -355,15 +355,17 @@ export function CouponFormModal({
               <label className="block text-sm font-bold text-zinc-600 mb-1.5">
                 Customer type
               </label>
-              <input
+              <select
                 value={form.customer_type ?? ''}
-                maxLength={32}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, customer_type: e.target.value }))
                 }
-                placeholder="e.g. new, wholesale"
-                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#966FD6]"
-              />
+                className="w-full rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none bg-white focus:border-[#966FD6]"
+              >
+                <option value="">All Customers</option>
+                <option value="retail">Retail Customers Only</option>
+                <option value="wholesale">Wholesalers Only</option>
+              </select>
             </div>
 
             <div className="flex items-end gap-5 pb-1">

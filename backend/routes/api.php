@@ -64,6 +64,7 @@ Route::get('/offers/{id}',          [OfferController::class, 'show']);
 // Discounts
 Route::get('/discounts',            [DiscountController::class, 'index']);
 Route::get('/discounts/{id}',       [DiscountController::class, 'show']);
+Route::get('/coupons', [CouponController::class, 'index']);
 Route::post('/coupons/validate', [CouponController::class, 'validate']);
 
 // ── Authenticated Routes (auth:sanctum) ────────────────────────────────────

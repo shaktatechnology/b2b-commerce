@@ -13,6 +13,26 @@ class CouponController extends Controller
     {
     }
 
+    public function index(): JsonResponse
+    {
+        $now = now();
+        $coupons = \App\Models\Coupon::with(['regionRules', 'products', 'categories', 'brands'])
+            ->where('status', 'active')
+            ->where(function ($query) use ($now) {
+                $query->whereNull('starts_at')
+                    ->orWhere('starts_at', '<=', $now);
+            })
+            ->where(function ($query) use ($now) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>=', $now);
+            })
+            ->get();
+
+        return response()->json([
+            'data' => $coupons
+        ]);
+    }
+
     public function validate(ValidateCouponRequest $request): JsonResponse
     {
         $user = $request->user('sanctum') ?: $request->user();
