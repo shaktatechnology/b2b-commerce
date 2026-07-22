@@ -138,10 +138,11 @@ class OrderService implements OrderServiceInterface
 
             $couponSubtotal = $total;
             $promotionPayload = [
-                'subtotal' => $couponSubtotal,
+                'subtotal'         => $couponSubtotal,
                 'shipping_address' => $shippingAddress,
-                'items' => $couponItems,
-                'payment_method' => $paymentMethod,
+                'items'            => $couponItems,
+                'payment_method'   => $paymentMethod,
+                'currency'         => $currency,
             ];
             $manualCouponValidation = null;
 
