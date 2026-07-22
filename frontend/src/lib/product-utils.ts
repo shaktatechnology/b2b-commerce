@@ -15,31 +15,10 @@ import { getUserRole } from '@/src/lib/auth';
 export function getActiveCurrency(): 'NPR' | 'USD' {
   if (typeof window === 'undefined') return 'NPR';
   
-  // 1. Check explicit user preference in localStorage
   try {
     const chosen = localStorage.getItem('currency_preference');
     if (chosen === 'USD' || chosen === 'NPR') {
       return chosen;
-    }
-  } catch (e) {}
-
-  // 2. Check saved shipping address country
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith('b2b_shipping_address')) {
-        const item = localStorage.getItem(key);
-        if (item) {
-          const parsed = JSON.parse(item);
-          if (parsed.country) {
-            if (parsed.country.toLowerCase() !== 'nepal') {
-              return 'USD';
-            } else {
-              return 'NPR';
-            }
-          }
-        }
-      }
     }
   } catch (e) {}
 

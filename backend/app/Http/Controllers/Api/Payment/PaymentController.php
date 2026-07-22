@@ -74,12 +74,41 @@ class PaymentController extends Controller
                 ], 422);
             }
 
+            $transactionId = $request->input('transaction_id');
+            $gatewayResponse = $request->input('gateway_response');
+
+            if ($request->has('data')) {
+                $rawBase64 = $request->input('data');
+                $decodedData = json_decode(base64_decode($rawBase64), true);
+                if (is_array($decodedData)) {
+                    $gatewayResponse = $decodedData;
+                    if (!empty($decodedData['transaction_code'])) {
+                        $transactionId = $decodedData['transaction_code'];
+                    }
+                    if (isset($decodedData['status'])) {
+                        $esewaStatus = strtoupper((string) $decodedData['status']);
+                        if ($esewaStatus === 'COMPLETE') {
+                            $status = 'completed';
+                        } else {
+                            $status = 'failed';
+                        }
+                    }
+                }
+            }
+
             $payment = $this->paymentService->verifyPayment(
                 $paymentId,
                 $status,
-                $request->input('transaction_id'),
-                $request->input('gateway_response')
+                $transactionId,
+                $gatewayResponse
             );
+
+            if ($payment->status === 'failed') {
+                return response()->json([
+                    'message' => 'Payment was cancelled or failed.',
+                    'data' => $payment,
+                ], 400);
+            }
 
             return response()->json([
                 'message' => 'Payment verified successfully',

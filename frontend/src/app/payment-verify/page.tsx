@@ -54,6 +54,12 @@ function PaymentVerifyContent() {
         return;
       }
 
+      if (status === "failed" || status === "canceled" || status === "cancelled") {
+        setError("Payment was cancelled or failed.");
+        setVerifying(false);
+        return;
+      }
+
       if (!paymentId || !gateway || !status) {
         setError("Invalid payment verification parameters");
         setVerifying(false);
@@ -73,11 +79,17 @@ function PaymentVerifyContent() {
         verifyParams[key] = value;
       });
 
-      const data = await apiFetch<{ data: { order_id: string } }>("/payments/verify", {
+      const data = await apiFetch<{ data: { order_id: string; status: string } }>("/payments/verify", {
         method: "POST",
         token,
         body: JSON.stringify(verifyParams),
       });
+
+      if (data.data?.status !== "completed") {
+        setError("Payment was not completed.");
+        setVerifying(false);
+        return;
+      }
 
       clearCart();
       toast.success("Payment verified successfully!");
@@ -109,17 +121,28 @@ function PaymentVerifyContent() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="text-red-500 text-lg font-semibold mb-2">
-            Payment Verification Failed
+        <div className="text-center max-w-md p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4 text-xl font-bold">
+            ✕
           </div>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => router.push("/checkout")}
-            className="bg-primary text-white px-6 py-2 rounded hover:opacity-90"
-          >
-            Back to Checkout
-          </button>
+          <div className="text-gray-900 text-lg font-bold mb-2">
+            Payment Failed or Cancelled
+          </div>
+          <p className="text-gray-600 text-sm mb-6">{error}</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push(orderId ? `/account/orders/${orderId}` : "/account?tab=orders")}
+              className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              View Order Details
+            </button>
+            <button
+              onClick={() => router.push("/account?tab=orders")}
+              className="bg-gray-100 text-gray-700 px-5 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              All Orders
+            </button>
+          </div>
         </div>
       </div>
     );

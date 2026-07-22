@@ -175,14 +175,6 @@ export default function CheckoutPageClient({
         const parsed = JSON.parse(savedAddress);
         setForm((prev) => ({ ...prev, ...parsed }));
 
-        // Sync currency preferences with loaded country
-        if (parsed.country) {
-          const nextCur =
-            parsed.country.trim().toLowerCase() === "nepal" ? "NPR" : "USD";
-          localStorage.setItem("currency_preference", nextCur);
-          useCartStore.getState().syncCurrency(nextCur);
-          window.dispatchEvent(new Event("currency_changed"));
-        }
 
         // Only skip editing if all key required address fields are present
         if (
@@ -232,9 +224,7 @@ export default function CheckoutPageClient({
     };
   }, []);
 
-  const isNepalUsdMismatch = form.country.trim().toLowerCase() === "nepal" && currency !== "NPR";
-  const isNonNepalNprMismatch = form.country.trim().toLowerCase() !== "nepal" && currency !== "USD";
-  const isCurrencyAddressMismatch = isNepalUsdMismatch || isNonNepalNprMismatch;
+
   const total = subtotal();
   const activeDiscount =
     step === "shipping"
@@ -245,18 +235,6 @@ export default function CheckoutPageClient({
 
   const handleChange = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-
-    // Auto-set currency & translate cart items based on country selection.
-    // This must run outside the setForm updater — updater functions must
-    // stay pure (React can invoke them more than once), and calling a
-    // different store's setState from inside one triggers "Cannot update a
-    // component while rendering a different component".
-    if (field === "country") {
-      const nextCur = value.trim().toLowerCase() === "nepal" ? "NPR" : "USD";
-      localStorage.setItem("currency_preference", nextCur);
-      useCartStore.getState().syncCurrency(nextCur);
-      window.dispatchEvent(new Event("currency_changed"));
-    }
   };
 
   const getImageUrl = (url?: string | null) => {
@@ -330,15 +308,6 @@ export default function CheckoutPageClient({
       return;
     }
 
-    if (isNepalUsdMismatch) {
-      toast.error("Nepal shipping address requires NPR (Rs.) currency. Please toggle currency in the header.");
-      return;
-    }
-
-    if (isNonNepalNprMismatch) {
-      toast.error("International shipping address requires USD ($) currency. Please toggle currency in the header.");
-      return;
-    }
 
     if (paymentSettings.gateways.length === 0) {
       toast.error(
@@ -451,10 +420,6 @@ export default function CheckoutPageClient({
       return;
     }
 
-    if (isCurrencyAddressMismatch) {
-      toast.error("Currency mismatch detected for selected shipping address.");
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -742,21 +707,10 @@ export default function CheckoutPageClient({
                 />
               </div>
 
-              {isNepalUsdMismatch && (
-                <p className="text-xs text-red-650 font-semibold mb-3 text-center bg-red-50 border border-red-200 rounded-lg p-2.5">
-                  Nepal shipping address requires NPR (Rs.) currency. Please switch the currency to Rs. in the header.
-                </p>
-              )}
-              {isNonNepalNprMismatch && (
-                <p className="text-xs text-red-650 font-semibold mb-3 text-center bg-red-50 border border-red-200 rounded-lg p-2.5">
-                  International shipping address requires USD ($) currency. Please switch the currency to $ in the header.
-                </p>
-              )}
-
               <button
                 type="button"
                 onClick={handleCreateOrder}
-                disabled={isSubmitting || isCurrencyAddressMismatch || activeSummaryItems.some((i) => i.is_active === false)}
+                disabled={isSubmitting || activeSummaryItems.some((i) => i.is_active === false)}
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >
                 {isSubmitting ? "Creating order…" : "Continue to payment"}
@@ -829,23 +783,13 @@ export default function CheckoutPageClient({
                   })}
                 </div>
               )}
-              {isCurrencyAddressMismatch && (
-                <p className="text-xs text-red-650 font-semibold mb-3 text-center bg-red-50 border border-red-200 rounded-lg p-2.5">
-                  {isNepalUsdMismatch 
-                    ? "Nepal shipping address requires NPR (Rs.) currency. Please switch the currency to Rs. in the header."
-                    : "International shipping address requires USD ($) currency. Please switch the currency to $ in the header."
-                  }
-                </p>
-              )}
-
               <button
                 type="button"
                 onClick={handlePay}
                 disabled={
                   isSubmitting ||
                   !selectedGateway ||
-                  isGatewayDisabledForCurrency(selectedGateway) ||
-                  isCurrencyAddressMismatch
+                  isGatewayDisabledForCurrency(selectedGateway)
                 }
                 className="w-full bg-primary text-white font-semibold py-3 rounded-xl hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer text-sm"
               >

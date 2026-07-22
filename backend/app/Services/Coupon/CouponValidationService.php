@@ -125,9 +125,15 @@ class CouponValidationService
             }
         }
 
-        $shippingAddress = (array) ($payload['shipping_address'] ?? []);
-        $market = $this->resolveMarket($shippingAddress);
-        $currency = $this->resolveCurrency($market);
+        $explicitCurrency = strtoupper(trim((string) ($payload['currency'] ?? '')));
+        if (in_array($explicitCurrency, ['USD', 'NPR'], true)) {
+            $currency = $explicitCurrency;
+            $market = $currency === 'USD' ? 'INT' : 'NP';
+        } else {
+            $shippingAddress = (array) ($payload['shipping_address'] ?? []);
+            $market = $this->resolveMarket($shippingAddress);
+            $currency = $this->resolveCurrency($market);
+        }
         $subtotal = (float) ($payload['subtotal'] ?? 0);
         $items = $payload['items'] ?? [];
 

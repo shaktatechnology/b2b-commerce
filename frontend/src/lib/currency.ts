@@ -25,6 +25,7 @@ const DEFAULT_CURRENCY_SYMBOL = "Rs.";
  */
 export function getOrderCurrencySymbol(
   order: {
+    currency?: string | null;
     payment_method?: string | null;
     gateway?: string | null;
     payment?: {
@@ -36,7 +37,7 @@ export function getOrderCurrencySymbol(
     } | null;
   }
 ): string {
-  const explicitCurrency = order.payment?.currency?.toUpperCase();
+  const explicitCurrency = (order.currency || order.payment?.currency)?.toUpperCase();
   if (explicitCurrency === "USD") return "$";
   if (explicitCurrency === "NPR") return "Rs.";
 
@@ -51,14 +52,6 @@ export function getOrderCurrencySymbol(
     return GATEWAY_CURRENCY[method];
   }
 
-  // Ambiguous method (COD, or anything else without a fixed currency) —
-  // infer from the shipping country instead, mirroring the same logic the
-  // checkout page uses to pick NPR vs USD in the first place.
-  const country = order.shipping_address?.country?.trim().toLowerCase();
-  if (country) {
-    return country === "nepal" ? "Rs." : "$";
-  }
-
   return DEFAULT_CURRENCY_SYMBOL;
 }
 
@@ -68,6 +61,7 @@ export function getOrderCurrencySymbol(
  */
 export function formatOrderAmount(
   order: {
+    currency?: string | null;
     payment_method?: string | null;
     gateway?: string | null;
     payment?: {
