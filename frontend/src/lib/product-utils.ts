@@ -24,7 +24,6 @@ export function getActiveCurrency(): 'NPR' | 'USD' {
 
   return 'NPR';
 }
-
 export function formatPrice(amount: number, currency: string = 'NPR', decimals = 2): string {
   return currency.toUpperCase() === 'USD' ? `$ ${amount.toFixed(decimals)}` : `Rs. ${amount.toFixed(decimals)}`;
 }
@@ -104,6 +103,7 @@ export function productToCartLineItem(
     seller?: string;
     discount?: number;
     currency?: string;
+    role?: string | null;
   }
 ): CartLineItem | null {
   const seller = options?.seller ?? 'Store';
@@ -113,7 +113,7 @@ export function productToCartLineItem(
 
   if (!variant?.id) return null;
 
-  const role = getUserRole();
+  const role = options?.role !== undefined ? options.role : getUserRole();
   const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
   const currency = options?.currency ?? getActiveCurrency();
 
@@ -193,6 +193,8 @@ export function productToCartLineItem(
       USD: Number.isFinite(discountUsd) ? discountUsd : 0,
     },
     variantName: variant.variant_name,
+    brandId: product.brand?.id ?? null,
+    categoryIds: product.categories?.map((cat) => String(cat.id)) ?? [],
   };
 }
 

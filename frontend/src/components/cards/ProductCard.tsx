@@ -97,7 +97,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     ? Math.round((discountAmount / basePrice) * 100)
     : 0;
 
-  const lineItem = productToCartLineItem(product, { currency });
+  const lineItem = productToCartLineItem(product, { currency, role });
 
   const image = lineItem?.image;
   const category = lineItem?.category ?? "Uncategorized";

@@ -10,11 +10,10 @@ import type { StorefrontProduct } from '@/src/types/storefront';
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
 
-function SuggestionCard({ product, currency }: { product: StorefrontProduct; currency: 'NPR' | 'USD' }) {
+function SuggestionCard({ product, currency, role }: { product: StorefrontProduct; currency: 'NPR' | 'USD'; role: string | null }) {
   const activeVariant = (product as any).variants?.[0];
 
   // If USD and no international price — don't render this product
-  const role = getUserRole();
   const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
   const intlPrice = isWholesaler
     ? (activeVariant?.international_wholesale_price ?? activeVariant?.international_price)
@@ -26,7 +25,7 @@ function SuggestionCard({ product, currency }: { product: StorefrontProduct; cur
 
   if (isInternationalPriceMissing) return null;
 
-  const lineItem = productToCartLineItem(product as any, { currency });
+  const lineItem = productToCartLineItem(product as any, { currency, role });
   const basePrice = lineItem?.price ?? 0;
   const discountAmount = lineItem?.discount ?? 0;
   const finalPrice = basePrice - discountAmount;
@@ -92,9 +91,11 @@ interface Tab {
 export default function ProductSuggestions({ products }: { products: StorefrontProduct[] }) {
   const [activeTab, setActiveTab] = React.useState('top_selling');
   const [currency, setCurrency] = React.useState<'NPR' | 'USD'>('NPR');
+  const [role, setRole] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setCurrency(getActiveCurrency());
+    setRole(getUserRole());
     const onChange = () => setCurrency(getActiveCurrency());
     window.addEventListener('currency_changed', onChange);
     return () => window.removeEventListener('currency_changed', onChange);
@@ -180,7 +181,7 @@ export default function ProductSuggestions({ products }: { products: StorefrontP
             {/* Products */}
             <div className="divide-y divide-gray-50">
               {tab.products.slice(0, 4).map((product) => (
-                <SuggestionCard key={product.id} product={product} currency={currency} />
+                <SuggestionCard key={product.id} product={product} currency={currency} role={role} />
               ))}
             </div>
 

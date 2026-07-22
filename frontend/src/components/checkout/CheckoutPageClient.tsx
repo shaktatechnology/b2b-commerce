@@ -12,7 +12,8 @@ import {
   getActiveCurrency,
 } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
-import { syncCartToServer, checkoutOrder } from "@/src/lib/cart-api";
+import { syncCartToServer, checkoutOrder, clearServerCart } from "@/src/lib/cart-api";
+import { validateCoupon } from "@/src/lib/coupons-api";
 import { initiatePayment } from "@/src/lib/payment-api";
 import type {
   PaymentSettings,
@@ -37,6 +38,8 @@ export default function CheckoutPageClient({
   const clearCart = useCartStore((s) => s.clearCart);
   const removeItem = useCartStore((s) => s.removeItem);
   const markItemInactive = useCartStore((s) => s.markItemInactive);
+  const appliedCouponCode = useCartStore((s) => s.appliedCouponCode);
+  const appliedCouponDiscount = useCartStore((s) => s.appliedCouponDiscount);
 
   const [step, setStep] = useState<Step>("shipping");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,34 +86,6 @@ export default function CheckoutPageClient({
     const handleCurrencyChange = () => {
       const next = getActiveCurrency();
       setCurrency(next);
-
-      // The header currency toggle is the source of truth here: if the
-      // person switches to Rs. (NPR), the shipping address must be Nepal
-      // for the two to stay consistent — auto-correct the address instead
-      // of leaving the person stuck behind the mismatch banner below.
-      if (next === "NPR") {
-        setForm((prev) => {
-          if (prev.country.trim().toLowerCase() === "nepal") return prev;
-
-          const updated = { ...prev, country: "Nepal" };
-
-          try {
-            const storageKey = user
-              ? `b2b_shipping_address_${user.id}`
-              : "b2b_shipping_address";
-            const existingRaw = localStorage.getItem(storageKey);
-            const existing = existingRaw ? JSON.parse(existingRaw) : {};
-            localStorage.setItem(
-              storageKey,
-              JSON.stringify({ ...existing, ...updated }),
-            );
-          } catch (e) {
-            console.error("Failed to persist auto-updated address", e);
-          }
-
-          return updated;
-        });
-      }
     };
 
     window.addEventListener("currency_changed", handleCurrencyChange);
@@ -228,10 +203,10 @@ export default function CheckoutPageClient({
   const total = subtotal();
   const activeDiscount =
     step === "shipping"
-      ? discountTotal()
+      ? (discountTotal() + appliedCouponDiscount)
       : orderDiscount > 0
         ? orderDiscount
-        : checkoutDiscount;
+        : (checkoutDiscount + appliedCouponDiscount);
 
   const handleChange = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -318,6 +293,8 @@ export default function CheckoutPageClient({
 
     setIsSubmitting(true);
     try {
+      // Clear server cart first to avoid aggregating with stale database items
+      await clearServerCart(token);
       // Sync local cart to server database first
       await syncCartToServer(token, activeItems);
 
@@ -331,6 +308,7 @@ export default function CheckoutPageClient({
         },
         notes: form.notes || undefined,
         currency,
+        coupon_code: appliedCouponCode || undefined,
       });
 
       const order = res.data;
@@ -917,8 +895,16 @@ export default function CheckoutPageClient({
             </div>
 
             {activeDiscount > 0 ? (
-              <div className="flex justify-between text-sm text-green-600 font-medium">
-                <span>Discount:</span>
+              <div className="flex justify-between text-sm text-green-600 font-medium items-center">
+                <span className="flex items-center gap-1.5">
+                  Discount
+                  {appliedCouponCode && (
+                    <span className="text-[10px] bg-green-100 text-green-800 px-1.5 py-0.5 rounded font-mono font-semibold tracking-wide">
+                      {appliedCouponCode}
+                    </span>
+                  )}
+                  :
+                </span>
                 <span>- {formatCheckoutPrice(activeDiscount)}</span>
               </div>
             ) : null}

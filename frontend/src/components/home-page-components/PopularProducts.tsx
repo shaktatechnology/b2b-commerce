@@ -29,6 +29,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+  const [role, setRole] = useState<string | null>(null);
   const swiperRef = useRef<any>(null);
 
   // Only top-level categories are shown as filter tabs
@@ -57,6 +58,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      setRole(getUserRole());
       const stored = localStorage.getItem('currency_preference');
       if (stored === 'USD' || stored === 'NPR') setCurrency(stored);
       const onChange = () => {
@@ -69,7 +71,6 @@ const PopularProducts: React.FC<PopularProductsProps> = ({
   }, []);
 
   // Pre-filter: if USD is active, only show products that have international_price set
-  const role = getUserRole();
   const isWholesaler = role === 'wholesaler' || role === 'wholeseller';
 
   // Only include products explicitly marked as popular

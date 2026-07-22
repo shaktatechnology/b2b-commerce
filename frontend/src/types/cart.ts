@@ -21,6 +21,8 @@ export interface CartLineItem {
     USD: number;
   };
   isUnavailable?: boolean;
+  brandId?: string | null;
+  categoryIds?: string[];
   variantName?: string;
 }
 

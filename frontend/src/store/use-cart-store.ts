@@ -16,12 +16,17 @@ interface CartState {
   // longer active — cart items only carry a snapshot of is_active taken at
   // add-to-cart time, so this keeps local state truthful after a 422.
   markItemInactive: (variantId: string) => void;
+  appliedCouponCode: string | null;
+  appliedCouponDiscount: number;
+  setAppliedCoupon: (code: string | null, discount: number) => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      appliedCouponCode: null,
+      appliedCouponDiscount: 0,
 
       addItem: (item) => {
         set((state) => {
@@ -69,7 +74,9 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], appliedCouponCode: null, appliedCouponDiscount: 0 }),
+
+      setAppliedCoupon: (code, discount) => set({ appliedCouponCode: code, appliedCouponDiscount: discount }),
 
       markItemInactive: (variantId) => {
         set((state) => ({

@@ -17,6 +17,13 @@ export async function syncCartToServer(
   });
 }
 
+export async function clearServerCart(token: string): Promise<void> {
+  await apiFetch('/cart', {
+    method: 'DELETE',
+    token,
+  });
+}
+
 export interface CheckoutPayload {
   shipping_address: {
     street: string;
@@ -27,6 +34,7 @@ export interface CheckoutPayload {
   };
   notes?: string;
   currency?: string;
+  coupon_code?: string;
 }
 
 export interface PlacedOrder {
