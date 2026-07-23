@@ -369,81 +369,138 @@ export default function VoucherDrawerModal({
                 <div className="space-y-3">
                   {availableVouchers.map((coupon) => {
                     const isSelected = selectedCode === coupon.customer_code;
+                    const isExpanded = activeTermsCoupon?.id === coupon.id;
                     return (
-                      <div
-                        key={coupon.id}
-                        onClick={() => handleSelectVoucher(coupon)}
-                        className={`relative flex items-center bg-[#fff8f6] border rounded-2xl p-3 transition-all cursor-pointer ${
-                          isSelected
-                            ? "border-[#ff0055] ring-1 ring-[#ff0055]"
-                            : "border-pink-100 hover:border-pink-300"
-                        }`}
-                      >
-                        {/* Tag */}
-                        <span className="absolute top-0 left-0 bg-[#ff385c] text-white text-[8px] font-black px-2 py-0.5 rounded-br-lg uppercase">
-                          Voucher Max
-                        </span>
+                      <div key={coupon.id}>
+                        {/* Voucher Card */}
+                        <div
+                          onClick={() =>
+                            setActiveTermsCoupon(isExpanded ? null : coupon)
+                          }
+                          className={`relative flex items-center bg-[#fff8f6] border rounded-2xl p-3 transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-[#ff0055] ring-1 ring-[#ff0055]"
+                              : isExpanded
+                              ? "border-pink-300 rounded-b-none"
+                              : "border-pink-100 hover:border-pink-300"
+                          }`}
+                        >
+                          {/* Tag */}
+                          <span className="absolute top-0 left-0 bg-[#ff385c] text-white text-[8px] font-black px-2 py-0.5 rounded-br-lg uppercase">
+                            Voucher Max
+                          </span>
 
-                        {/* Left Discount info */}
-                        <div className="w-[115px] shrink-0 pt-2 pr-2 border-r border-dashed border-pink-200 flex flex-col justify-center">
-                          <span className="text-lg font-black text-[#ff0055] leading-none">
-                            {coupon.isPercentage
-                              ? `${Math.round(coupon.discountVal)}% OFF`
-                              : formatPrice(coupon.discountVal, currency, 0)}
-                          </span>
-                          <span className="text-[9px] font-bold text-gray-500 mt-1">
-                            Min. spend{" "}
-                            {formatPrice(coupon.minSubtotal, currency, 0)}
-                          </span>
-                          {coupon.maxDiscount && (
-                            <span className="text-[9px] font-semibold text-[#ff0055]/80">
-                              Capped at{" "}
-                              {formatPrice(coupon.maxDiscount, currency, 0)}
+                          {/* Left Discount info */}
+                          <div className="w-[115px] shrink-0 pt-2 pr-2 border-r border-dashed border-pink-200 flex flex-col justify-center">
+                            <span className="text-lg font-black text-[#ff0055] leading-none">
+                              {coupon.isPercentage
+                                ? `${Math.round(coupon.discountVal)}% OFF`
+                                : formatPrice(coupon.discountVal, currency, 0)}
                             </span>
-                          )}
-                        </div>
-
-                        {/* Middle Voucher details */}
-                        <div className="flex-1 pl-3 pr-2 pt-1">
-                          <div className="flex justify-between items-start">
-                            <span className="font-extrabold text-xs text-[#ff0055] line-clamp-1">
-                              {coupon.name}
+                            <span className="text-[9px] font-bold text-gray-500 mt-1">
+                              Min. spend{" "}
+                              {formatPrice(coupon.minSubtotal, currency, 0)}
                             </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveTermsCoupon(coupon);
-                              }}
-                              className="text-[9px] text-[#ff0055] bg-pink-100 hover:bg-pink-200 font-bold px-1.5 py-0.5 rounded ml-1"
-                            >
-                              T&C
-                            </button>
-                          </div>
-                          <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5 font-medium">
-                            {coupon.description || "Applicable on store items"}
-                          </p>
-                          <span className="text-[9px] text-gray-400 font-medium block mt-1">
-                            {coupon.expires_at
-                              ? `${new Date(coupon.starts_at || coupon.created_at || Date.now()).toLocaleDateString()}-${new Date(coupon.expires_at).toLocaleDateString()}`
-                              : "Limited Period Offer"}
-                          </span>
-                        </div>
-
-                        {/* Right Selection Checkbox */}
-                        <div className="shrink-0 pl-1">
-                          <div
-                            className={`w-5 h-5 rounded flex items-center justify-center border ${
-                              isSelected
-                                ? "bg-blue-600 border-blue-600 text-white"
-                                : "bg-white border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <Check size={14} className="stroke-[3]" />
+                            {coupon.maxDiscount && (
+                              <span className="text-[9px] font-semibold text-[#ff0055]/80">
+                                Capped at{" "}
+                                {formatPrice(coupon.maxDiscount, currency, 0)}
+                              </span>
                             )}
                           </div>
+
+                          {/* Middle Voucher details */}
+                          <div className="flex-1 pl-3 pr-2 pt-1">
+                            <span className="font-extrabold text-xs text-[#ff0055] line-clamp-1 block">
+                              {coupon.name}
+                            </span>
+                            <p className="text-[10px] text-gray-500 line-clamp-1 mt-0.5 font-medium">
+                              {coupon.description || "Applicable on store items"}
+                            </p>
+                            <span className="text-[9px] text-gray-400 font-medium block mt-1">
+                              {coupon.expires_at
+                                ? `${new Date(coupon.starts_at || coupon.created_at || Date.now()).toLocaleDateString()} – ${new Date(coupon.expires_at).toLocaleDateString()}`
+                                : "Limited Period Offer"}
+                            </span>
+                          </div>
+
+                          {/* Right Selection Checkbox — click only toggles selection */}
+                          <div
+                            className="shrink-0 pl-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectVoucher(coupon);
+                            }}
+                          >
+                            <div
+                              className={`w-5 h-5 rounded flex items-center justify-center border ${
+                                isSelected
+                                  ? "bg-blue-600 border-blue-600 text-white"
+                                  : "bg-white border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <Check size={14} className="stroke-[3]" />
+                              )}
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Inline Detail Panel */}
+                        {isExpanded && (
+                          <div className="border border-t-0 border-pink-200 rounded-b-2xl bg-white px-4 py-4 space-y-3 text-xs text-gray-700">
+                            {coupon.description && (
+                              <div>
+                                <p className="font-bold text-gray-500 uppercase text-[9px] tracking-wider mb-1">Description</p>
+                                <p className="font-medium text-gray-700">{coupon.description}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-bold text-gray-500 uppercase text-[9px] tracking-wider mb-1">Valid Period</p>
+                              <p className="font-semibold text-gray-800">
+                                {new Date(coupon.starts_at || coupon.created_at || Date.now()).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}
+                                {" "}&rarr;{" "}
+                                {coupon.expires_at
+                                  ? new Date(coupon.expires_at).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
+                                  : "No expiry"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-500 uppercase text-[9px] tracking-wider mb-1">Voucher Code</p>
+                              <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-1.5">
+                                <span className="font-mono font-black tracking-widest text-gray-800 flex-1">{coupon.customer_code}</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(coupon.customer_code); toast.success("Code copied!"); }}
+                                  className="text-[#ff4700] text-[10px] font-bold hover:underline"
+                                >Copy</button>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-500 uppercase text-[9px] tracking-wider mb-1">Targeting</p>
+                              {coupon.categories?.length > 0 || coupon.products?.length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {coupon.categories?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {coupon.categories.map((cat: any) => (
+                                        <span key={cat.id} className="bg-pink-50 border border-pink-200 text-[#ff0055] text-[9px] font-bold px-2 py-0.5 rounded-full">{cat.name}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {coupon.products?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                      {coupon.products.map((p: any) => (
+                                        <span key={p.id} className="bg-orange-50 border border-orange-200 text-[#ff4700] text-[9px] font-bold px-2 py-0.5 rounded-full">{p.name}</span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-gray-400 italic">Applies to everything</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -463,71 +520,114 @@ export default function VoucherDrawerModal({
                 </h3>
 
                 <div className="space-y-3">
-                  {unavailableVouchers.map((coupon) => (
-                    <div
-                      key={coupon.id}
-                      className="bg-gray-50/70 border border-gray-200 rounded-2xl overflow-hidden opacity-75 select-none"
-                    >
-                      <div className="flex items-center p-3">
-                        {/* Left Column */}
-                        <div className="w-[115px] shrink-0 pr-2 border-r border-dashed border-gray-300">
-                          <span className="text-lg font-black text-gray-500 leading-none">
-                            {coupon.isPercentage
-                              ? `${Math.round(coupon.discountVal)}% OFF`
-                              : formatPrice(coupon.discountVal, currency, 0)}
-                          </span>
-                          <span className="text-[9px] font-bold text-gray-400 block mt-1">
-                            Min. spend{" "}
-                            {formatPrice(coupon.minSubtotal, currency, 0)}
-                          </span>
-                          {coupon.maxDiscount && (
-                            <span className="text-[9px] font-semibold text-gray-400 block">
-                              Capped at{" "}
-                              {formatPrice(coupon.maxDiscount, currency, 0)}
-                            </span>
-                          )}
-                        </div>
+                  {unavailableVouchers.map((coupon) => {
+                    const isExpanded = activeTermsCoupon?.id === coupon.id;
+                    return (
+                      <div key={coupon.id}>
+                        <div
+                          onClick={() =>
+                            setActiveTermsCoupon(isExpanded ? null : coupon)
+                          }
+                          className={`bg-gray-50/70 border border-gray-200 rounded-2xl overflow-hidden opacity-75 cursor-pointer hover:opacity-90 transition-opacity ${
+                            isExpanded ? "rounded-b-none" : ""
+                          }`}
+                        >
+                          <div className="flex items-center p-3">
+                            {/* Left Column */}
+                            <div className="w-[115px] shrink-0 pr-2 border-r border-dashed border-gray-300">
+                              <span className="text-lg font-black text-gray-500 leading-none">
+                                {coupon.isPercentage
+                                  ? `${Math.round(coupon.discountVal)}% OFF`
+                                  : formatPrice(coupon.discountVal, currency, 0)}
+                              </span>
+                              <span className="text-[9px] font-bold text-gray-400 block mt-1">
+                                Min. spend{" "}
+                                {formatPrice(coupon.minSubtotal, currency, 0)}
+                              </span>
+                              {coupon.maxDiscount && (
+                                <span className="text-[9px] font-semibold text-gray-400 block">
+                                  Capped at{" "}
+                                  {formatPrice(coupon.maxDiscount, currency, 0)}
+                                </span>
+                              )}
+                            </div>
 
-                        {/* Middle Info */}
-                        <div className="flex-1 pl-3 pr-2">
-                          <div className="flex justify-between items-start">
-                            <span className="font-extrabold text-xs text-gray-600 line-clamp-1">
-                              {coupon.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setActiveTermsCoupon(coupon)}
-                              className="text-[9px] text-gray-400 bg-gray-200 font-bold px-1.5 py-0.5 rounded"
-                            >
-                              T&C
-                            </button>
+                            {/* Middle Info */}
+                            <div className="flex-1 pl-3 pr-2">
+                              <span className="font-extrabold text-xs text-gray-600 line-clamp-1 block">
+                                {coupon.name}
+                              </span>
+                              <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
+                                {coupon.description || "Upto discount offer"}
+                              </p>
+                              <span className="text-[9px] text-gray-400 block mt-1">
+                                {coupon.expires_at
+                                  ? `${new Date(coupon.starts_at || coupon.created_at || Date.now()).toLocaleDateString()} – ${new Date(coupon.expires_at).toLocaleDateString()}`
+                                  : "Limited Period Offer"}
+                              </span>
+                            </div>
+
+                            {/* Right Gray Box */}
+                            <div className="shrink-0 pl-1">
+                              <div className="w-5 h-5 rounded bg-gray-200 border border-gray-300" />
+                            </div>
                           </div>
-                          <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">
-                            {coupon.description || "Upto discount offer"}
-                          </p>
-                          <span className="text-[9px] text-gray-400 block mt-1">
-                            {coupon.expires_at
-                              ? `${new Date(coupon.starts_at || coupon.created_at || Date.now()).toLocaleDateString()}-${new Date(coupon.expires_at).toLocaleDateString()}`
-                              : "Limited Period Offer"}
-                          </span>
+
+                          {/* Bottom Banner Alert Message */}
+                          <div className="bg-gray-150/70 border-t border-gray-200 px-3 py-1.5 flex items-center gap-1.5 text-[10px] text-gray-500 font-semibold">
+                            <Info size={12} className="shrink-0 text-gray-400" />
+                            <span>
+                              {coupon.unavailabilityReason ||
+                                "Voucher is not applicable on selected items"}
+                            </span>
+                          </div>
                         </div>
 
-                        {/* Right Gray Box */}
-                        <div className="shrink-0 pl-1">
-                          <div className="w-5 h-5 rounded bg-gray-200 border border-gray-300" />
-                        </div>
+                        {/* Inline Detail Panel for unavailable */}
+                        {isExpanded && (
+                          <div className="border border-t-0 border-gray-200 rounded-b-2xl bg-gray-50 px-4 py-4 space-y-3 text-xs text-gray-600 opacity-90">
+                            {coupon.description && (
+                              <div>
+                                <p className="font-bold text-gray-400 uppercase text-[9px] tracking-wider mb-1">Description</p>
+                                <p className="font-medium">{coupon.description}</p>
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-bold text-gray-400 uppercase text-[9px] tracking-wider mb-1">Valid Period</p>
+                              <p className="font-semibold text-gray-700">
+                                {new Date(coupon.starts_at || coupon.created_at || Date.now()).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}
+                                {" "}&rarr;{" "}
+                                {coupon.expires_at
+                                  ? new Date(coupon.expires_at).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })
+                                  : "No expiry"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-400 uppercase text-[9px] tracking-wider mb-1">Voucher Code</p>
+                              <div className="flex items-center gap-2 bg-gray-200 rounded-lg px-3 py-1.5">
+                                <span className="font-mono font-black tracking-widest text-gray-700 flex-1">{coupon.customer_code}</span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-400 uppercase text-[9px] tracking-wider mb-1">Targeting</p>
+                              {coupon.categories?.length > 0 || coupon.products?.length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {coupon.categories?.map((cat: any) => (
+                                    <span key={cat.id} className="inline-block bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded-full mr-1">{cat.name}</span>
+                                  ))}
+                                  {coupon.products?.map((p: any) => (
+                                    <span key={p.id} className="inline-block bg-gray-200 text-gray-500 text-[9px] font-bold px-2 py-0.5 rounded-full mr-1">{p.name}</span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-gray-400 italic">Applies to everything</p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Bottom Banner Alert Message matching Screenshot 1 */}
-                      <div className="bg-gray-150/70 border-t border-gray-200 px-3 py-1.5 flex items-center gap-1.5 text-[10px] text-gray-500 font-semibold">
-                        <Info size={12} className="shrink-0 text-gray-400" />
-                        <span>
-                          {coupon.unavailabilityReason ||
-                            "Voucher is not applicable on selected items"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -551,131 +651,6 @@ export default function VoucherDrawerModal({
         </div>
       </div>
 
-      {/* Terms & Conditions Modal matching Screenshot 2 */}
-      {activeTermsCoupon && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl relative overflow-hidden">
-            {/* Terms Header */}
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-white">
-              <h2 className="text-base font-extrabold text-gray-900 mx-auto pl-6">
-                Terms and Condition
-              </h2>
-              <button
-                onClick={() => setActiveTermsCoupon(null)}
-                className="text-gray-400 hover:text-gray-600 p-1"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Terms Content Body matching Screenshot 2 */}
-            <div className="p-5 overflow-y-auto space-y-4 text-xs text-gray-700 leading-relaxed flex-1">
-              {/* Cap Section */}
-              <div>
-                <h4 className="font-extrabold text-gray-900 text-sm mb-1 underline decoration-pink-300 decoration-2">
-                  Cap
-                </h4>
-                <p className="font-semibold text-gray-700">
-                  The voucher is capped at{" "}
-                  <strong className="text-[#ff0055]">
-                    {activeTermsCoupon.maxDiscount
-                      ? formatPrice(activeTermsCoupon.maxDiscount, currency)
-                      : activeTermsCoupon.discountVal
-                        ? formatPrice(activeTermsCoupon.discountVal, currency)
-                        : "store discount limits"}
-                  </strong>
-                </p>
-              </div>
-
-              {/* General Section */}
-              <div>
-                <h4 className="font-extrabold text-gray-900 text-sm mb-1.5 underline decoration-pink-300 decoration-2">
-                  General
-                </h4>
-                <ol className="list-decimal pl-4 space-y-1.5 text-gray-600 font-medium">
-                  <li>
-                    Voucher collected will be applied automatically on your
-                    checkout cart.
-                  </li>
-                  <li>
-                    Voucher is applicable on store products and eligible orders.
-                  </li>
-                  <li>
-                    {activeTermsCoupon.categories?.length > 0 ||
-                    activeTermsCoupon.products?.length > 0
-                      ? "Voucher is applicable on targeted selected categories/items specified at collection."
-                      : "Targeting: Applies to all store products (no specific restriction)."}
-                  </li>
-                  <li>
-                    Voucher cannot be combined with conflicting promotional
-                    discounts.
-                  </li>
-                  <li>
-                    The use of the Voucher is subject to the Vouchers Terms and
-                    Conditions.
-                  </li>
-                </ol>
-              </div>
-
-              {/* Usage Period Section */}
-              <div>
-                <h4 className="font-extrabold text-gray-900 text-sm mb-1 underline decoration-pink-300 decoration-2">
-                  Usage Period
-                </h4>
-                <p className="font-medium text-gray-700">
-                  The voucher is valid from{" "}
-                  <strong>
-                    {new Date(
-                      activeTermsCoupon.starts_at ||
-                        activeTermsCoupon.created_at ||
-                        Date.now(),
-                    ).toLocaleString()}
-                  </strong>{" "}
-                  to{" "}
-                  <strong>
-                    {activeTermsCoupon.expires_at
-                      ? new Date(activeTermsCoupon.expires_at).toLocaleString()
-                      : "end of promotion period"}
-                  </strong>
-                </p>
-              </div>
-
-              {/* Voucher Code Identification Section */}
-              <div>
-                <h4 className="font-extrabold text-gray-900 text-sm mb-1 underline decoration-pink-300 decoration-2">
-                  Voucher Identification Code
-                </h4>
-                <div className="bg-gray-100 rounded-xl p-2.5 font-mono text-xs font-bold text-gray-800 flex justify-between items-center">
-                  <span>{activeTermsCoupon.customer_code}</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        activeTermsCoupon.customer_code,
-                      );
-                      toast.success("Voucher code copied!");
-                    }}
-                    className="text-[#ff4700] hover:underline font-sans text-[11px] font-bold"
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Close Button */}
-            <div className="p-4 border-t border-gray-100 bg-white sticky bottom-0 z-10">
-              <button
-                type="button"
-                onClick={() => setActiveTermsCoupon(null)}
-                className="w-full bg-[#ff4700] hover:bg-[#e03e00] text-white font-extrabold py-3 rounded-xl text-sm shadow cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
