@@ -12,6 +12,8 @@ import type { CartProductInput } from "@/src/types/cart";
 import RecommendedProductCard from "./RecommendedProductCard";
 import { ConfirmDialog } from "@/src/components/modals/confirm-dialog";
 import { validateCoupon } from "@/src/lib/coupons-api";
+import { Ticket } from "lucide-react";
+import VoucherDrawerModal from "@/src/components/coupons/VoucherDrawerModal";
 
 interface CartPageClientProps {
   recommendedProducts: CartProductInput[];
@@ -38,6 +40,7 @@ export default function CartPageClient({
 
   const [coupon, setCoupon] = useState("");
   const [isValidating, setIsValidating] = useState(false);
+  const [isVoucherDrawerOpen, setIsVoucherDrawerOpen] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -103,7 +106,14 @@ export default function CartPageClient({
         } else {
           // If coupon is no longer valid, clear it
           setAppliedCoupon(null, 0);
-          toast.warning(`Coupon "${appliedCouponCode}" was removed: ${res.message || "no longer valid"}`);
+          const isAuthError = res.message?.toLowerCase().includes("authentication") || res.message?.toLowerCase().includes("login");
+          if (isAuthError) {
+            toast.error("Please log in to validate and use your coupon.");
+            const redirectPath = encodeURIComponent(window.location.pathname + window.location.search);
+            router.push(`/login?redirect=${redirectPath}`);
+          } else {
+            toast.warning(`Coupon "${appliedCouponCode}" was removed: ${res.message || "no longer valid"}`);
+          }
         }
       } catch (err) {
         console.error("Coupon revalidation failed:", err);
@@ -111,7 +121,7 @@ export default function CartPageClient({
     };
 
     revalidate();
-  }, [items, subtotalAmount, cartCurrency, appliedCouponCode, setAppliedCoupon]);
+  }, [items, subtotalAmount, cartCurrency, appliedCouponCode, setAppliedCoupon, router]);
 
   const handleApplyCoupon = async () => {
     if (!coupon.trim()) {
@@ -143,7 +153,14 @@ export default function CartPageClient({
         toast.success(res.message || "Coupon applied successfully!");
         setCoupon("");
       } else {
-        toast.error(res.message || "Invalid coupon.");
+        const isAuthError = res.message?.toLowerCase().includes("authentication") || res.message?.toLowerCase().includes("login");
+        if (isAuthError) {
+          toast.error("Please log in to validate and apply this coupon.");
+          const redirectPath = encodeURIComponent(window.location.pathname + window.location.search);
+          router.push(`/login?redirect=${redirectPath}`);
+        } else {
+          toast.error(res.message || "Invalid coupon.");
+        }
       }
     } catch (error: any) {
       console.error(error);
@@ -446,6 +463,18 @@ export default function CartPageClient({
           </div>
 
           <p className="text-primary text-sm mt-5 mb-2 font-medium">Coupon Code</p>
+
+          <button
+            type="button"
+            onClick={() => setIsVoucherDrawerOpen(true)}
+            className="w-full flex items-center justify-between border border-dashed border-[#ff4700]/50 bg-[#fff6f2] hover:bg-[#ffede5] rounded-xl p-3 text-xs font-bold text-[#ff4700] transition-colors mb-3 cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <Ticket size={16} /> Select Store Voucher
+            </span>
+            <span className="font-extrabold">Apply &gt;</span>
+          </button>
+
           {appliedCouponCode ? (
             <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 rounded px-3 py-2 text-sm shadow-sm transition-all animate-in fade-in duration-200">
               <div className="flex items-center gap-2">
@@ -532,6 +561,18 @@ export default function CartPageClient({
         confirmLabel="Remove"
         overlayClassName="bg-black/50 backdrop-blur-none"
         // variant="destructive"
+      />
+
+      <VoucherDrawerModal
+        isOpen={isVoucherDrawerOpen}
+        onClose={() => setIsVoucherDrawerOpen(false)}
+        cartSubtotal={subtotalAmount}
+        currency={cartCurrency}
+        items={items}
+        currentAppliedCode={appliedCouponCode}
+        onSelectCoupon={(code, discountAmt) => {
+          setAppliedCoupon(code || null, discountAmt);
+        }}
       />
     </div>
   );

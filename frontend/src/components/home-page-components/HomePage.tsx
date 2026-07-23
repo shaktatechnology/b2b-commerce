@@ -8,6 +8,7 @@ import ProductSuggestions from "./ProductSuggestions";
 import Footer from "../layouts/Footer";
 import Navbar from "../layouts/Navbar";
 import CouponsSection from "../coupons/CouponsSection";
+import VouchersOrProducts from "./VouchersOrProducts";
 import { isOfferLive } from "@/src/lib/offer-utils";
 import { Suspense } from "react";
 
@@ -67,7 +68,7 @@ export default async function HomePage() {
         logo={logo}
       />
       <HeroSlider offers={topOffers} />
-      <CouponsSection coupons={coupons} />
+      <VouchersOrProducts coupons={coupons} products={productData?.data || []} />
 
       <div className="flex gap-6 px-4 md:px-10 mt-6 max-w-7xl mx-auto">
         <main className="w-full md:w-3/4">

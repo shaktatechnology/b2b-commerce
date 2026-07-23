@@ -122,7 +122,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {applicableCoupons.length > 0 && (
               <div className="my-2 border-t pt-4">
-                <CouponsSection coupons={applicableCoupons} title="Available Coupons" showMoreLink={false} />
+                <CouponsSection coupons={applicableCoupons} title="Available Coupons" showMoreLink={true} />
               </div>
             )}
 

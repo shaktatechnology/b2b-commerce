@@ -50,9 +50,22 @@ export function Navbar() {
       .catch((err) => console.error('Failed to fetch navbar settings:', err));
 
     setCurrency(getActiveCurrency());
-    setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
+
     const handleCurrencyChange = () => setCurrency(getActiveCurrency());
-    const handleLockChange = () => setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
+    const handleLockChange = () => {
+      // Lock is only valid while the user is physically on /checkout
+      const isOnCheckout = window.location.pathname === '/checkout';
+      const locked = isOnCheckout && sessionStorage.getItem('currency_locked') === 'true';
+      if (!isOnCheckout) {
+        // Clear any stale lock left over from a previous checkout session
+        sessionStorage.removeItem('currency_locked');
+      }
+      setCurrencyLocked(locked);
+    };
+
+    // Evaluate lock state immediately on mount
+    handleLockChange();
+
     window.addEventListener('currency_changed', handleCurrencyChange);
     window.addEventListener('currency_lock_changed', handleLockChange);
     return () => {
@@ -60,6 +73,15 @@ export function Navbar() {
       window.removeEventListener('currency_lock_changed', handleLockChange);
     };
   }, []);
+
+  // Clear stale currency lock whenever user navigates away from /checkout
+  React.useEffect(() => {
+    if (pathname !== '/checkout') {
+      sessionStorage.removeItem('currency_locked');
+      setCurrencyLocked(false);
+      window.dispatchEvent(new Event('currency_lock_changed'));
+    }
+  }, [pathname]);
 
   const handleCurrencyToggle = () => {
     if (currencyLocked) return;

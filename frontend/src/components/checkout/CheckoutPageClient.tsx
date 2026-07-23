@@ -13,8 +13,9 @@ import {
 } from "@/src/lib/product-utils";
 import { getAuthToken } from "@/src/lib/auth";
 import { syncCartToServer, checkoutOrder, clearServerCart } from "@/src/lib/cart-api";
-import { validateCoupon } from "@/src/lib/coupons-api";
 import { initiatePayment } from "@/src/lib/payment-api";
+import { Ticket } from "lucide-react";
+import VoucherDrawerModal from "@/src/components/coupons/VoucherDrawerModal";
 import type {
   PaymentSettings,
   PaymentGatewayId,
@@ -40,9 +41,11 @@ export default function CheckoutPageClient({
   const markItemInactive = useCartStore((s) => s.markItemInactive);
   const appliedCouponCode = useCartStore((s) => s.appliedCouponCode);
   const appliedCouponDiscount = useCartStore((s) => s.appliedCouponDiscount);
+  const setAppliedCoupon = useCartStore((s) => s.setAppliedCoupon);
 
   const [step, setStep] = useState<Step>("shipping");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isVoucherDrawerOpen, setIsVoucherDrawerOpen] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
 
@@ -407,6 +410,7 @@ export default function CheckoutPageClient({
       if (selectedGateway === "cod") {
         toast.success("Order confirmed! You will pay upon delivery.");
         clearCart();
+        unlockCurrency();
         router.push(
           `/payment-verify?gateway=cod&order_id=${orderId}&status=success`,
         );
@@ -428,6 +432,7 @@ export default function CheckoutPageClient({
           "pending_payment_config",
           JSON.stringify(payment),
         );
+        unlockCurrency();
         router.push(
           `/payment?order_id=${orderId}&payment_id=${payment.payment_id}&gateway=paypal`,
         );
@@ -884,6 +889,41 @@ export default function CheckoutPageClient({
             })}
           </div>
 
+          {/* Store Voucher Selection Button matching Screenshot 1 */}
+          {appliedCouponCode ? (
+            <div className="bg-pink-50 border border-pink-200 rounded-xl p-3 flex items-center justify-between my-2">
+              <div>
+                <span className="text-[10px] font-bold text-[#ff0055] uppercase tracking-wider block">
+                  Applied Voucher
+                </span>
+                <span className="text-xs font-mono font-extrabold text-gray-900">
+                  {appliedCouponCode}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-600 block mt-0.5">
+                  Saved -{formatCheckoutPrice(appliedCouponDiscount)}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsVoucherDrawerOpen(true)}
+                className="text-xs font-extrabold text-[#ff4700] hover:underline cursor-pointer"
+              >
+                Change &gt;
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsVoucherDrawerOpen(true)}
+              className="w-full flex items-center justify-between border border-dashed border-[#ff4700]/50 bg-[#fff6f2] hover:bg-[#ffede5] rounded-xl p-3 text-xs font-bold text-[#ff4700] transition-colors my-2 cursor-pointer"
+            >
+              <span className="flex items-center gap-1.5">
+                <Ticket size={16} /> Select Store Voucher
+              </span>
+              <span className="font-extrabold">Apply &gt;</span>
+            </button>
+          )}
+
           <div className="space-y-2 border-t pt-4">
             <div className="flex justify-between text-sm text-gray-600 font-medium">
               <span>Total Gross:</span>
@@ -927,6 +967,19 @@ export default function CheckoutPageClient({
           </Link>
         </div>
       </div>
+
+      {/* Voucher Selection Modal Drawer matching Screenshot 1 & 2 */}
+      <VoucherDrawerModal
+        isOpen={isVoucherDrawerOpen}
+        onClose={() => setIsVoucherDrawerOpen(false)}
+        cartSubtotal={total}
+        currency={currency}
+        items={activeSummaryItems}
+        currentAppliedCode={appliedCouponCode}
+        onSelectCoupon={(code, discount) => {
+          setAppliedCoupon(code || null, discount);
+        }}
+      />
     </div>
   );
 }
