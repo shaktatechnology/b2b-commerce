@@ -346,7 +346,7 @@ export default function VoucherDrawerModal({
                 type="text"
                 value={inputCode}
                 onChange={(e) => setInputCode(e.target.value)}
-                placeholder="Enter Store/Daraz Code"
+                placeholder="Enter Store"
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-[#ff4700] transition-colors"
               />
               <button
