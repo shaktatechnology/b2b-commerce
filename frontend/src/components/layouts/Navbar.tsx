@@ -285,7 +285,7 @@ export default function Navbar({
   }, [checkScroll]);
 
   return (
-    <header className="w-full font-sans">
+    <header className="w-full font-sans sticky top-0 z-50 shadow-sm">
       {/* desktop */}
 
       <div className="hidden md:block">
@@ -538,111 +538,142 @@ export default function Navbar({
       {/* mobile */}
 
       <div className="md:hidden bg-white border-b">
-        {/* top row */}
-        <div className="flex items-center justify-between px-4 py-3">
+        {/* top row: logo | search | cart + menu */}
+        <div className="flex items-center gap-2 px-3 py-2">
           {/* logo */}
-          <div className="text-primary font-bold text-xl">LOGO</div>
+          <Link href="/" className="shrink-0">
+            {logo ? (
+              <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
+            ) : (
+              <span className="text-primary font-bold text-lg leading-none">LOGO</span>
+            )}
+          </Link>
 
-          
-          <div className="flex items-center gap-4">
+          {/* search — grows to fill */}
+          <div className="flex-1 min-w-0" ref={searchContainerMobileRef}>
+            <div className="relative">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSearch(searchQuery);
+                }}
+              >
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchInputChange(e.target.value)}
+                  onFocus={() => setShowHistoryMobile(true)}
+                  placeholder="Search products…"
+                  className="w-full h-9 rounded-full border border-primary/30 pl-3 pr-16 text-sm outline-none focus:border-primary transition-all"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    aria-label="Clear search"
+                    className="absolute right-9 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all cursor-pointer p-1"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  aria-label="Search"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 bg-primary text-white w-7 h-7 rounded-full flex items-center justify-center hover:bg-primary/90 transition-all cursor-pointer"
+                >
+                  <Search size={14} />
+                </button>
+              </form>
+
+              {/* Mobile Search History Dropdown */}
+              {showHistoryMobile && searchHistory.length > 0 && (
+                <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-[110] py-2">
+                  <div className="px-4 py-2 flex justify-between items-center text-[10px] uppercase font-black tracking-wider text-gray-400 border-b border-gray-50 mb-1">
+                    <span>Recent Searches</span>
+                    <button
+                      onClick={clearAllHistory}
+                      className="hover:text-primary transition-colors cursor-pointer capitalize font-bold"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                  <div>
+                    {searchHistory.map((item, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setSearchQuery(item);
+                          handleSearch(item);
+                        }}
+                        className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors text-sm text-gray-700 font-bold group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{item}</span>
+                        </div>
+                        <button
+                          onClick={(e) => deleteHistoryItem(e, item)}
+                          className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
+                          title="Delete"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* right actions */}
+          <div className="flex items-center gap-1 shrink-0">
             {/* cart */}
-            <Link href="/cart" className="relative" aria-label="View cart">
+            <Link href="/cart" className="relative p-2" aria-label="View cart">
               <ShoppingCart size={22} className="text-gray-700" />
-
               {isMounted && cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-white text-[10px] min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-0.5">
+                <span className="absolute top-0.5 right-0.5 bg-primary text-white text-[9px] min-w-[16px] h-[16px] rounded-full flex items-center justify-center px-0.5 font-bold">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
             </Link>
-
-            {/* menu button */}
-            <button onClick={() => setMenuOpen(true)}>
-              <Menu size={24} className="text-gray-700" />
+            {/* menu */}
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="p-2 text-gray-700"
+              aria-label="Open menu"
+            >
+              <Menu size={22} />
             </button>
           </div>
         </div>
 
-        {/* search */}
-        <div className="px-3 pb-3" ref={searchContainerMobileRef}>
-          <div className="relative">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSearch(searchQuery);
-              }}
-            >
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearchInputChange(e.target.value)}
-                onFocus={() => setShowHistoryMobile(true)}
-                placeholder="Search Item category ..."
-                className="w-full h-11 rounded-full border border-primary/40 pl-4 pr-24 text-sm outline-none focus:border-primary transition-all"
-              />
-
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={clearSearch}
-                  aria-label="Clear search"
-                  className="absolute right-[92px] top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all cursor-pointer p-1"
-                >
-                  <X size={16} />
-                </button>
-              )}
-
-              <button 
-                type="submit"
-                className="absolute right-1 top-1/2 -translate-y-1/2 bg-primary text-white text-sm px-4 h-9 rounded-full flex items-center gap-1 hover:bg-primary/95 transition-all cursor-pointer"
+        {/* horizontal category pill scroll bar */}
+        {categories.filter((c) => !c.parent_id).length > 0 && (
+          <div className="overflow-x-auto scrollbar-hide border-t border-gray-100">
+            <div className="flex items-center gap-2 px-3 py-2 w-max">
+              <a
+                href="/products"
+                className="shrink-0 text-[12px] font-semibold text-gray-600 bg-gray-100 hover:bg-primary/10 hover:text-primary px-3 py-1 rounded-full transition-colors whitespace-nowrap"
               >
-                <Search size={16} />
-                Search
-              </button>
-            </form>
-
-            {/* Mobile Search History Dropdown */}
-            {showHistoryMobile && searchHistory.length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-gray-150 overflow-hidden z-[110] py-2">
-                <div className="px-4 py-2 flex justify-between items-center text-[10px] uppercase font-black tracking-wider text-gray-400 border-b border-gray-50 mb-1">
-                  <span>Recent Searches</span>
-                  <button 
-                    onClick={clearAllHistory}
-                    className="hover:text-primary transition-colors cursor-pointer capitalize font-bold"
+                All
+              </a>
+              {categories
+                .filter((cat) => !cat.parent_id)
+                .map((cat) => (
+                  <a
+                    key={cat.id}
+                    href={`/products?category=${cat.slug}`}
+                    className="shrink-0 text-[12px] font-medium text-gray-600 hover:text-primary hover:bg-primary/10 px-3 py-1 rounded-full transition-colors whitespace-nowrap"
                   >
-                    Clear All
-                  </button>
-                </div>
-                <div>
-                  {searchHistory.map((item, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => {
-                        setSearchQuery(item);
-                        handleSearch(item);
-                      }}
-                      className="flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors text-sm text-gray-700 font-bold group"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>{item}</span>
-                      </div>
-                      <button
-                        onClick={(e) => deleteHistoryItem(e, item)}
-                        className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition-all cursor-pointer"
-                        title="Delete"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                    {cat.name}
+                  </a>
+                ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       
@@ -674,7 +705,7 @@ export default function Navbar({
         <div className="p-4 border-b space-y-4 shrink-0">
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Phone size={16} />
-            <span>+977 9874563210</span>
+            <span>+977 {contactPhone}</span>
           </div>
 
           {isMounted && user ? (
