@@ -63,17 +63,47 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
     return { all, toPay, toShip, toReceive, toReview };
   }, [localOrders]);
 
+  function isCodOrder(order: any): boolean {
+    if (!order) return false;
+    const directMethod = (
+      order?.payment_method ||
+      order?.gateway ||
+      order?.payment?.method ||
+      ''
+    ).toLowerCase();
+
+    if (directMethod.includes('cod') || directMethod.includes('cash')) {
+      return true;
+    }
+
+    if (Array.isArray(order?.payments)) {
+      const hasCodPayment = order.payments.some((p: any) => {
+        const g = (p?.gateway || p?.payment_method || '').toLowerCase();
+        return g.includes('cod') || g.includes('cash');
+      });
+      if (hasCodPayment) return true;
+    }
+
+    const notes = (order?.notes || '').toLowerCase();
+    if (notes.includes('cod') || notes.includes('cash on delivery') || notes.includes('cash_on_delivery')) {
+      return true;
+    }
+
+    return false;
+  }
+
   // Filter orders according to selected dropdown value
   const filteredOrders = React.useMemo(() => {
     return localOrders.filter((order) => {
       const status = order.status ? order.status.toLowerCase() : '';
       const paymentStatus = order.payment_status ? order.payment_status.toLowerCase() : '';
-      
+      const isCod = isCodOrder(order);
+
       switch (filter) {
         case 'to-pay':
-          return paymentStatus === 'unpaid' && (status === 'pending' || status === 'confirmed');
+          return paymentStatus === 'unpaid' && (status === 'pending' || status === 'confirmed') && !isCod;
         case 'to-ship':
-          return status === 'processing' || status === 'confirmed';
+          return status === 'processing' || status === 'confirmed' || (isCod && status === 'pending');
         case 'to-receive':
           return status === 'shipped';
         case 'to-review':
@@ -107,18 +137,35 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
     }
   };
 
-  const getPaymentStatusBadge = (status: string) => {
-    const s = status ? status.toLowerCase() : 'unpaid';
-    switch (s) {
-      case 'paid':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-      case 'unpaid':
-        return 'bg-amber-50 text-amber-700 border-amber-200/40';
-      case 'refunded':
-        return 'bg-zinc-100 text-zinc-600 border-zinc-200';
-      default:
-        return 'bg-zinc-50 text-zinc-600 border-zinc-100';
+  const getPaymentStatusBadge = (order: any) => {
+    const isCod = isCodOrder(order);
+    const s = order?.payment_status ? order.payment_status.toLowerCase() : 'unpaid';
+
+    if (s === 'paid') {
+      return {
+        text: 'PAID',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+      };
     }
+
+    if (s === 'refunded') {
+      return {
+        text: 'REFUNDED',
+        className: 'bg-zinc-100 text-zinc-600 border-zinc-200',
+      };
+    }
+
+    if (isCod) {
+      return {
+        text: 'CASH ON DELIVERY',
+        className: 'bg-indigo-50 text-indigo-700 border-indigo-200/50',
+      };
+    }
+
+    return {
+      text: 'UNPAID',
+      className: 'bg-amber-50 text-amber-700 border-amber-200/40',
+    };
   };
 
   const toggleExpand = async (orderId: string | number) => {
@@ -231,10 +278,15 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                         <span>{order.status}</span>
                       </div>
 
-                      <div className={cn("px-3.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5", getPaymentStatusBadge(order.payment_status))}>
-                        <CreditCard className="w-3 h-3 text-zinc-400 shrink-0" />
-                        <span>{order.payment_status || 'unpaid'}</span>
-                      </div>
+                      {(() => {
+                        const badge = getPaymentStatusBadge(order);
+                        return (
+                          <div className={cn("px-3.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5", badge.className)}>
+                            <CreditCard className="w-3 h-3 text-zinc-400 shrink-0" />
+                            <span>{badge.text}</span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex flex-wrap items-baseline gap-2">
@@ -272,7 +324,7 @@ export function OrdersTab({ orders, isLoading }: OrdersTabProps) {
                        )}
                      </Button>
                      
-                      {order.payment_status === 'unpaid' && order.status === 'pending' && (
+                      {order.payment_status === 'unpaid' && order.status === 'pending' && !isCodOrder(order) && (
                         <Button 
                           onClick={() => router.push(`/account/orders/${order.id}`)}
                           className="rounded-xl px-5 h-10 bg-emerald-600 text-white hover:bg-emerald-700 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 shadow-lg shadow-emerald-100 cursor-pointer flex-1 md:flex-none w-full justify-center"

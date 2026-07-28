@@ -36,7 +36,7 @@ class OrderService implements OrderServiceInterface
      */
     public function getUserOrders(string $userId)
     {
-        return Order::with(['items.variant.product', 'items.variant.color', 'items.variant.size'])
+        return Order::with(['items.variant.product', 'items.variant.color', 'items.variant.size', 'payments'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -183,6 +183,14 @@ class OrderService implements OrderServiceInterface
                 'currency' => $currency,
                 'notes' => $notes,
             ]);
+
+            if ($paymentMethod) {
+                $order->payments()->create([
+                    'gateway' => strtolower($paymentMethod),
+                    'amount' => $total,
+                    'status' => 'pending',
+                ]);
+            }
 
             // Save order items
             foreach ($orderItemsData as $itemData) {

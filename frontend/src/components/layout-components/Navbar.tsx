@@ -189,71 +189,73 @@ export function Navbar() {
 
           {/* --- Auth: Profile Dropdown or Login Button --- */}
           {isLoggedIn ? (
-            <div className="relative group">
-              <button
-                id="profile-menu-trigger"
-                className={cn(
-                  'flex items-center gap-2 rounded-full pl-1 pr-3 py-1 transition-all duration-200 cursor-pointer',
-                  'hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-                  'border border-transparent hover:border-border'
-                )}
-                onClick={() => router.push('/account')}
-              >
-                {/* Avatar circle */}
-                <span
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  id="profile-menu-trigger"
                   className={cn(
-                    'flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-all',
-                    'bg-gradient-to-br from-[#966FD6] to-[#7c52c9] text-white shadow-md shadow-primary/20'
+                    'flex items-center gap-2 rounded-full pl-1 pr-3 py-1 transition-all duration-200 cursor-pointer',
+                    'hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    'border border-transparent hover:border-border'
                   )}
                 >
-                  {getInitials(profileUser.name)}
-                </span>
-                <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
-                  {profileUser.name.split(' ')[0]}
-                </span>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 group-hover:rotate-180" />
-              </button>
+                  {/* Avatar circle */}
+                  <span
+                    className={cn(
+                      'flex items-center justify-center w-9 h-9 rounded-full text-sm font-semibold transition-all',
+                      'bg-gradient-to-br from-[#966FD6] to-[#7c52c9] text-white shadow-md shadow-primary/20'
+                    )}
+                  >
+                    {getInitials(profileUser.name)}
+                  </span>
+                  <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
+                    {profileUser.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform duration-200" />
+                </button>
+              </DropdownMenuTrigger>
 
-              {/* Hover Dropdown Content */}
-              <div className="absolute right-0 top-full pt-2 opacity-0 invisible translate-y-2 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-200 z-[60]">
-                <div className="w-56 p-1.5 bg-background border rounded-2xl shadow-xl shadow-black/10">
-                  {/* User info header */}
-                  <div className="px-3 py-3 border-b">
-                    <div className="flex flex-col gap-0.5">
-                      <p className="text-sm font-semibold leading-none text-foreground">
-                        {profileUser.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate mt-1">
-                        {profileUser.email}
-                      </p>
-                    </div>
+              <DropdownMenuContent align="end" className="w-56 p-1.5 bg-background border rounded-2xl shadow-xl z-[999]">
+                <DropdownMenuLabel className="px-3 py-3 border-b font-normal">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-sm font-semibold leading-none text-foreground">
+                      {profileUser.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate mt-1">
+                      {profileUser.email}
+                    </p>
+                    {profileUser.role && (
+                      <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-[#966FD6] mt-1">
+                        {profileUser.role}
+                      </span>
+                    )}
                   </div>
+                </DropdownMenuLabel>
 
-                  <div className="py-1">
-                    {/* Account Link */}
-                    <button
-                      id="hover-account"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-zinc-600 hover:text-primary hover:bg-primary/5 rounded-xl transition-all cursor-pointer"
-                      onClick={() => router.push('/account')}
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Account</span>
-                    </button>
+                <div className="py-1">
+                  <DropdownMenuItem
+                    id="hover-account"
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-zinc-600 hover:text-primary hover:bg-primary/5 rounded-xl transition-all cursor-pointer"
+                    onClick={() => router.push('/account')}
+                  >
+                    <User className="h-4 w-4" />
+                    <span>My Account</span>
+                  </DropdownMenuItem>
 
-                    {/* Logout */}
-                    <button
-                      id="hover-logout"
-                      className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
-                      disabled={isLoggingOut}
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>{isLoggingOut ? 'Logging out…' : 'Logout'}</span>
-                    </button>
-                  </div>
+                  <DropdownMenuSeparator className="my-1" />
+
+                  <DropdownMenuItem
+                    id="hover-logout"
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 focus:bg-red-50 focus:text-red-500 rounded-xl transition-all cursor-pointer"
+                    disabled={isLoggingOut}
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>{isLoggingOut ? 'Logging out…' : 'Logout'}</span>
+                  </DropdownMenuItem>
                 </div>
-              </div>
-            </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2 sm:gap-3">
               <Link href="/login">
