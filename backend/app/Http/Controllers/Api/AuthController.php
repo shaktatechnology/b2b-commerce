@@ -109,4 +109,26 @@ class AuthController extends Controller
             'data' => $user
         ]);
     }
+
+    public function redirectToGoogle()
+    {
+        return \Laravel\Socialite\Facades\Socialite::driver('google')->stateless()->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $googleUser = \Laravel\Socialite\Facades\Socialite::driver('google')->stateless()->user();
+            $authData = $this->authService->handleGoogleUser($googleUser);
+
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            $token = $authData['access_token'];
+            $role = $authData['user']->role ?? 'customer';
+
+            return redirect("{$frontendUrl}/auth/callback?token={$token}&role={$role}");
+        } catch (\Exception $e) {
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            return redirect("{$frontendUrl}/login?error=" . urlencode('Google authentication failed.'));
+        }
+    }
 }

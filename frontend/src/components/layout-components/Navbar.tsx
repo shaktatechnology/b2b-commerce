@@ -19,7 +19,7 @@ import { getSettingsByGroup } from '@/src/lib/settings';
 import { getAuthToken, logoutApi, fetchProfile } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
 import type { AuthUser } from '@/src/types';
-import { getActiveCurrency } from '@/src/lib/product-utils';
+import { getActiveCurrency, autoDetectCurrencyByIP } from '@/src/lib/product-utils';
 
 const navItems = [
   { name: 'Home', href: '/' },
@@ -43,8 +43,10 @@ export function Navbar() {
   const storeUser = useAppStore((s) => s.user);
   const storeLogout = useAppStore((s) => s.logout);
 
-  // Fetch settings + currency preference
+  // Fetch settings + currency preference + auto detect location
   React.useEffect(() => {
+    autoDetectCurrencyByIP();
+
     getSettingsByGroup('general')
       .then((res) => setSettings(res.data))
       .catch((err) => console.error('Failed to fetch navbar settings:', err));
@@ -253,23 +255,36 @@ export function Navbar() {
               </div>
             </div>
           ) : (
-            <Link href="/login">
-              <Button
-                id="navbar-login-btn"
-                className="rounded-xl px-6 h-11 hidden sm:flex bg-[#966FD6] hover:bg-[#7d5bbf] text-white shadow-lg shadow-[#966FD6]/20 font-black text-xs uppercase tracking-widest"
-              >
-                Login
-              </Button>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link href="/login">
+                <Button
+                  id="navbar-login-btn"
+                  className="rounded-xl px-5 h-10 hidden sm:flex bg-[#966FD6] hover:bg-[#7d5bbf] text-white shadow-md shadow-[#966FD6]/20 font-black text-xs uppercase tracking-widest cursor-pointer"
+                >
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button
+                  id="navbar-signup-btn"
+                  variant="outline"
+                  className="rounded-xl px-5 h-10 hidden sm:flex border-[#966FD6] text-[#966FD6] hover:bg-[#966FD6]/10 font-black text-xs uppercase tracking-widest cursor-pointer"
+                >
+                  Sign Up
+                </Button>
+              </Link>
               {/* Mobile: icon-only login */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-10 w-10 sm:hidden"
-                aria-label="Login"
-              >
-                <User className="h-5 w-5" />
-              </Button>
-            </Link>
+              <Link href="/login" className="sm:hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full h-10 w-10"
+                  aria-label="Login"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              </Link>
+            </div>
           )}
 
           {/* Mobile hamburger */}
@@ -304,6 +319,25 @@ export function Navbar() {
                 {item.name}
               </Link>
             ))}
+
+            {!isLoggedIn && (
+              <div className="pt-2 mt-2 border-t flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full text-center py-2.5 rounded-xl bg-[#966FD6] text-white font-bold text-xs uppercase tracking-widest"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full text-center py-2.5 rounded-xl border border-[#966FD6] text-[#966FD6] font-bold text-xs uppercase tracking-widest"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}

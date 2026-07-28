@@ -10,7 +10,7 @@ import { useCartStore } from "@/src/store/use-cart-store";
 import { useAppStore } from "@/src/store/use-app-store";
 import { getAuthToken, fetchProfile, logoutApi } from "@/src/lib/auth";
 import { cn } from "@/src/lib/utils";
-import { getActiveCurrency } from "@/src/lib/product-utils";
+import { getActiveCurrency, autoDetectCurrencyByIP } from "@/src/lib/product-utils";
 
 interface Category {
   id: string;
@@ -167,6 +167,7 @@ export default function Navbar({
   };
 
   useEffect(() => {
+    autoDetectCurrencyByIP();
     setCurrency(getActiveCurrency());
     setCurrencyLocked(sessionStorage.getItem('currency_locked') === 'true');
     const handleCurrencyChange = () => setCurrency(getActiveCurrency());

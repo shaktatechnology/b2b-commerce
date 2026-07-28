@@ -106,13 +106,16 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <StorefrontLayout categories={categories} settings={storefront}>
-      <div className="max-w-7xl mx-auto px-4 md:px-10 py-6 pb-16">
+      <div className="max-w-7xl mx-auto px-4 md:px-10 py-4 md:py-6 pb-16">
         <ProductBreadcrumb
           category={primaryCategory}
           productName={product.name}
         />
 
-        <div className="flex flex-col xl:flex-row gap-8">
+        {/* On mobile: single column in source order — main area → sidebar → tabs → carousels.
+            On xl: two-column side-by-side with sidebar on the right. */}
+        <div className="flex flex-col xl:flex-row gap-6 xl:gap-8">
+          {/* LEFT / MAIN column */}
           <div className="flex-1 min-w-0">
             <ProductMainArea 
               product={product}
@@ -125,30 +128,33 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <CouponsSection coupons={applicableCoupons} title="Available Coupons" showMoreLink={true} />
               </div>
             )}
-
-            <ProductDetailTabs
-              product={product}
-              productSlug={productKey}
-              reviewsData={reviewsData}
-              canReview={canReview}
-              myReview={myReview}
-            />
-            <ProductCarouselSection
-              title="Related Product"
-              products={relatedProducts}
-            />
-            <ProductCarouselSection
-              title="Customer Also Viewed"
-              products={alsoViewed}
-            />
           </div>
 
+          {/* SIDEBAR — on mobile renders here (between main & tabs), on xl floats right */}
           <ProductDetailSidebar
             categoriesWithCounts={categoriesWithCounts}
             similarProducts={similarProducts}
             offers={pageSpecificOffers}
           />
+        </div>
 
+        {/* Tabs and carousels — full width on all screens */}
+        <div className="mt-6">
+          <ProductDetailTabs
+            product={product}
+            productSlug={productKey}
+            reviewsData={reviewsData}
+            canReview={canReview}
+            myReview={myReview}
+          />
+          <ProductCarouselSection
+            title="Related Product"
+            products={relatedProducts}
+          />
+          <ProductCarouselSection
+            title="Customer Also Viewed"
+            products={alsoViewed}
+          />
         </div>
       </div>
     </StorefrontLayout>
