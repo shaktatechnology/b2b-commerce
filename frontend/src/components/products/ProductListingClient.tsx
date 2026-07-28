@@ -493,14 +493,14 @@ export default function ProductListingClient({
                 </nav>
             )}
 
-            {/* Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-6 ">
+            {/* Toolbar — desktop */}
+            <div className="hidden sm:flex flex-wrap items-center justify-between gap-3 mb-6">
                 <p className="text-sm text-gray-500">
                     We found <span className="font-bold text-primary">{filteredProducts.length}</span> items for you!
                 </p>
                 <div className="flex items-center gap-4">
                     {/* View mode toggle */}
-                    <div className="hidden sm:flex items-center bg-gray-50 p-1 rounded-xl border border-gray-100">
+                    <div className="flex items-center bg-gray-50 p-1 rounded-xl border border-gray-100">
                         <button
                             onClick={() => setViewMode("grid")}
                             className={`p-2 rounded-lg transition-all ${viewMode === "grid" ? "bg-white text-primary shadow-sm" : "text-gray-400 hover:text-gray-600"}`}
@@ -515,13 +515,13 @@ export default function ProductListingClient({
                         </button>
                     </div>
 
-                    {/* Mobile filter toggle */}
+                    {/* Desktop filter toggle */}
                     <button
                         onClick={() => setShowMobileFilters(!showMobileFilters)}
                         className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
                     >
                         <SlidersHorizontal size={14} />
-                        Filters
+                        Filters {hasActiveFilters && <span className="ml-1 bg-primary text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">&bull;</span>}
                     </button>
 
                     <select
@@ -536,6 +536,14 @@ export default function ProductListingClient({
                     </select>
                 </div>
             </div>
+
+            {/* Mobile results count */}
+            <p className="sm:hidden text-sm text-gray-500 mb-4">
+                <span className="font-bold text-primary">{filteredProducts.length}</span> products found
+                {hasActiveFilters && (
+                    <button onClick={clearAllFilters} className="ml-2 text-xs text-primary underline">Clear filters</button>
+                )}
+            </p>
 
             {/* Main Layout */}
             <div className="flex gap-8">
@@ -563,8 +571,8 @@ export default function ProductListingClient({
                         </div>
                     ) : (
                         <div className={viewMode === "grid"
-                            ? "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                            : "space-y-6"
+                            ? "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6"
+                            : "space-y-3 sm:space-y-6"
                         }>
                             {paginatedProducts.map((product) => (
                                 <ProductCard key={product.id} product={product} viewMode={viewMode} />
@@ -635,23 +643,59 @@ export default function ProductListingClient({
                 </aside>
             </div>
 
-            {/* Mobile Filters Overlay */}
+            {/* Mobile Filters Overlay — slides up from bottom */}
             {showMobileFilters && (
-                <div className="fixed inset-0 z-50 lg:hidden">
-                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileFilters(false)} />
-                    <div className="absolute right-0 top-0 bottom-0 w-80 max-w-full bg-gray-50 overflow-y-auto">
-                        <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
-                            <h3 className="font-bold text-gray-800">Filters</h3>
-                            <button onClick={() => setShowMobileFilters(false)} className="p-1 hover:bg-gray-100 rounded-full">
-                                <X size={20} />
-                            </button>
+                <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+                    <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileFilters(false)} />
+                    <div className="relative bg-gray-50 rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl">
+                        {/* Handle + header */}
+                        <div className="flex flex-col items-center pt-3 pb-0 shrink-0">
+                            <div className="w-10 h-1 rounded-full bg-gray-300 mb-3" />
+                            <div className="flex items-center justify-between w-full px-5 pb-3 border-b bg-gray-50 rounded-t-3xl">
+                                <h3 className="font-bold text-gray-800 text-base">Filters</h3>
+                                <button onClick={() => setShowMobileFilters(false)} className="p-1.5 hover:bg-gray-100 rounded-full">
+                                    <X size={20} />
+                                </button>
+                            </div>
                         </div>
-                        <div className="p-4">
+                        {/* Scrollable content */}
+                        <div className="overflow-y-auto flex-1 p-4 pb-8">
                             {renderSidebar()}
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Mobile sticky bottom bar: Filter + Sort */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-gray-200 shadow-lg flex">
+                <button
+                    onClick={() => setShowMobileFilters(true)}
+                    className="flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors border-r border-gray-200"
+                >
+                    <SlidersHorizontal size={16} />
+                    Filters
+                    {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-primary" />}
+                </button>
+                <div className="flex-1 flex items-center justify-center relative">
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        aria-label="Sort by"
+                    >
+                        <option value="featured">Featured</option>
+                        <option value="price_low">Price: Low → High</option>
+                        <option value="price_high">Price: High → Low</option>
+                        <option value="name_asc">Name: A-Z</option>
+                    </select>
+                    <span className="flex items-center gap-2 text-sm font-semibold text-gray-700 pointer-events-none">
+                        <span className="text-base">⇅</span>
+                        {sortBy === "featured" ? "Sort" : sortBy === "price_low" ? "Price ↑" : sortBy === "price_high" ? "Price ↓" : "A-Z"}
+                    </span>
+                </div>
+            </div>
+            {/* Bottom bar spacer on mobile so last product isn't hidden */}
+            <div className="h-16 sm:hidden" />
         </div>
     );
 }

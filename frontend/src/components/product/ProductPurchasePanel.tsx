@@ -3,16 +3,17 @@
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Minus,
-  Plus,
-  ShoppingCart,
-  Share2,
-  Star,
-} from "lucide-react";
+import { Minus, Plus, ShoppingCart, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { useCartStore } from "@/src/store/use-cart-store";
-import { productToCartLineItem, getActiveCurrency, formatPrice, calculateDiscountAmount, getDiscountDefinition } from "@/src/lib/product-utils";
+import {
+  productToCartLineItem,
+  getActiveCurrency,
+  formatPrice,
+  calculateDiscountAmount,
+  getDiscountDefinition,
+  resolveProductImageUrl,
+} from "@/src/lib/product-utils";
 import { getUserRole } from "@/src/lib/auth";
 import type { StorefrontProduct } from "@/src/types/storefront";
 import type { CartProductInput } from "@/src/types/cart";
@@ -23,9 +24,6 @@ interface ProductPurchasePanelProps {
   averageRating?: number;
   selectedVariantId: string;
   onVariantChange: (id: string) => void;
-  // False while the gallery is showing the general/primary product photo
-  // rather than a photo that actually belongs to selectedVariant — in that
-  // state no swatch should visually look "selected".
   showVariantAsSelected?: boolean;
 }
 
@@ -43,12 +41,12 @@ export default function ProductPurchasePanel({
 
   const activeVariants = useMemo(
     () => (product.variants ?? []).filter((v) => v.is_active !== false),
-    [product.variants]
+    [product.variants],
   );
 
   const [quantity, setQuantity] = useState(1);
   const [role, setRole] = useState<string | null>(null);
-  const [currency, setCurrency] = useState<'NPR' | 'USD'>('NPR');
+  const [currency, setCurrency] = useState<"NPR" | "USD">("NPR");
 
   useEffect(() => {
     setRole(getUserRole());
@@ -57,8 +55,9 @@ export default function ProductPurchasePanel({
     const handleCurrencyChange = () => {
       setCurrency(getActiveCurrency());
     };
-    window.addEventListener('currency_changed', handleCurrencyChange);
-    return () => window.removeEventListener('currency_changed', handleCurrencyChange);
+    window.addEventListener("currency_changed", handleCurrencyChange);
+    return () =>
+      window.removeEventListener("currency_changed", handleCurrencyChange);
   }, []);
 
   const selectedVariant =
@@ -72,7 +71,8 @@ export default function ProductPurchasePanel({
   // How many units of this exact variant are already sitting in the cart —
   // needed so we don't let someone add past stock across multiple visits.
   const quantityInCart =
-    cartItems.find((i) => i.variantId === String(selectedVariant?.id))?.quantity ?? 0;
+    cartItems.find((i) => i.variantId === String(selectedVariant?.id))
+      ?.quantity ?? 0;
   const remainingStock = Math.max(0, stock - quantityInCart);
   const exceedsStock = stock > 0 ? quantity > remainingStock : false;
 
@@ -85,40 +85,56 @@ export default function ProductPurchasePanel({
     }
   }, [isWholesaler, selectedVariant]);
 
-  const isUSD = currency === 'USD';
-  const isInternationalPriceMissing = isUSD && (
-    isWholesaler
-      ? (selectedVariant?.international_wholesale_price === undefined || selectedVariant?.international_wholesale_price === null || selectedVariant?.international_wholesale_price === '') &&
-        (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || selectedVariant?.international_price === '')
-      : (selectedVariant?.international_price === undefined || selectedVariant?.international_price === null || selectedVariant?.international_price === '')
-  );
+  const isUSD = currency === "USD";
+  const isInternationalPriceMissing =
+    isUSD &&
+    (isWholesaler
+      ? (selectedVariant?.international_wholesale_price === undefined ||
+          selectedVariant?.international_wholesale_price === null ||
+          selectedVariant?.international_wholesale_price === "") &&
+        (selectedVariant?.international_price === undefined ||
+          selectedVariant?.international_price === null ||
+          selectedVariant?.international_price === "")
+      : selectedVariant?.international_price === undefined ||
+        selectedVariant?.international_price === null ||
+        selectedVariant?.international_price === "");
 
   const rawBasePrice = isUSD
-    ? (isWholesaler
-      ? (selectedVariant?.international_wholesale_price ?? selectedVariant?.international_price ?? selectedVariant?.retail_price ?? 0)
-      : (selectedVariant?.international_price ?? selectedVariant?.retail_price ?? 0))
-    : (isWholesaler
+    ? isWholesaler
+      ? (selectedVariant?.international_wholesale_price ??
+        selectedVariant?.international_price ??
+        selectedVariant?.retail_price ??
+        0)
+      : (selectedVariant?.international_price ??
+        selectedVariant?.retail_price ??
+        0)
+    : isWholesaler
       ? (selectedVariant?.wholesale_price ?? selectedVariant?.retail_price ?? 0)
-      : (selectedVariant?.retail_price ?? 0));
+      : (selectedVariant?.retail_price ?? 0);
   const basePrice = parseFloat(String(rawBasePrice));
 
   // Calculate discount for all users (variant discount takes precedence over product discount)
   let activeDiscount = null;
   if (selectedVariant?.discounts && selectedVariant.discounts.length > 0) {
-    activeDiscount = selectedVariant.discounts.find(d => d.is_active);
+    activeDiscount = selectedVariant.discounts.find((d) => d.is_active);
   }
   if (!activeDiscount && product.discounts && product.discounts.length > 0) {
-    activeDiscount = product.discounts.find(d => d.is_active);
+    activeDiscount = product.discounts.find((d) => d.is_active);
   }
 
-  const discountAmount = calculateDiscountAmount(basePrice, activeDiscount, isWholesaler, currency);
+  const discountAmount = calculateDiscountAmount(
+    basePrice,
+    activeDiscount,
+    isWholesaler,
+    currency,
+  );
   const price = basePrice - discountAmount;
   const compareAt = discountAmount > 0 ? basePrice : 0;
 
   let discountPct = 0;
   if (discountAmount > 0 && basePrice > 0) {
     const def = getDiscountDefinition(activeDiscount, isWholesaler, currency);
-    if (def.type === 'percent') {
+    if (def.type === "percent") {
       discountPct = Math.round(def.value ?? 0);
     } else {
       discountPct = Math.round((discountAmount / basePrice) * 100);
@@ -151,7 +167,7 @@ export default function ProductPurchasePanel({
       toast.error(
         remainingStock > 0
           ? `Only ${remainingStock} more unit${remainingStock === 1 ? "" : "s"} can be added (you already have ${quantityInCart} in your cart).`
-          : `You already have the maximum available quantity (${stock}) in your cart.`
+          : `You already have the maximum available quantity (${stock}) in your cart.`,
       );
       return;
     }
@@ -177,7 +193,7 @@ export default function ProductPurchasePanel({
       toast.error(
         remainingStock > 0
           ? `Only ${remainingStock} more unit${remainingStock === 1 ? "" : "s"} can be added (you already have ${quantityInCart} in your cart).`
-          : `You already have the maximum available quantity (${stock}) in your cart.`
+          : `You already have the maximum available quantity (${stock}) in your cart.`,
       );
       return;
     }
@@ -233,7 +249,8 @@ export default function ProductPurchasePanel({
 
       {isInternationalPriceMissing && (
         <div className="mt-4 px-3 py-2 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs font-medium">
-          ⚠️ International (USD) pricing is not available for this variant. Please select a different variant or switch to NPR.
+          ⚠️ International (USD) pricing is not available for this variant.
+          Please select a different variant or switch to NPR.
         </div>
       )}
 
@@ -258,62 +275,84 @@ export default function ProductPurchasePanel({
       {/* Variant Selection: Color Family & Size/Weight */}
       <div className="mt-6 space-y-6">
         {/* Color Family */}
-        {(product.color || activeVariants.some(v => v.color)) && (
+        {(product.color || activeVariants.some((v) => v.color)) && (
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-              Color Family: <span className="text-zinc-900 font-black ml-1">
-                {selectedVariant?.color?.name || 'Default'}
+              Color Family:{" "}
+              <span className="text-zinc-900 font-black ml-1">
+                {selectedVariant?.color?.name || "Default"}
               </span>
             </h3>
             <div className="flex flex-wrap gap-2.5">
               {(() => {
                 const uniqueColors = new Set<string>();
-                return activeVariants.filter(v => {
-                  const name = v.color?.name || product.color?.name || 'Default';
-                  if (uniqueColors.has(name)) return false;
-                  uniqueColors.add(name);
-                  return true;
-                }).map((variant) => {
-                  const colorName = variant.color?.name || product.color?.name || 'Default';
-                  const isSelected =
-                    showVariantAsSelected &&
-                    (selectedVariant?.color?.name || product.color?.name || 'Default') === colorName;
+                return activeVariants
+                  .filter((v) => {
+                    const name =
+                      v.color?.name || product.color?.name || "Default";
+                    if (uniqueColors.has(name)) return false;
+                    uniqueColors.add(name);
+                    return true;
+                  })
+                  .map((variant) => {
+                    const colorName =
+                      variant.color?.name || product.color?.name || "Default";
+                    const isSelected =
+                      showVariantAsSelected &&
+                      (selectedVariant?.color?.name ||
+                        product.color?.name ||
+                        "Default") === colorName;
 
-                  return (
-                    <button
-                      key={variant.id}
-                      type="button"
-                      onClick={() => onVariantChange(variant.id)}
-                      className={`group relative w-16 h-16 rounded-2xl border-2 transition-all p-1 overflow-hidden shrink-0 ${isSelected
-                        ? "border-primary shadow-xl scale-110 z-10"
-                        : "border-zinc-50 hover:border-zinc-200 bg-white"
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        onClick={() => onVariantChange(variant.id)}
+                        className={`group relative w-16 h-16 rounded-2xl border-2 transition-all p-1 overflow-hidden shrink-0 ${
+                          isSelected
+                            ? "border-primary shadow-xl scale-110 z-10"
+                            : "border-zinc-50 hover:border-zinc-200 bg-white"
                         }`}
-                    >
-                      {variant.image_url ? (
-                        <div className="w-full h-full rounded-xl overflow-hidden">
-                          <img
-                            src={variant.image_url.startsWith('http') ? variant.image_url : `http://localhost:8000${variant.image_url}`}
-                            className="w-full h-full object-cover"
-                            alt={colorName}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full h-full bg-zinc-50 flex items-center justify-center text-[10px] font-black text-zinc-300 rounded-xl uppercase">
-                          {colorName.slice(0, 3)}
-                        </div>
-                      )}
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
-                          <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform scale-110 animate-in zoom-in-50 duration-200">
-                            <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M1 5L4.5 8.5L11 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                      >
+                        {variant.image_url ? (
+                          <div className="w-full h-full rounded-xl overflow-hidden">
+                            <img
+                              src={
+                                resolveProductImageUrl(variant.image_url) ?? ""
+                              }
+                              className="w-full h-full object-cover"
+                              alt={colorName}
+                            />
                           </div>
-                        </div>
-                      )}
-                    </button>
-                  );
-                });
+                        ) : (
+                          <div className="w-full h-full bg-zinc-50 flex items-center justify-center text-[10px] font-black text-zinc-300 rounded-xl uppercase">
+                            {colorName.slice(0, 3)}
+                          </div>
+                        )}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center backdrop-blur-[1px]">
+                            <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform scale-110 animate-in zoom-in-50 duration-200">
+                              <svg
+                                width="12"
+                                height="10"
+                                viewBox="0 0 12 10"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M1 5L4.5 8.5L11 2"
+                                  stroke="currentColor"
+                                  strokeWidth="2.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  });
               })()}
             </div>
           </div>
@@ -321,111 +360,143 @@ export default function ProductPurchasePanel({
 
         {/* Size or Weight (Whichever is available) */}
         {(() => {
-          const hasSize = product.size || activeVariants.some(v => v.size);
-          const hasWeight = product.weight || activeVariants.some(v => v.weight);
+          const hasSize = product.size || activeVariants.some((v) => v.size);
+          const hasWeight =
+            product.weight || activeVariants.some((v) => v.weight);
 
           if (!hasSize && !hasWeight) return null;
 
           // Prefer Size over Weight if both exist (standard e-commerce)
-          const label = hasSize ? 'Size' : 'Weight';
-          const property = hasSize ? 'size' : 'weight';
+          const label = hasSize ? "Size" : "Weight";
+          const property = hasSize ? "size" : "weight";
 
           return (
             <div className="space-y-3">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                {label}: <span className="text-zinc-900 font-black ml-1">
+                {label}:{" "}
+                <span className="text-zinc-900 font-black ml-1">
                   {(() => {
                     const extract = (v: unknown) =>
                       v && typeof v === "object" ? (v as any)?.name : v;
-                    const val = selectedVariant[property as keyof typeof selectedVariant];
+                    const val =
+                      selectedVariant[property as keyof typeof selectedVariant];
                     const fallback = (product as any)[property];
-                    return extract(val) || extract(fallback) || 'Default';
+                    return extract(val) || extract(fallback) || "Default";
                   })()}
                 </span>
               </h3>
               <div className="flex flex-wrap gap-2">
                 {(() => {
-                  const currentColor = selectedVariant?.color?.name || product.color?.name || 'Default';
+                  const currentColor =
+                    selectedVariant?.color?.name ?? product.color?.name ?? "";
 
                   const uniqueOptions = [
                     ...new Set(
                       activeVariants
-                        .map(v =>
-                          v[property as keyof typeof v] && typeof v[property as keyof typeof v] === "object"
+                        .map((v) =>
+                          v[property as keyof typeof v] &&
+                          typeof v[property as keyof typeof v] === "object"
                             ? (v[property as keyof typeof v] as any)?.name
-                            : (v[property as keyof typeof v] as string) || "Default"
+                            : (v[property as keyof typeof v] as string) ||
+                              "Default",
                         )
-                        .filter(Boolean)
+                        .filter(Boolean),
                     ),
                   ];
 
                   return uniqueOptions.map((optionValue, idx) => {
-                    const availableVariant = activeVariants.find(v => {
-                      const color = v.color?.name || product.color?.name || "Default";
+                    const availableVariant = activeVariants.find((v) => {
+                      // Normalize: treat null/undefined color the same way on both sides
+                      const vColor = v.color?.name ?? product.color?.name ?? "";
+                      const curColor =
+                        selectedVariant?.color?.name ??
+                        product.color?.name ??
+                        "";
 
                       const value =
-                        v[property as keyof typeof v] && typeof v[property as keyof typeof v] === "object"
+                        v[property as keyof typeof v] &&
+                        typeof v[property as keyof typeof v] === "object"
                           ? (v[property as keyof typeof v] as any)?.name
-                          : (v[property as keyof typeof v] as string) || "Default";
+                          : (v[property as keyof typeof v] as string) ||
+                            "Default";
 
-                      return color === currentColor && value === optionValue;
+                      return vColor === curColor && value === optionValue;
                     });
 
                     const available = !!availableVariant;
 
                     const selectedValue =
-                      selectedVariant[property as keyof typeof selectedVariant] && typeof selectedVariant[property as keyof typeof selectedVariant] === "object"
-                        ? (selectedVariant[property as keyof typeof selectedVariant] as any)?.name
-                        : (selectedVariant[property as keyof typeof selectedVariant] as string) || "Default";
+                      selectedVariant[
+                        property as keyof typeof selectedVariant
+                      ] &&
+                      typeof selectedVariant[
+                        property as keyof typeof selectedVariant
+                      ] === "object"
+                        ? (
+                            selectedVariant[
+                              property as keyof typeof selectedVariant
+                            ] as any
+                          )?.name
+                        : (selectedVariant[
+                            property as keyof typeof selectedVariant
+                          ] as string) || "Default";
 
-                    const isSelected = showVariantAsSelected && selectedValue === optionValue;
+                    const isSelected =
+                      showVariantAsSelected && selectedValue === optionValue;
 
                     return (
                       <button
                         key={optionValue ?? `${property}-${idx}`}
                         type="button"
                         disabled={!available}
-                        onClick={() => available && onVariantChange(availableVariant!.id)}
-                        className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all ${isSelected
+                        onClick={() =>
+                          available && onVariantChange(availableVariant!.id)
+                        }
+                        className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all ${
+                          isSelected
                             ? "bg-primary text-white border-primary shadow-sm"
                             : available
                               ? "bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary"
                               : "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-50"
-                          }`}
+                        }`}
                       >
                         {optionValue}
                       </button>
                     );
                   });
-
                 })()}
-
               </div>
             </div>
           );
         })()}
 
         {/* Fallback for generic variants if no color/size/weight */}
-        {(!product.color && !product.size && !product.weight && !activeVariants.some(v => v.color || v.size || v.weight)) && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Options</h3>
-            <div className="flex flex-wrap gap-2">
-              {activeVariants.map((variant) => (
-                <button
-                  key={variant.id}
-                  type="button"
-                  onClick={() => onVariantChange(variant.id)}
-                  className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${showVariantAsSelected && selectedVariantId === variant.id
-                    ? "bg-primary text-white border-primary shadow-sm"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-primary"
+        {!product.color &&
+          !product.size &&
+          !product.weight &&
+          !activeVariants.some((v) => v.color || v.size || v.weight) && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+                Options
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {activeVariants.map((variant) => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => onVariantChange(variant.id)}
+                    className={`px-4 py-2 text-xs font-black uppercase tracking-widest rounded-xl border transition-all cursor-pointer ${
+                      showVariantAsSelected && selectedVariantId === variant.id
+                        ? "bg-primary text-white border-primary shadow-sm"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-primary"
                     }`}
-                >
-                  {variant.variant_name || "Select"}
-                </button>
-              ))}
+                  >
+                    {variant.variant_name || "Select"}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
 
       <div className="mt-2">
@@ -435,7 +506,10 @@ export default function ProductPurchasePanel({
           <p className="text-sm text-gray-600">
             Available: {stock} unit{stock === 1 ? "" : "s"}
             {quantityInCart > 0 && (
-              <span className="text-gray-400"> ({quantityInCart} already in cart)</span>
+              <span className="text-gray-400">
+                {" "}
+                ({quantityInCart} already in cart)
+              </span>
             )}
           </p>
         )}
@@ -445,13 +519,17 @@ export default function ProductPurchasePanel({
         <div className="flex items-center border border-gray-300 rounded overflow-hidden">
           <button
             type="button"
-            onClick={() => setQuantity((q) => Math.max(isWholesaler ? moq : 1, q - 1))}
+            onClick={() =>
+              setQuantity((q) => Math.max(isWholesaler ? moq : 1, q - 1))
+            }
             className="w-9 h-9 flex cursor-pointer items-center justify-center hover:bg-gray-100"
             aria-label="Decrease quantity"
           >
             <Minus size={14} />
           </button>
-          <span className="w-10 text-center text-sm font-medium">{quantity}</span>
+          <span className="w-10 text-center text-sm font-medium">
+            {quantity}
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -461,7 +539,7 @@ export default function ProductPurchasePanel({
                   toast.error(
                     remainingStock > 0
                       ? `Only ${remainingStock} more unit${remainingStock === 1 ? "" : "s"} can be added (you already have ${quantityInCart} in your cart).`
-                      : `You already have the maximum available quantity (${stock}) in your cart.`
+                      : `You already have the maximum available quantity (${stock}) in your cart.`,
                   );
                   return q;
                 }
@@ -478,7 +556,9 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleBuyNow}
-          disabled={isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)}
+          disabled={
+            isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)
+          }
           className="flex-1 min-w-[120px] bg-primary cursor-pointer text-white font-medium px-6 py-2.5 rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Buy
@@ -498,7 +578,9 @@ export default function ProductPurchasePanel({
         <button
           type="button"
           onClick={handleAddToCart}
-          disabled={isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)}
+          disabled={
+            isOutOfStock || exceedsStock || (isWholesaler && quantity < moq)
+          }
           className="flex items-center justify-center gap-2 border border-primary text-primary px-5 py-2 rounded hover:bg-primary/5 text-sm font-medium disabled:opacity-50 cursor-pointer"
         >
           <ShoppingCart size={16} />

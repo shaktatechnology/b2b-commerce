@@ -28,6 +28,8 @@ use App\Http\Controllers\Api\Admin\DashboardStatisticsController;
 // ── Auth (Public) ──────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
 Route::post('/login',    [AuthController::class, 'login'])->middleware('throttle:login');
+Route::get('/auth/google',          [AuthController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/reset-password',  [AuthController::class, 'resetPassword']);
 Route::get('/reset-password/{token}', function ($token) {

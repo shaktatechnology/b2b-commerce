@@ -106,3 +106,8 @@ export async function updateProfile(payload: {
   });
 }
 
+export function redirectToGoogleAuth() {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  window.location.href = `${baseUrl}/auth/google`;
+}
+

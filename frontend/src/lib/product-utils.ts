@@ -20,9 +20,32 @@ export function getActiveCurrency(): 'NPR' | 'USD' {
     if (chosen === 'USD' || chosen === 'NPR') {
       return chosen;
     }
+
+    const detectedCountry = localStorage.getItem('geo_country_code');
+    if (detectedCountry) {
+      return detectedCountry === 'NP' ? 'NPR' : 'USD';
+    }
   } catch (e) {}
 
   return 'NPR';
+}
+
+export async function autoDetectCurrencyByIP(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  try {
+    if (localStorage.getItem('currency_preference')) return;
+    if (localStorage.getItem('geo_country_code')) return;
+
+    const res = await fetch('https://ipapi.co/json/', { cache: 'force-cache' });
+    const data = await res.json();
+    if (data && data.country_code) {
+      localStorage.setItem('geo_country_code', String(data.country_code).toUpperCase());
+      window.dispatchEvent(new Event('currency_changed'));
+    }
+  } catch (e) {
+    // Fail silently if offline or blocked
+  }
 }
 export function formatPrice(amount: number, currency: string = 'NPR', decimals = 2): string {
   return currency.toUpperCase() === 'USD' ? `$ ${amount.toFixed(decimals)}` : `Rs. ${amount.toFixed(decimals)}`;

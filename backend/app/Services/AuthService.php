@@ -110,4 +110,38 @@ class AuthService implements AuthServiceInterface
 
         return $this->userRepository->update($user->id, $data);
     }
+
+    public function handleGoogleUser($googleUser)
+    {
+        $user = $this->userRepository->findByEmail($googleUser->getEmail());
+
+        if (!$user) {
+            $user = \App\Models\User::where('google_id', $googleUser->getId())->first();
+        }
+
+        if (!$user) {
+            $user = $this->userRepository->create([
+                'name' => $googleUser->getName() ?? $googleUser->getNickname() ?? 'Google User',
+                'email' => $googleUser->getEmail(),
+                'google_id' => $googleUser->getId(),
+                'password' => Hash::make(Str::random(32)),
+                'role' => 'customer',
+                'is_verified' => true,
+                'wholeseller_status' => 'approved',
+            ]);
+        } else {
+            if (empty($user->google_id)) {
+                $this->userRepository->update($user->id, ['google_id' => $googleUser->getId()]);
+                $user->refresh();
+            }
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return [
+            'user' => $user,
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+        ];
+    }
 }

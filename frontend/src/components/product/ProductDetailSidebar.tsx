@@ -21,8 +21,7 @@ interface ProductDetailSidebarProps {
 
 const STORAGE_URL =
   process.env.NEXT_PUBLIC_STORAGE_URL ||
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") ||
-  "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api", "");
 
 function resolveOfferImage(offer: Offer): string {
   const raw = offer.image_url || offer.image;
@@ -56,11 +55,12 @@ export default function ProductDetailSidebar({
   const activeOffers = offers.filter(o => o.is_active);
 
   return (
-    <aside className="space-y-5 w-full lg:w-72 shrink-0">
+    <aside className="w-full xl:w-72 xl:shrink-0">
+      {/* Offers — full width on mobile, sidebar width on xl */}
       {activeOffers.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-3 mb-5">
           {activeOffers.map((offer) => (
-            <div key={offer.id} className="relative aspect-[4/5] rounded-xl overflow-hidden shadow-sm group border border-gray-100">
+            <div key={offer.id} className="relative aspect-[4/5] xl:aspect-[4/5] rounded-xl overflow-hidden shadow-sm group border border-gray-100">
               <img
                 src={resolveOfferImage(offer)}
                 alt={offer.title}
@@ -76,89 +76,140 @@ export default function ProductDetailSidebar({
           ))}
         </div>
       )}
-      <CategorySidebar
-        categories={categoriesWithCounts.map((c) => ({
-          id: c.category.id.toString(),
-          name: c.category.name,
-          slug: c.category.slug,
-          products_count: c.count,
-        }))}
-      />
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 className="text-base font-bold text-primary mb-3">
-          Similar Products
-        </h3>
-        <ul className="space-y-3">
-          {similarProducts.slice(0, 4).map((item) => {
-            const activeVariant = item.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ?? item.variants?.[0];
-            const isInternationalPriceMissing =
-              isUSD &&
-              (isWholesaler
-                ? (activeVariant?.international_wholesale_price === undefined ||
-                  activeVariant?.international_wholesale_price === null ||
-                  activeVariant?.international_wholesale_price === "" ||
-                  Number(activeVariant?.international_wholesale_price) <= 0) &&
-                  (activeVariant?.international_price === undefined ||
-                  activeVariant?.international_price === null ||
-                  activeVariant?.international_price === "" ||
-                  Number(activeVariant?.international_price) <= 0)
-                : (activeVariant?.international_price === undefined ||
-                  activeVariant?.international_price === null ||
-                  activeVariant?.international_price === "" ||
-                  Number(activeVariant?.international_price) <= 0));
+      {/* Category sidebar — only visible on xl (already accessible via navbar on mobile) */}
+      <div className="hidden xl:block mb-5">
+        <CategorySidebar
+          categories={categoriesWithCounts.map((c) => ({
+            id: c.category.id.toString(),
+            name: c.category.name,
+            slug: c.category.slug,
+            products_count: c.count,
+          }))}
+        />
+      </div>
 
-            if (isInternationalPriceMissing) return null;
+      {/* Similar Products */}
+      {similarProducts.filter(item => {
+        if (!isUSD) return true;
+        const activeVariant = item.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ?? item.variants?.[0];
+        return !(isWholesaler
+          ? ((!activeVariant?.international_wholesale_price || Number(activeVariant?.international_wholesale_price) <= 0) && (!activeVariant?.international_price || Number(activeVariant?.international_price) <= 0))
+          : (!activeVariant?.international_price || Number(activeVariant?.international_price) <= 0));
+      }).length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 xl:p-5">
+          <h3 className="text-base font-bold text-primary mb-3">
+            Similar Products
+          </h3>
+          {/* Mobile: horizontal scroll; xl: vertical list */}
+          <div className="flex xl:hidden gap-3 overflow-x-auto scrollbar-hide pb-1">
+            {similarProducts.slice(0, 4).map((item) => {
+              const activeVariant = item.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ?? item.variants?.[0];
+              const isIntlMissing =
+                isUSD &&
+                (isWholesaler
+                  ? ((!activeVariant?.international_wholesale_price || Number(activeVariant?.international_wholesale_price) <= 0) && (!activeVariant?.international_price || Number(activeVariant?.international_price) <= 0))
+                  : (!activeVariant?.international_price || Number(activeVariant?.international_price) <= 0));
+              if (isIntlMissing) return null;
 
-            const lineItem = productToCartLineItem(item, { currency });
-            const basePrice = lineItem?.price ?? 0;
-            const discountAmount = lineItem?.discount ?? 0;
-            const finalPrice = basePrice - discountAmount;
-            const hasDiscount = discountAmount > 0;
+              const lineItem = productToCartLineItem(item, { currency });
+              const basePrice = lineItem?.price ?? 0;
+              const discountAmount = lineItem?.discount ?? 0;
+              const finalPrice = basePrice - discountAmount;
+              const hasDiscount = discountAmount > 0;
+              const image = resolveProductImageUrl(lineItem?.image ?? item.images?.[0]?.url ?? item.image_url);
 
-            const image = resolveProductImageUrl(
-              lineItem?.image ?? item.images?.[0]?.url ?? item.image_url
-            );
-
-            return (
-              <li key={item.id}>
+              return (
                 <Link
+                  key={item.id}
                   href={getProductPath({ id: item.id, slug: item.slug })}
-                  className="flex gap-3 group"
+                  className="flex-shrink-0 w-32 group"
                 >
-                  <div className="w-16 h-16 border border-gray-100 rounded-lg bg-gray-50 shrink-0 overflow-hidden flex items-center justify-center p-1">
+                  <div className="w-full aspect-square border border-gray-100 rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center p-1 mb-1.5">
                     {image ? (
-                      <img
-                        src={image}
-                        alt=""
-                        className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
-                      />
+                      <img src={image} alt="" className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform" />
                     ) : null}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">
-                      {item.name}
-                    </p>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-bold text-primary">
-                        {formatPrice(finalPrice, currency, 0)}
-                      </p>
-                      {hasDiscount && (
-                        <p className="text-[10px] text-gray-400 line-through">
-                          {formatPrice(basePrice, currency, 0)}
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-gray-400">
-                      By <span className="text-primary">{item.brand?.name || "Store"}</span>
-                    </p>
-                  </div>
+                  <p className="text-[12px] font-medium text-gray-800 line-clamp-2 group-hover:text-primary transition-colors leading-snug">{item.name}</p>
+                  <p className="text-sm font-bold text-primary mt-0.5">{formatPrice(finalPrice, currency, 0)}</p>
+                  {hasDiscount && <p className="text-[10px] text-gray-400 line-through">{formatPrice(basePrice, currency, 0)}</p>}
                 </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+              );
+            })}
+          </div>
+
+          {/* xl: vertical list */}
+          <ul className="hidden xl:block space-y-3">
+            {similarProducts.slice(0, 4).map((item) => {
+              const activeVariant = item.variants?.find((v: any) => v.is_active && (v.stock ?? 0) > 0) ?? item.variants?.[0];
+              const isInternationalPriceMissing =
+                isUSD &&
+                (isWholesaler
+                  ? ((activeVariant?.international_wholesale_price === undefined ||
+                    activeVariant?.international_wholesale_price === null ||
+                    activeVariant?.international_wholesale_price === "" ||
+                    Number(activeVariant?.international_wholesale_price) <= 0) &&
+                    (activeVariant?.international_price === undefined ||
+                    activeVariant?.international_price === null ||
+                    activeVariant?.international_price === "" ||
+                    Number(activeVariant?.international_price) <= 0))
+                  : (activeVariant?.international_price === undefined ||
+                    activeVariant?.international_price === null ||
+                    activeVariant?.international_price === "" ||
+                    Number(activeVariant?.international_price) <= 0));
+
+              if (isInternationalPriceMissing) return null;
+
+              const lineItem = productToCartLineItem(item, { currency });
+              const basePrice = lineItem?.price ?? 0;
+              const discountAmount = lineItem?.discount ?? 0;
+              const finalPrice = basePrice - discountAmount;
+              const hasDiscount = discountAmount > 0;
+
+              const image = resolveProductImageUrl(
+                lineItem?.image ?? item.images?.[0]?.url ?? item.image_url
+              );
+
+              return (
+                <li key={item.id}>
+                  <Link
+                    href={getProductPath({ id: item.id, slug: item.slug })}
+                    className="flex gap-3 group"
+                  >
+                    <div className="w-16 h-16 border border-gray-100 rounded-lg bg-gray-50 shrink-0 overflow-hidden flex items-center justify-center p-1">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt=""
+                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                        />
+                      ) : null}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium text-gray-800 line-clamp-1 group-hover:text-primary transition-colors">
+                        {item.name}
+                      </p>
+                      <div className="flex flex-col">
+                        <p className="text-sm font-bold text-primary">
+                          {formatPrice(finalPrice, currency, 0)}
+                        </p>
+                        {hasDiscount && (
+                          <p className="text-[10px] text-gray-400 line-through">
+                            {formatPrice(basePrice, currency, 0)}
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400">
+                        By <span className="text-primary">{item.brand?.name || "Store"}</span>
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </aside>
   );
 }

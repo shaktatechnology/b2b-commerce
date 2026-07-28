@@ -11,4 +11,5 @@ interface AuthServiceInterface
     public function resetPassword(array $data);
     public function getProfile($user);
     public function updateProfile($user, array $data);
+    public function handleGoogleUser($googleUser);
 }

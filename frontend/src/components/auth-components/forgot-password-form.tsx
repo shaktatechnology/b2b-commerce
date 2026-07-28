@@ -61,20 +61,40 @@ export function ForgotPasswordForm() {
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 mb-6"
+            className="space-y-6"
           >
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <CheckCircle className="size-5 text-emerald-500" />
-              </div>
-              <div>
-                <p className="font-bold text-emerald-700 text-sm mb-1">Email Sent!</p>
-                <p className="text-emerald-600 text-xs leading-relaxed">{successMessage}</p>
-                <p className="text-emerald-500 text-[11px] mt-2 font-medium">
-                  Didn't receive it? Check your spam folder or try again.
-                </p>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <CheckCircle className="size-5 text-emerald-500" />
+                </div>
+                <div>
+                  <p className="font-bold text-emerald-700 text-sm mb-1">Email Sent!</p>
+                  <p className="text-emerald-600 text-xs leading-relaxed">{successMessage}</p>
+                  <p className="text-emerald-500 text-[11px] mt-2 font-medium">
+                    Didn't receive it? Check your spam folder or try again.
+                  </p>
+                </div>
               </div>
             </div>
+
+            <Button
+              asChild
+              className="w-full h-[56px] rounded bg-[#966FD6] hover:bg-[#7d5bbf] text-white text-base font-medium transition-all active:scale-[0.98]"
+            >
+              <a href="/login">Back to Login</a>
+            </Button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setSuccessMessage(null);
+                reset();
+              }}
+              className="w-full text-center text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+            >
+              Send to another email
+            </button>
           </motion.div>
         )}
 
@@ -93,36 +113,38 @@ export function ForgotPasswordForm() {
         )}
       </AnimatePresence>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
-        <div className="space-y-8">
-          {/* Email field */}
-          <div className="space-y-2">
-            <div className="relative">
-              <Mail className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-zinc-400 pointer-events-none" />
-              <Input
-                id="forgot-email"
-                placeholder="Enter your email address"
-                type="email"
-                autoComplete="email"
-                disabled={isLoading || !!successMessage}
-                className="h-12 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none pl-7 pr-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none"
-                {...register('email')}
-              />
+      {!successMessage && (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+          <div className="space-y-8">
+            {/* Email field */}
+            <div className="space-y-2">
+              <div className="relative">
+                <Mail className="absolute left-0 top-1/2 -translate-y-1/2 size-4 text-zinc-400 pointer-events-none" />
+                <Input
+                  id="forgot-email"
+                  placeholder="Enter your email address"
+                  type="email"
+                  autoComplete="email"
+                  disabled={isLoading}
+                  className="h-12 w-full border-b-[1.5px] border-t-0 border-x-0 border-zinc-300 bg-transparent rounded-none pl-7 pr-0 text-base placeholder:text-zinc-400 focus-visible:ring-0 focus-visible:border-[#966FD6] transition-colors shadow-none"
+                  {...register('email')}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
+              )}
             </div>
-            {errors.email && (
-              <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
-            )}
           </div>
-        </div>
 
-        <Button
-          type="submit"
-          className="w-full h-[56px] rounded bg-[#966FD6] hover:bg-[#7d5bbf] text-white text-base font-medium transition-all disabled:opacity-70 active:scale-[0.98] cursor-pointer"
-          disabled={isLoading || !!successMessage}
-        >
-          {isLoading ? <Spinner size="sm" className="border-white" /> : 'Send Reset Link'}
-        </Button>
-      </form>
+          <Button
+            type="submit"
+            className="w-full h-[56px] rounded bg-[#966FD6] hover:bg-[#7d5bbf] text-white text-base font-medium transition-all disabled:opacity-70 active:scale-[0.98] cursor-pointer"
+            disabled={isLoading}
+          >
+            {isLoading ? <Spinner size="sm" className="border-white" /> : 'Send Reset Link'}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }

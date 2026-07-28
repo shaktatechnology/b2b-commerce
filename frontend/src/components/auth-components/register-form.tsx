@@ -19,7 +19,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { apiFetch } from '@/src/lib/api';
-import { setAuthCookie } from '@/src/lib/auth';
+import { setAuthCookie, redirectToGoogleAuth } from '@/src/lib/auth';
 import { useAppStore } from '@/src/store/use-app-store';
 import { cn } from '@/src/lib/utils';
 import { AuthUser } from '@/src/types';
@@ -213,18 +213,8 @@ export function RegisterForm() {
         return;
       }
 
-      // Customer → log in immediately and redirect
-      setAuthCookie(res.data.access_token);
-      setUser(res.data.user);
-
-      const userRole = res.data.user?.role;
-      if (redirectTo && redirectTo.startsWith('/')) {
-        window.location.href = redirectTo;
-      } else if (userRole === 'admin') {
-        window.location.href = '/admin/dashboard';
-      } else {
-        window.location.href = '/';
-      }
+      // Customer → redirect to login page
+      window.location.href = '/login?registered=true';
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Registration failed. Please try again.';
       setErrorMessage(message);
@@ -435,6 +425,7 @@ export function RegisterForm() {
         {/* Google */}
         <button
           type="button"
+          onClick={redirectToGoogleAuth}
           className="w-full h-[50px] flex items-center justify-center gap-3 rounded border border-zinc-300 bg-white hover:bg-zinc-50 text-zinc-800 text-base font-medium transition-all active:scale-[0.98] cursor-pointer"
           disabled={isLoading}
         >
