@@ -57,6 +57,35 @@ export function OrderDetailsFeature() {
   // eSewa only makes sense for NPR orders, PayPal only for USD orders — COD
   // works for both. Filter down to whichever pair matches this order's
   // currency, same as the checkout page's own gateway logic.
+  const isCodOrder = (ord: any): boolean => {
+    if (!ord) return false;
+    const directMethod = (
+      ord?.payment_method ||
+      ord?.gateway ||
+      ord?.payment?.method ||
+      ''
+    ).toLowerCase();
+
+    if (directMethod.includes('cod') || directMethod.includes('cash')) {
+      return true;
+    }
+
+    if (Array.isArray(ord?.payments)) {
+      const hasCodPayment = ord.payments.some((p: any) => {
+        const g = (p?.gateway || p?.payment_method || '').toLowerCase();
+        return g.includes('cod') || g.includes('cash');
+      });
+      if (hasCodPayment) return true;
+    }
+
+    const notes = (ord?.notes || '').toLowerCase();
+    if (notes.includes('cod') || notes.includes('cash on delivery') || notes.includes('cash_on_delivery')) {
+      return true;
+    }
+
+    return false;
+  };
+
   const isInternational = order ? getOrderCurrencySymbol(order) === '$' : false;
   const availableGateways = React.useMemo(
     () =>
@@ -209,9 +238,22 @@ export function OrderDetailsFeature() {
           <Card className="border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] overflow-hidden bg-white">
             <CardHeader className="bg-zinc-50/50 px-8 py-8 border-b border-zinc-100 flex flex-row items-center justify-between">
               <CardTitle className="text-xl font-black text-black">Line Items</CardTitle>
-              <div className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", order.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100')}>
-                Payment: {order.payment_status}
-              </div>
+              {(() => {
+                const isCod = isCodOrder(order);
+                const status = order.payment_status?.toLowerCase();
+                const text = status === 'paid' ? 'PAID' : isCod ? 'CASH ON DELIVERY' : order.payment_status;
+                const badgeClass = status === 'paid'
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                  : isCod
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200/50'
+                  : 'bg-amber-50 text-amber-600 border-amber-100';
+
+                return (
+                  <div className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border", badgeClass)}>
+                    Payment: {text}
+                  </div>
+                );
+              })()}
             </CardHeader>
             <CardContent className="p-0">
                <div className="p-8 space-y-4">
@@ -259,21 +301,17 @@ export function OrderDetailsFeature() {
                <div className="bg-zinc-50/50 p-8 border-t border-zinc-100 space-y-3">
                   <div className="flex justify-between text-sm font-medium text-zinc-500">
                     <span>Subtotal</span>
-                    <span>{formatOrderAmount(order, order.subtotal || 0)}</span>
+                    <span className="font-bold text-black">{formatOrderAmount(order, order.subtotal || 0)}</span>
                   </div>
                   {Number(order.discount_amount || 0) > 0 && (
                     <div className="flex justify-between text-sm font-medium text-emerald-600">
                       <span>Discount</span>
-                      <span>- {formatOrderAmount(order, order.discount_amount)}</span>
+                      <span className="font-bold">- {formatOrderAmount(order, order.discount_amount)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm font-medium text-zinc-500">
-                    <span>Shipping</span>
-                    <span className="text-emerald-500 font-bold uppercase text-[10px] tracking-widest">Calculated at dispatch</span>
-                  </div>
-                  <div className="flex justify-between pt-4 border-t border-zinc-100">
-                    <span className="text-lg font-black text-black uppercase tracking-tight">Grand Total</span>
-                    <span className="text-2xl font-black text-[#966FD6]">{formatOrderAmount(order, order.total_amount || order.total || 0)}</span>
+                  <div className="flex justify-between text-base font-black text-black pt-2 border-t border-zinc-200">
+                    <span>Total Amount</span>
+                    <span className="text-[#966FD6] text-xl">{formatOrderAmount(order, order.total_amount || order.total || 0)}</span>
                   </div>
                </div>
             </CardContent>
@@ -294,8 +332,8 @@ export function OrderDetailsFeature() {
 
         {/* Shipping & Payment Sidebar */}
         <div className="space-y-6">
-          {/* Payment Section for Unpaid Orders */}
-          {order.payment_status === 'unpaid' && order.status === 'pending' && paymentSettings && (
+          {/* Payment Section for Unpaid Online Orders */}
+          {order.payment_status === 'unpaid' && order.status === 'pending' && !isCodOrder(order) && paymentSettings && (
              <Card className="border-none shadow-[0_20px_50px_rgba(0,0,0,0.08)] rounded-[2.5rem] overflow-hidden bg-white border-2 border-[#966FD6]/20">
                <CardHeader className="bg-emerald-600 p-8 text-white">
                  <div className="flex items-center gap-3 mb-2">
