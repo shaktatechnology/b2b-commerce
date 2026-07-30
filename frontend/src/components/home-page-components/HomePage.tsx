@@ -2,12 +2,12 @@ import BrandSpecialOffers from "./BrandSpecialOffers";
 import MiddleSectionOffers from "./MiddleSectionOffers";
 import CategorySidebar from "./CategorySidebar";
 import DealOfTheDay from "./DealOfTheDay";
+import FeaturedProductsRow from "./FeaturedProductsRow";
 import HeroSlider from "./HeroSlider";
 import PopularProducts from "./PopularProducts";
 import ProductSuggestions from "./ProductSuggestions";
 import Footer from "../layouts/Footer";
 import Navbar from "../layouts/Navbar";
-import CouponsSection from "../coupons/CouponsSection";
 import VouchersOrProducts from "./VouchersOrProducts";
 import { isOfferLive } from "@/src/lib/offer-utils";
 import { Suspense } from "react";
@@ -93,6 +93,12 @@ export default async function HomePage() {
         tags={tags}
       />
 
+      {/* ── Three sections below BrandSpecialOffers ── */}
+      <FeaturedProductsRow
+        products={productData?.data || []}
+        subtitle="Best Deal on"
+        title="Featured Products"
+      />
 
       <DealOfTheDay dealProducts={dailyDeals} />
 
