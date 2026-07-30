@@ -202,26 +202,47 @@ class ProductRepository implements ProductRepositoryInterface
                 $incomingVariantIds = [];
 
                 foreach ($data['variants'] as $variantData) {
-                    $variantImageUrl = $variantData['image_url'] ?? null;
-                    if (isset($variantData['image']) && $variantData['image'] instanceof \Illuminate\Http\UploadedFile && $variantData['image']->isValid()) {
-                        $path = $variantData['image']->store('variants', 'public');
-                        $variantImageUrl = \Illuminate\Support\Facades\Storage::url($path);
-                    }
 
                     $variantModel = null;
                     if (isset($variantData['id'])) {
                         // Update existing variant
                         $variant = ProductVariant::where('product_id', $product->id)->findOrFail($variantData['id']);
 
-                        // If new image uploaded, delete old one from storage
-                        if (isset($variantData['image']) && $variant->image_url) {
-                            $oldPath = str_replace('/storage/', '', $variant->image_url);
-                            \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+
+
+                        $updateData = $variantData;
+
+                        $imageExplicitlySent = array_key_exists('image_url', $variantData);
+                        $imageUrlEmpty       = $imageExplicitlySent &&
+                                              ($variantData['image_url'] === '' || $variantData['image_url'] === null);
+                        $removeImage         = filter_var($variantData['remove_image'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                        $newFileUploaded     = isset($variantData['image']) &&
+                                              $variantData['image'] instanceof \Illuminate\Http\UploadedFile &&
+                                              $variantData['image']->isValid();
+
+                        if ($removeImage || $imageUrlEmpty) {
+                            // Explicit clear for THIS variant only — delete its old file
+                            if ($variant->image_url) {
+                                $oldPath = str_replace('/storage/', '', $variant->image_url);
+                                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                            }
+                            $updateData['image_url'] = null;
+
+                        } elseif ($newFileUploaded) {
+                            // New file uploaded for THIS variant — swap it out
+                            if ($variant->image_url) {
+                                $oldPath = str_replace('/storage/', '', $variant->image_url);
+                                \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                            }
+                            $path = $variantData['image']->store('variants', 'public');
+                            $updateData['image_url'] = \Illuminate\Support\Facades\Storage::url($path);
+
+                        } else {
+                            // No image-related data sent for this variant — preserve its existing image
+                            unset($updateData['image_url']);
                         }
 
-                        $variant->update(array_merge($variantData, [
-                            'image_url' => $variantImageUrl ?? $variant->image_url,
-                        ]));
+                        $variant->update($updateData);
                         $incomingVariantIds[] = $variant->id;
                         $variantModel = $variant;
                     } else {
@@ -239,7 +260,7 @@ class ProductRepository implements ProductRepositoryInterface
                             'color_id' => $variantData['color_id'] ?? $data['color_id'] ?? $product->color_id,
                             'size_id' => $variantData['size_id'] ?? $data['size_id'] ?? $product->size_id,
                             'is_active' => $variantData['is_active'] ?? true,
-                            'image_url' => $variantImageUrl,
+                            'image_url' => $variantData['image_url'] ?? null,
                         ]);
                         $incomingVariantIds[] = $newVariant->id;
                         $variantModel = $newVariant;
